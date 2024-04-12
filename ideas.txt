@@ -1,0 +1,60 @@
+Ideas for the Text RPG
+----------------------
+
+- Dungeon Rework
+	- Linear Progression
+	- Less Returning to Town
+	- Boss Fights
+
+- More depth to the town
+	- Cardinal Direction Redesign
+	- Fishing
+	- Improved Dialogue System
+	- Invest money to unlock buildings
+
+- Quest System
+	- NPC Quests
+
+- Other Features
+	- Character Description
+	- Renown System
+	
+- Weapon System
+
+Hammers: - Hit Multiple Enemies
+Polearms: - High Damage at Range
+Swords: - +1 Rune Slot
+Daggers: - High Single Target Damage
+Axes: - Idk
+Whips: - High Damage at Range, low Pierce
+
+- QoL changes: Travel Overhaul, Village Layout Reworked, !tutorial
+- Weapon overhaul. !weapons
+- Added new Prosperity System !prosperity
+- New potions, and made potions cheaper
+- New Enemies, some enemies rebalanced or fixed
+- Added 1 new Rune
+- # of Atks Remaining Indicator
+- Level Selection in Dungeons
+- Ferry
+- Bait Shop
+- Barbershop
+- Graveyard
+
+- Fishing
+- Reduce Fishing Time with Better Poles
+- Add More Fish & Fishing Locations, Improve Fish Level by which Fishing Pole you have
+
+Things to Add: 
+- Island
+- Random Allies that will join you!!! ie Dwarf, Coward, Healer, Some Kinda Critter
+
+
+Enemy Ideas:
+- Succubus
+- Stalker
+- Ephemeral enemy that fades out on its own but gets stronger if you attack it
+- Totem enemy that absorbs all magic damage
+- Enemy that pushes you back
+
+
