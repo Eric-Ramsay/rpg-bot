@@ -8,6 +8,7 @@ eval(fs.readFileSync('init.js') + '');
 eval(fs.readFileSync('helpers.js') + '');
 eval(fs.readFileSync('commands.js') + '');
 eval(fs.readFileSync('AI.js') + '');
+eval(fs.readFileSync('login.js') + '');
 
 var data = require('./data.json');
 
