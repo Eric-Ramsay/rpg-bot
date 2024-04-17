@@ -3,37 +3,39 @@ function ListCommands(index) {
 	msg += "--- Available Queries ---\n";
 	if (index == -1) {
 		msg += "*CYAN*!tutorial - Provides a list of commands to use when getting started.\n";
-		msg += "*RED*!character NAME CLASS *GREY*- Creates a new Character. Name is optional. Class can be Random.\n";
+		msg += "*GREEN*!character CLASS NAME *GREY*- Creates a new Character. Name and Class are optional, or can be set as RANDOM.\n";
 		msg += "*CYAN*!stats *GREY*- Describes what character stats do.\n";
-		msg += "*RED*!equip ITEM *GREY*- Equips armor or a weapon.\n";
+		msg += "*GREEN*!equip ITEM *GREY*- Equips armor or a weapon.\n";
 		msg += "*CYAN*!here *GREY*- Provides a description of where you are.\n";
-		msg += "*RED*!leave *GREY*- Leaves a dungeon or building.\n";
+		msg += "*GREEN*!leave *GREY*- Leaves a dungeon or building.\n";
 		msg += "*CYAN*!go DIRECTION *GREY*- Travels in a direction. Can be used in combat to change rows.\n";
-		msg += "*RED*!enter BUILDING *GREY*- Enters a building.\n";
+		msg += "*GREEN*!enter BUILDING *GREY*- Enters a building.\n";
 		msg += "*CYAN*!trade *GREY*- Starts trading with a merchant.\n";
-		msg += "*RED*!stop *GREY*- Stops Trading.\n";
+		msg += "*GREEN*!stop *GREY*- Stops Trading.\n";
 		msg += "*CYAN*!buy ITEM *GREY*- Buys an item, provided you're trading.\n";
-		msg += "*RED*!sell ITEM *GREY*- Sells an item, can be done from anywhere in town.\n";
+		msg += "*GREEN*!sell ITEM *GREY*- Sells an item, can be done from anywhere in town.\n";
 		msg += "*CYAN*!delve *GREY*- Enter into a dungeon.\n";
-		msg += "*RED*!spells *GREY*- Lists spells that you know.\n";
+		msg += "*GREEN*!spells *GREY*- Lists spells that you know.\n";
 		msg += "*CYAN*!read BOOK *GREY*- Reads a spellbook and learns a spell from that school.\n";
-		msg += "*RED*!rest *GREY*- You must be at the tavern. Spend 5 gold and restore all of your health.\n";
+		msg += "*GREEN*!rest *GREY*- You must be at the tavern. Spend 5 gold and restore all of your health.\n";
 		msg += "*CYAN*!level STAT *GREY*- Increases the stat specified by 1. You must have SP to use.\n";
-		msg += "*RED*!suicide *GREY*- Kills you.\n";
+		msg += "*GREEN*!suicide *GREY*- Kills you.\n";
 		msg += "*CYAN*!classes *GREY*- Lists the available classes.\n";
-		msg += "*RED*!haircut DESCRIPTION *GREY*- You must be in the barbershop, allows you to set a description.\n";
+		msg += "*GREEN*!haircut DESCRIPTION *GREY*- You must be in the barbershop, allows you to set a description.\n";
 		msg += "*CYAN*!fish *GREY*- You must be at a location with fish, with a fishing pole equipped.\n";
+		msg += "*GREEN*!retire *GREY*- Retire your character to the guild hall. They can be played later.\n";
+		msg += "*CYAN*!play as NAME*GREY* - Play as any retired character.\n";
 	}
 	else {
-		msg += "*RED*!cast SPELL on TARGET *GREY*- Casts a spell.\n";
+		msg += "*GREEN*!cast SPELL on TARGET *GREY*- Casts a spell.\n";
 		msg += "*CYAN*!attack TARGET with WEAPON *GREY*- Attacks an enemy.\n";
-		msg += "*RED*!take ITEM *GREY*- Loots an item after combat.\n";
+		msg += "*GREEN*!take ITEM *GREY*- Loots an item after combat.\n";
 		msg += "*CYAN*!flee *GREY*- Flees from combat if you're on the bottom row. Costs 3 AP to attempt.\n";
-		msg += "*RED*!start *GREY*- Start combat once you've entered a dungeon. No one will be able to join you after this.\n";
+		msg += "*GREEN*!start *GREY*- Start combat once you've entered a dungeon. No one will be able to join you after this.\n";
 		msg += "*CYAN*!end *GREY*- Ends your turn.\n";
-		msg += "*RED*!move UP/DOWN *GREY*- Moves up or down a row. Costs 3 AP.\n";
+		msg += "*GREEN*!move UP/DOWN *GREY*- Moves up or down a row. Costs 3 AP.\n";
 		msg += "*CYAN*!drink POTION *GREY*- Drinks a potion.\n";
-		msg += "*RED*!effects *GREY*- Lists effects on you.\n";
+		msg += "*GREEN*!effects *GREY*- Lists effects on you.\n";
 		msg += "*CYAN*!push TARGET*GREY*- Pushes an enemy back. You must have a polearm to use.\n";
 	}
 
@@ -47,12 +49,12 @@ function CommandDescribe(words, C, battleIndex) {
 	let args = words.slice(1, words.length).join(" ");
 	let index = findItem(C.INVENTORY, args);
 	if (index >= 0) {
-		return ItemDescription(C.INVENTORY[index]);
+		return ItemDescription(C, C.INVENTORY[index]);
 	}
 	else {
 		for (let i = 0; i < items.length; i++) {
 			if (items[i].name.toLowerCase() == args) {
-				return ItemDescription(items[i]);
+				return ItemDescription(C, items[i]);
 			}
 		}
 		if (battleIndex > -1) {
@@ -178,12 +180,10 @@ function CommandCast(words, C, index) {
 	if (split.length == 1) {
 		msg = Cast(battles[index], C, split[0], "self");
 		msg += HandleCombat(battles[index]);
-		msg += RoomDescription(C);
 	}
 	else if (split.length == 2) {
 		msg = Cast(battles[index], C, split[0], split[1]);
 		msg += HandleCombat(battles[index]);
-		msg += RoomDescription(C);
 	}
 	else {
 		return "*RED*Invalid spell formatting!";
@@ -269,21 +269,21 @@ function CommandAttack(words, C, index, isPushing = false) {
 					}
 				}
 				if (atks == 0) {
-					return "*RED*Your weapons don't have any attacks left!";
+					return "*RED*Your weapons don't have any attacks left!\n";
 				}
-				return "*RED*You don't have a valid weapon to attack with!";
+				return "*RED*You don't have a valid weapon to attack with!\n";
 			}
 			if ((isPushing && C.AP < 3) || (!isPushing && C.AP < (C.INVENTORY[weaponIndex].AP + APCost(C)))) {
-				return "*RED*You don't have enough AP to attack with this weapon.";
+				return "*RED*You don't have enough AP to attack with this weapon.\n";
 			}
 			if (range > C.INVENTORY[weaponIndex].range) {
-				return "*RED*The enemy is too far away to attack with this weapon.";
+				return "*RED*The enemy is too far away to attack with this weapon.\n";
 			}
 			if (!isPushing && !CanUseWeapon(C, weaponIndex)) {
 				if (C.INVENTORY[weaponIndex].attacks[0] == 0) {
-					return "*RED*This weapon can't attack again this turn.";
+					return "*RED*This weapon can't attack again this turn.\n";
 				}
-				return "*RED*You don't have enough ammunition to use this weapon.";
+				return "*RED*You don't have enough ammunition to use this weapon.\n";
 			}
 			if (isPushing && C.INVENTORY[weaponIndex].subclass == "polearm") {
 				msg = PushTarget(C, battles[index].enemies[enemyIndex]);
@@ -291,9 +291,8 @@ function CommandAttack(words, C, index, isPushing = false) {
 			}
 			else {
 				msg = AllyAttack(battles[index], C, enemyIndex, weaponIndex);
+				msg += HandleCombat(battles[index]);
 			}
-			msg += HandleCombat(battles[index]);
-			msg += RoomDescription(C);
 		}
 		else {
 			isDead = true;
@@ -394,12 +393,12 @@ function CommandTravel(words, C, index) {
 			}
 		}
 		else {
-			return "*RED*In combat, you can only move *GREEN*UP*RED* or *GREEN*DOWN";
+			return "*RED*In combat, you can only move *GREEN*UP*RED* or *GREEN*DOWN\n";
 		}
 		if (C.ROW + direction >= 0 && C.ROW + direction <= 4) {
-			let cost = direction * (3 + APCost(C));
+			let cost = Math.abs(direction) * (3 + APCost(C));
 			if (hasEffect(C, "slowed")) {
-				cost += direction * 3;
+				cost += Math.abs(direction) * 3;
 			}
 			if (C.AP >= cost || !battles[index].started) {
 				if (battles[index].started) {
@@ -415,14 +414,13 @@ function CommandTravel(words, C, index) {
 						msg += "*GREEN*up*GREY*.\n";
 					}
 				}
-				msg += RoomDescription(C);
 			}
 			else {
-				return "*RED*You don't have the AP to move any farther.";
+				return "*RED*You don't have the AP to move any farther.\n";
 			}
 		}
 		else {
-			return "*RED*You can't go any farther that way.";
+			return "*RED*You can't go any farther that way.\n";
 		}
 	}
 	else {
@@ -430,7 +428,7 @@ function CommandTravel(words, C, index) {
 			C.BUILDING = "";
 		}
 		if (words.length == 0) {
-			return RoomDescription(C);
+			return "";
 		}
 		
 		if (words[0] == "to") {
@@ -468,7 +466,7 @@ function CommandTravel(words, C, index) {
 									msg += "*GREY*You pay *YELLOW*" + locations[j].cost + " Gold*GREY*.\n";
 								}
 								Travel(C, locations[j]);
-								return RoomDescription(C);
+								return "";
 							}
 						} 
 					}
@@ -491,7 +489,6 @@ function CommandTravel(words, C, index) {
 				}
 				Travel(C, locations[i]);
 				msg = "*GREEN*You travel to *BLUE*" + locations[i].id + "\n";
-				msg += RoomDescription(C);
 				return msg;
 			}
 			for (const building of locations[i].buildings) {
@@ -509,15 +506,14 @@ function CommandTravel(words, C, index) {
 							msg += "*GREY*You pay *YELLOW*" + locations[i].cost + " Gold*GREY*.\n";
 						}
 						Travel(C, locations[i]);	
-						msg = "*GREEN*You travel to *BLUE*" + locations[i].id + " and enter the *GREEN*" + name + ".\n";
+						msg = "*GREEN*You travel to *BLUE*" + locations[i].id + "*GREY* and enter the *GREEN*" + name + ".\n";
 					}
 					C.BUILDING = name;
-					msg += RoomDescription(C);
 					return msg;
 				}
 			}
 		}
-		return "*RED*You can't go that way.";
+		return "*RED*You can't go that way.\n";
 	}
 	return msg;
 }
@@ -525,19 +521,22 @@ function CommandTravel(words, C, index) {
 function CommandFlee(C, index) {
 	let msg = "";
 	if (C.ENDED) {
-		return "*RED*Your turn has already ended!";
+		return "*RED*Your turn has already ended!\n";
+	}
+	if (hasEffect(C, "rooted")) {
+		return "*RED*You're rooted and can't move!";
 	}
 	if (C.ROW != 4) {
-		return "*RED*You have to move down to the edge of the battle before you can flee!";
+		return "*RED*You have to move down to the edge of the battle before you can flee!\n";
 	}
 	if (C.AP < (3 + APCost(C))) {
-		return "*RED*You don't have enough AP to attempt fleeing. (3 Required).";
+		return "*RED*You don't have enough AP to attempt fleeing. (3 Required).\n";
 	}
 	C.ENDED = true;
 	C.AP -= (3 + APCost(C));
 	let ran = rand(10);
 	if (ran >= 5 + C.STATS[AVD]) {
-		return "*RED*You fail to flee!";
+		return "*RED*You fail to flee!\n";
 	}
 	let battle = battles[index];
 	for (let a = battle.allies.length - 1; a >= 0; a--) {
@@ -546,7 +545,7 @@ function CommandFlee(C, index) {
 			break;
 		}
 	}
-	msg = "*YELLOW*" + C.NAME + " flees from the battle!";
+	msg = "*YELLOW*" + C.NAME + " flees from the battle!\n";
 	return msg;
 }
 
@@ -555,7 +554,6 @@ function CommandTake(words, C, index) {
 	//Two Parts Expected: Item Index and # to take
 	let args = words.slice(1, words.length).join(" ");
 	let num = 1;
-	//console.log(words[words.length - 1]);
 	if (words[words.length - 1][0] == "x") {
 		num = parseInt(words[words.length-1].slice(1, words[words.length - 1].length));
 		args = words.slice(1, words.length - 1).join(" ");
@@ -574,30 +572,27 @@ function CommandTake(words, C, index) {
 function CommandCharacter(words, C, authorId) {
 	let msg = "";
 	if (words.length >= 2) {
-		let name = words[1];
-		C.NAME = name.substring(0, 20);
-		C.NAME = C.NAME.charAt(0).toUpperCase() + C.NAME.slice(1);
-		for (let i = 0; i < enemies.length; i++) {
-			if (enemies[i].NAME.toLowerCase() == C.NAME) {
-				C.NAME = genName(rand(2));
-			}
-		}
-		if (C.NAME.toLowerCase() == "random") {
-			C.NAME = genName(rand(2));
-		}
-		//console.log(C.NAME);
-	}
-	else {
-		C.NAME = genName(rand(2));
-	}
-	if (words.length >= 3) {
-		C.CLASS = words[2].toLowerCase();
+		C.CLASS = words[1].toLowerCase();
 		if (C.CLASS == "random") {
 			C.CLASS = classes[rand(classes.length)];
 		}
 	}
 	else {
 		C.CLASS = classes[rand(classes.length)];
+	}
+	if (words.length >= 3) {
+		C.NAME = Prettify(words[2].substring(0, 20));
+		for (let i = 0; i < enemies.length; i++) {
+			if (enemies[i].NAME.toLowerCase() == C.NAME.toLowerCase()) {
+				C.NAME = genName(rand(2));
+			}
+		}
+		if (C.NAME.toLowerCase() == "random") {
+			C.NAME = genName(rand(2));
+		}
+	}
+	else {
+		C.NAME = genName(rand(2));
 	}
 	if (!classes.includes(C.CLASS)) {
 		success = false;
@@ -619,9 +614,11 @@ function CommandCharacter(words, C, authorId) {
 		if (C.CLASS == "warrior") {
 			C.STATS[VIT]++;
 			C.STATS[DEX]++
+			C.ARMOR = [2, 2]
 			C.INVENTORY.push(startItem("hatchet"));
-			C.INVENTORY.push(startItem("leather cuirass"));
 			C.INVENTORY.push(startItem("buckler"));
+			C.INVENTORY.push(startItem("leather cuirass"));
+			
 			for (let i = 0; i < C.INVENTORY.length; i++) {
 				Equip(C, i);
 			}
@@ -637,8 +634,8 @@ function CommandCharacter(words, C, authorId) {
 		}
 		if (C.CLASS == "noble") {
 			C.GOLD = 150;
+			C.INVENTORY.push(startItem("scimitar"));
 			C.INVENTORY.push(startItem("stylish shirt"));
-			C.INVENTORY.push(startItem("rondel dagger"));
 			for (let i = 0; i < C.INVENTORY.length; i++) {
 				Equip(C, i);
 			}
@@ -668,7 +665,7 @@ function CommandCharacter(words, C, authorId) {
 				Equip(C, i);
 			}
 			C.SPELLS.push(new Spell("self-taught", "Arcane Strike", "Deal 6 Damage to a Target", 5));
-			let books = ["elemental", "blood", "witchcraft", "divine"];
+			let books = ["elemental", "blood", "witchcraft", "divine", "imperial"];
 			C.INVENTORY.push(startItem(books[rand(books.length)] + " spellbook"));
 		}
 		C.SP = 4;
@@ -771,7 +768,7 @@ function CommandTalk(words, C) {
 		}
 	}
 	if (!NPC) {
-		return "*RED*Can't find '" + args + "'";
+		return "*RED*Can't find '" + args + "'\n";
 	}
 	let color = "*GREEN*";
 	if (NPC.MERCHANT) {
@@ -814,7 +811,7 @@ function CommandTrade(words, C) {
 		}
 	}
 	if (C.TRADING == "") {
-		return "*RED*Can't find merchant '" + args + "'";
+		return "*RED*Can't find merchant '" + args + "'\n";
 	}
 	msg += RoomDescription(C);
 	return msg;
@@ -824,11 +821,11 @@ function CommandDrop(words, C, index) {
 	let msg = "";
 	let args = words.slice(1, words.length).join(" ");
 	let invIndex = findItem(C.INVENTORY, args);
-	if (invIndex == -1) {
-		return "*RED*Can't find item '" + args + "'";
+	if (invIndex == -1 || invIndex > C.INVENTORY.length) {
+		return "*RED*Can't find item '" + args + "'\n";
 	}
 	battles[index].loot.push(C.INVENTORY[invIndex]);
-	msg = "*YELLOW*You drop your " + C.INVENTORY[invIndex].name + "!";
+	msg = "*YELLOW*You drop your " + C.INVENTORY[invIndex].name + "!\n";
 	RemoveItem(C, invIndex);
 	return msg;	
 }
@@ -838,11 +835,11 @@ function CommandSell(words, C) {
 	let args = words.slice(1, words.length).join(" ");
 	let location = findLocation(C.LOCATION);
 	if (location.dungeon) {
-		return "*RED*You must be in town to sell your items.";
+		return "*RED*You must be in town to sell your items.\n";
 	}
 	let invIndex = findItem(C.INVENTORY, args);
 	if (invIndex == -1) {
-		return "*RED*Can't find item '" + args + "'";
+		return "*RED*Can't find item '" + args + "'\n";
 	}
 
 	let gold = C.INVENTORY[invIndex].value;
@@ -855,7 +852,7 @@ function CommandSell(words, C) {
 	C.GOLD += gold;
 	let itemName = C.INVENTORY[invIndex].name;
 	RemoveItem(C, invIndex);
-	return "*GREEN*You sell the " + itemName + " for *YELLOW*" + gold + " gold*GREEN*. You have *YELLOW*" + C.GOLD + " gold*GREEN*.";
+	return "*GREEN*You sell the " + itemName + " for *YELLOW*" + gold + " gold*GREEN*. You have *YELLOW*" + C.GOLD + " gold*GREEN*.\n";
 }
 
 function CommandBuy(words, C) {
@@ -876,13 +873,13 @@ function CommandBuy(words, C) {
 	}
 	let invIndex = findItem(NPC.ITEMS, args);
 	if (invIndex == -1) {
-		return "*RED*Can't find item '" + args + "'";
+		return "*RED*Can't find item '" + args + "'\n";
 	}
 	if (C.GOLD < NPC.ITEMS[invIndex].value) {
-		return "*RED*You don't have enough gold to buy that.";
+		return "*RED*You don't have enough gold to buy that.\n";
 	}
 	if (C.BACKPACK && NPC.ITEMS[invIndex].name.toLowerCase() == "backpack") {
-		return "*RED*You already have a backpack.";
+		return "*RED*You already have a backpack.\n";
 	}
 	//Try to buy item
 	if (CanTake(C, NPC.ITEMS[invIndex])) {
@@ -899,7 +896,7 @@ function CommandBuy(words, C) {
 		if (NPC.ITEMS[invIndex].type == "rune") {
 			name += " Rune";
 		}
-		return "*GREEN*You buy the *RED*" + name + "*GREEN* for *YELLOW*" + NPC.ITEMS[invIndex].value + " gold*GREEN*. You have *YELLOW*" + C.GOLD + " gold*GREEN* left.";
+		return "*GREEN*You buy the *RED*" + name + "*GREEN* for *YELLOW*" + NPC.ITEMS[invIndex].value + " gold*GREEN*. You have *YELLOW*" + C.GOLD + " gold*GREEN* left.\n";
 	}
 	else {
 		return "*RED*You can't buy that!\n";
@@ -912,13 +909,13 @@ function CommandRead(words, C) {
 	let args = words.slice(1, words.length).join(" ");
 	let invIndex = findItem(C.INVENTORY, args);
 	if (invIndex == -1) {
-		return "*RED*Can't find spellbook '" + args + "'";
+		return "*RED*Can't find spellbook '" + args + "'\n";
 	}
 	if (C.INVENTORY[invIndex].type != "spellbook") {
-		return "*RED*You can't read that.";
+		return "*RED*You can't read that.\n";
 	}
 	if (C.SPELLS.length > 2 * C.STATS[MAG]) {
-		return "*RED*You don't have enough spell slots!";
+		return "*RED*You don't have enough spell slots!\n";
 	}
 	let school = C.INVENTORY[invIndex].name.toLowerCase().split(" ")[0];
 	let spellList = [];
@@ -937,12 +934,12 @@ function CommandRead(words, C) {
 		}
 	}
 	if (spellList.length == 0) {
-		return "*RED*You already know all the secrets this book has to offer.";
+		return "*RED*You already know all the secrets this book has to offer.\n";
 	}
 	let spell = spellList[rand(spellList.length)];
 	msg = "*GREEN*You learn the spell '" + spell.name + "'!";
 	C.SPELLS.push(spell);
-	return msg;
+	return msg + "\n";
 }
 
 function CommandSpells(C) {
@@ -982,14 +979,14 @@ function CommandEnchant(words, C) {
 			return "*RED*Invalid Enchantment.\n";
 		}
 		if (item.runes.length >= maxRunes(item)) {
-			return "*RED*This item already has its max enchantments.";
+			return "*RED*This item already has its max enchantments.\n";
 		}
 		if (item.type != "armor" && item.type != "weapon" && item.type != "staff") {
 			return "*RED*This item can not be enchanted!";
 		}
 		for (const usedRune of item.runes) {
 			if (usedRune.name.toLowerCase() == rune.name.toLowerCase()) {
-				return "*RED*This item has already been enchanted with that rune.";
+				return "*RED*This item has already been enchanted with that rune.\n";
 			}
 		}
 		if (rune.name.toLowerCase() == "precise") {
@@ -1013,10 +1010,153 @@ function CommandEnchant(words, C) {
 		}
 		C.INVENTORY[i].runes.push(rune);
 		RemoveItem(C, r);
-		msg = "*GREEN*You enchant the " + item.name + " with the Rune: " + rune.name + "!\n";
+		msg = "*GREEN*You enchant the " + item.name + " with the Rune: *BLUE*" + rune.name + "*GREEN*!\n";
 	}
 	else {
 		return "*RED*Invalid Enchantment.\n";
+	}
+	return msg;
+}
+
+function CommandFish(C, message) {
+	let msg = "";
+	let event = data[message.author.id].CATCH;
+	if (event) {
+		if (event.valid) {
+			return "*RED*You're already fishing!\n";
+		}
+	}
+	let location = findLocation(C.LOCATION);
+	let poleTier = GetPoleTier(C);
+	if (poleTier == 0) {
+		return "*RED*You need to equip a fishing pole to be able to fish!\n";
+	}
+	if (location.fish.length == 0) {
+		return "*RED*You can't fish here!";
+	}
+	msg += "*GREEN*You cast your line far out into the water, hoping that something will bite. . .\n";
+	let delay = ((10 - poleTier) + rand(5) + rand((8 - poleTier) * 2));
+	let date = new Date();
+	date.setSeconds(date.getSeconds() + delay);
+	data[message.author.id].CATCH = new FishEvent(location.fish[rand(location.fish.length)], date, C.LOCATION);
+	if (delay > 12) {
+		let ran = rand(4);
+		let idle = "*YELLOW*The water seems still. . .";
+		if (ran == 0) {
+			idle = "*YELLOW*A cool breeze passes over the water, dipping ripples into its mirrored surface. . .";
+		}
+		if (ran == 1) {
+			idle = "*YELLOW*You start to zone out. . .";
+		}
+		if (ran == 2) {
+			idle = "*YELLOW*You feel at peace. . .";
+		}
+		if (ran == 3) {
+			idle = "*YELLOW*Was that a bite? Nevermind, it was nothing. . .";
+		}
+		setTimeout(() => {
+			if (data[message.author.id].CATCH.valid) {
+				if (C.LOCATION == data[message.author.id].CATCH.location && C.BUILDING == "") {
+					PrintMessage(parseText(idle), message.channel);
+				}
+				else {
+					data[message.author.id].CATCH.valid = false;
+				}
+			}
+		}, 8000 + (rand(5) * 1000));
+	}
+	setTimeout(() => {
+		if (data[message.author.id].CATCH.valid) {
+			let startDate = new Date(data[message.author.id].CATCH.date);
+			let date = new Date();
+			let seconds = (date.getTime() - startDate.getTime()) / 1000;
+			if (seconds >= 0) {
+				if (C.LOCATION == data[message.author.id].CATCH.location && C.BUILDING == "") {
+					PrintMessage(parseText("*GREEN*You feel a bite! *CYAN*Reel!"), message.channel);
+				}
+				else {
+					data[message.author.id].CATCH.valid = false;
+				}
+			}
+		}
+	}, delay * 1000);
+	return msg;
+}
+
+function CommandReel(C, message) {
+	let msg = "";
+	let location = findLocation(C.LOCATION);
+	let poleTier = GetPoleTier(C);
+	if (poleTier == 0) {
+		return "*RED*You need to equip a fishing pole to be able to reel!\n";
+	}
+	if (location.fish.length == 0) {
+		return "*RED*You can't fish here!";
+	}
+	if (!data[message.author.id].CATCH) {
+		return "*RED*Try !fish";
+	}
+	let event = data[message.author.id].CATCH;
+	if (event && event.valid && C.BUILDING == "" && C.LOCATION == event.location) {
+		let startDate = new Date(data[message.author.id].CATCH.date);
+		let delay = 3 + rand(10 - poleTier);
+		let date = new Date();
+		let seconds = (date.getTime() - startDate.getTime()) / 1000;
+		console.log("Seconds so far: " + seconds);
+		let threshold = 1.75 + .5 * rand(3);
+		/*if (message.author.id == "388524907450990603") {
+			threshold += .5;
+		}*/
+		if (seconds > 0 && seconds < threshold) {
+			if (data[message.author.id].CATCH.caught) {
+				data[message.author.id].CATCH.valid = false;
+				let fish = event.fish;
+				msg += "*GREEN*You caught a fish! *GREY*It's " + an(fish.name) + " *YELLOW*" + fish.name + "*GREY*!\n";
+				if (fish.value > poleTier * 8) {
+					if (8 - (2 * poleTier) > rand(14)) {
+						return "*RED*Your line breaks! The " + fish.name + " gets away!\n";
+					}
+				}
+				msg += ItemDescription(C, fish) + "\n";
+				if (!CanTake(C, fish)) {
+					return "*RED*You don't have room in your inventory for the fish! It gets away!\n";
+				}
+				C.INVENTORY.push(fish);
+			}
+			else {
+				msg += "*GREEN*You reel your line in a little. Wait for the next bite!\n";
+				date.setSeconds(date.getSeconds() + delay);
+				let ran = rand(1 + Math.max(0, Math.floor((event.fish.value - 3 * poleTier)/8)));
+				if (ran == 0) {
+					data[message.author.id].CATCH = new FishEvent(event.fish, date, C.LOCATION, true);
+					setTimeout(() => {
+						if (data[message.author.id].CATCH.valid) {
+							PrintMessage(parseText("*GREEN*You've hooked the fish! *CYAN*Reel!"), message.channel);
+						}
+					}, delay * 1000);	
+				}
+				else {
+					data[message.author.id].CATCH = new FishEvent(event.fish, date, C.LOCATION);
+					setTimeout(() => {
+						if (data[message.author.id].CATCH.valid) {
+							PrintMessage(parseText("*GREEN*You feel a bite! *CYAN*Reel!"), message.channel);
+						}
+					}, delay * 1000);	
+				}
+			}
+		}
+		else if (seconds < 0) {
+			data[message.author.id].CATCH.valid = false;
+			return "*RED*Your empty hook rises out of the water, you've reeled your line all the way in.";
+		}
+		else {
+			data[message.author.id].CATCH.valid = false;
+			return "*RED*You were too slow; The fish got away. . .";
+		}
+	}
+	else {
+		data[message.author.id].CATCH.valid = false;
+		return "*RED*Try !fish";
 	}
 	return msg;
 }

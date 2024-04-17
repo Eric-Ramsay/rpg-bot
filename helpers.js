@@ -77,10 +77,10 @@ function Equip(C, invIndex) {
 			}
 		}
 		C.INVENTORY[invIndex].equipped = true;
-		return "You equip the *BLUE*" + C.INVENTORY[invIndex].name + "*GREY*.";
+		return "You equip the *BLUE*" + C.INVENTORY[invIndex].name + "*GREY*.\n";
 	}
 	else {
-		return "*RED*You can't equip that.";
+		return "*RED*You can't equip that.\n";
 	}
 }
 
@@ -102,11 +102,11 @@ function itemName(item) {
 function LootItem(C, loot, index) {
 	let name = itemName(loot[index]);
 	if (!CanTake(C, loot[index])) {
-		return "*RED*You don't have room in your inventory to take that.";
+		return "*RED*You don't have room in your inventory to take that.\n";
 	}
 	C.INVENTORY.push(loot[index]);
 	loot.splice(index, 1);
-	return "*GREEN*You take the *BLUE*" + name;
+	return "*GREEN*You take the *BLUE*" + name + "\n";
 }
 
 
@@ -117,6 +117,18 @@ function hasEffect(C, name) {
 		}
 	}
 	return false;
+}
+
+function hasWeaponRune(weapon, name) {
+	if (weapon.type != "weapon") {
+		console.log("ERROR! Wrong type passed to hasWeaponRune!");
+		return false;
+	}
+	for (const rune of weapon.runes) {
+		if (rune.name.toLowerCase() == name.toLowerCase()) {
+			return true;
+		}
+	}
 }
 
 function hasRune(C, name) {

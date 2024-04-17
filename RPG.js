@@ -21,6 +21,9 @@ const WEP = 3;
 const DEX = 4;
 const AVD = 5;
 
+const PHYSICAL = 0;
+const MAGICAL = 1;
+
 var classes = ["peasant", "rogue", "noble", "mage", "warrior", "ranger"];
 var stats = ["VIT", "MAG", "END", "WEP", "DEX", "AVD"];
 
@@ -60,20 +63,6 @@ function an(word) {
 	}
 }
 
-function desiredRow(targets, row) {
-	let min = -1;
-	let minRow = row;
-	for (let i = 0; i < targets.length; i++) {
-		if (targets[i].HP > 0) {
-			if (min == -1 || Math.abs(targets[i].ROW - row) < min) {
-				minRow = targets[i].ROW;
-				min = Math.abs(targets[i].ROW - row);
-			}
-		}
-	}
-	return minRow;
-}
-
 function isEquipped(C, item) {
 	for (let i = 0; i < C.INVENTORY.length; i++) {
 		if (C.INVENTORY[i].equipped && C.INVENTORY[i].name.toLowerCase() == item.toLowerCase()) {
@@ -83,12 +72,16 @@ function isEquipped(C, item) {
 	return false;
 }
 function Mitigate(target, dmg, pen = 0, type = 0) {
-	if (target.TYPE == "player" && type == 0) {
+	if (target.TYPE == "player") {
+		if (hasRune(target, "reflex")) {
+			let ran = rand(100);
+			if (ran < 20) {
+				return 0;
+			}
+		}
 		if (type == 0) {
 			let bonus = 0;
-			if (hasRune(target, "reflex")) {
-				bonus = 10;
-			}
+			
 			let dodgeChance = Math.min(95, 10 * target.STATS[AVD] + bonus);
 			let ran = rand(100);
 			if (ran < dodgeChance) {
@@ -128,6 +121,10 @@ function Mitigate(target, dmg, pen = 0, type = 0) {
 
 function DealDamage(attack, attackers, attacker, targets, target) {
 	let msg = "";
+	if (target.HP <= 0) {
+		target.HP = 0;
+		return msg;
+	}
 	let damage = attack.damage;
 	let isPlayer = (target.TYPE == "player");
 	let aName = attacker.NAME;
@@ -138,27 +135,48 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 	if (attacker.TYPE != "player") {
 		aName = "The " + aName;
 	}
-	if (attack.type == 0 && hasEffect(attacker, "stronger")) {
-		damage += 3;
-	}
-	damage = Mitigate(target, damage, attack.pen, attack.type);
-	let chance = rand(101);
-	if (chance > attack.hitChance) {
-		damage = -2;
-		msg += "*RED*" + aName + " misses!\n";
-		if (hasRune(attacker, "pacifist")) {
-			for (let i = 0; i < targets.length; i++) {
-				msg += DealDamage(new M_Attack(2, 100), attackers, attacker, targets, target)[0];
+	
+	//Redirect all Magical Damage to the Warded Totem
+	if (attack.type == MAGICAL && target.NAME != "Warded Totem") {
+		for (let i = 0; i < targets.length; i++) {
+			if (targets[i].NAME == "Warded Totem") {
+				return DealDamage(attack, attackers, targets, targets[i]);
 			}
 		}
 	}
 	
+	if (attack.type == 0 && hasEffect(attacker, "stronger")) {
+		damage += 3;
+	}
+	damage = Mitigate(target, damage, attack.pen, attack.type);
+
+	let chance = rand(101);
+	if (chance > attack.hitChance) {
+		damage = -2;
+		msg += "*RED*" + aName + " misses!\n";
+	}
+	
+	if (hasEffect(attacker, "blinded")) {
+		let chance = rand(101);
+		if (chance < 50) {
+			damage = -2;
+			msg = "*RED*" + aName + " misses!\n";
+		}
+	}
+	
 	if (damage > 0) {
-		if (damage > 14 && hasRune(target, "jade")) {
-			msg = "*GREEN*The damage to " + tName + " is reduced from " + damage + " to 14.\n";
-			damage = 14;
+		if (damage > 12 && hasRune(target, "jade")) {
+			msg = "*GREEN*The damage to " + tName + " is reduced from " + damage + " to 12.\n";
+			damage = 12;
 		}
 		target.HP -= damage;
+		if (target.HP > 0 && target.NAME == "Ephemeral Warrior") {
+			msg += "*RED*The Ephemeral Warrior grows stronger!\n";
+			target.HP += damage * 2;
+			if (target.HP > MaxHP(target)) {
+				target.MaxHP = target.HP;
+			}
+		}
 		//Evaluate Attacker's Staff Runes
 		if (attack.type == 1) {
 			if (hasRune(attacker, "cinnabar")) {
@@ -168,7 +186,7 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 				}
 			}
 			if (hasRune(attacker, "tar")) {
-				AddOrRefreshEffect(attacker, new Effect("Slowed", "Movement costs are increased.", 1));
+				AddOrRefreshEffect(target, new Effect("Slowed", "Movement costs are increased.", 1));
 			}
 			if (hasEffect(attacker, "forthwith")) {
 				for (let i = attacker.EFFECTS.length - 1; i >= 0; i--) {
@@ -183,19 +201,13 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 			msg += "*GREEN*Bees emerge from out of the honeycomb!\n";
 		}
 		if (hasRune(target, "amber")) {
-			target.STAMINA += 3;
-			msg = "*GREEN*" + tName + " gains 3 Stamina.\n";
-		}
-		if (hasEffect(target, "deliverance")) {
-			if (target.HP <= 0) {
-				msg += "*YELLOW*" + tName + " is delivered from harm!\n";
-				target.HP = 1;
-			}
+			target.STAMINA += 6;
+			msg = "*GREEN*" + tName + " gains 6 Stamina.\n";
 		}
 	}
 	if (target.HP <= 0) {
 		if (hasRune(attacker, "pearl")) {
-			attacker.STAMINA = MaxStamina(attacker);
+			attacker.STAMINA = Math.min(MaxStamina(attacker), attacker.STAMINA + 15);
 		}
 		if (!isPlayer) {
 			if (target.NAME == "Crazed Wolf") {
@@ -211,10 +223,24 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 				msg += "The *RED*Toxic Mushroom*Grey* bursts into a cloud of *RED*Living Spores*GREY*!";
 				let num = 2 + rand(4);
 				for (let i = 0; i < num; i++) {
-					let spore = summon("Living Spore", target.ROW);
-					spore.ROW = target.ROW;
-					targets.push(spore);
+					targets.push(summon("Living Spore", target.ROW));
 				}
+			}
+			if (target.NAME == "Lost Mariner") {
+				let ran = rand(4);
+				if (ran == 0) {
+					msg += "*GREEN*The Parasitic Barnacles fall away from the old mariner, and his sanity returns!\n";
+					attackers.push(summon("Mariner", target.ROW));
+				}
+			}
+			if (target.NAME == "Squelcher") {
+				msg += "The *RED*Squelcher*GREY* lets out a pained snort as it dies.\n";
+			}
+			if (target.NAME == "Scoundrel") {
+				msg += "The *RED*Scoundrel*GREY* cries out for mercy before it dies.\n";
+			}
+			if (target.NAME == "Deep Horror") {
+				msg += "The *RED*Deep Horror*GREY* bursts into a blob of ruptured flesh as the pressure field collapses!\n";
 			}
 			if (target.NAME == "Slimelord") {
 				msg += "The *RED*Slimelord*GREY* splits into several *RED*Living Slimes*GREY*!";
@@ -248,6 +274,56 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 			else {
 				msg += "The *RED*" + target.NAME + "*GREY* has been slain!\n";
 			}
+			let crabbed = false;
+			for (let i = 0; i < targets.length; i++) {
+				if (targets[i].NAME == "Carcinos") {
+					msg += "*RED*Carcinos transforms " + tName + " into a crab!\n";
+					let ran = rand(4);
+					let enemy = summon("Reef Crab", target.ROW);
+					if (ran == 0) {
+						enemy = summon("Stone Crab", target.ROW)
+					}
+					enemy.MaxHP = Math.min(enemy.MaxHP, target.MaxHP);
+					enemy.HP = enemy.MaxHP;
+					targets.push(enemy);
+					crabbed = true;
+					break;
+				}
+			}
+			if (!crabbed) {
+				for (let i = 0; i < attackers.length; i++) {
+					if (attackers[i].NAME == "Carcinos") {
+						msg += "*RED*Carcinos transforms " + tName + " into a crab!\n";
+						let ran = rand(4);
+						let enemy = summon("Reef Crab", target.ROW);
+						if (ran == 0) {
+							enemy = summon("Stone Crab", target.ROW)
+						}
+						enemy.MaxHP = Math.min(enemy.MaxHP, target.MaxHP);
+						enemy.HP = enemy.MaxHP;
+						attackers.push(enemy);
+						break;
+					}
+				}
+			}
+			if (target.ZONES.indexOf(3) > 0) {
+				let numWorms = 0;
+				let ran = rand(6);
+				if (ran == 0) {
+					numWorms = 2 + rand(4);	
+				}
+				for (const effect of target.EFFECTS) {
+					if (effect.name.toLowerCase() == "infested") {
+						numWorms++;
+					}
+				}
+				if (numWorms > 0) {
+					msg += "*RED*Anchorite Worms*GREY* flee their dying host!\n";
+					for (let i = 0; i < numWorms; i++) {
+						targets.push(summon("Anchorite Worm", target.ROW));
+					}
+				}
+			}
 		}
 		else {
 			msg += "*RED*" + tName + " has been struck down. . .";
@@ -279,10 +355,9 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 		if (rDamage > -10) {
 			msg += "*RED*" + tName + " reflects " + rDamage + " damage!\n";	
 			attacker.HP -= rDamage;
-			if (hasEffect(attacker, "deliverance")) {
-				if (attacker.HP <= 0) {
-					attacker.HP = 1;
-				}
+			if (hasRune(attacker, "amber")) {
+				attacker.HP = Math.min(MaxHP(attacker), attacker.HP + 2);
+				attacker.STAMINA = Math.min(MaxStamina(attacker), attacker.STAMINA + 6);
 			}
 		}
 		if (attacker.HP <= 0) {
@@ -291,6 +366,9 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 		}
 	}
 	else if (damage == 0) {
+		if (hasRune(target, "amethyst")) {
+			msg += DealDamage(new M_Attack(8), targets, target, attackers, attacker);
+		}
 		msg += "*RED*" + tName + " dodges the damage!\n";		
 	}
 	else if (damage == -1) {
@@ -335,14 +413,14 @@ function Cast(battle, C, spellName, target) {
 	for (const item of C.INVENTORY) {
 		if (item.type == "staff" && item.equipped) {
 			staffEquipped = true;
-			if (item.name == "staff") {
-				bonusDmg++;
-			}
-			else if (item.name == "scepter") {
-				bonusDmg++;
-				refundChance += 10;
-			}
 		}
+	}
+	if (isEquipped(C, "staff")) {
+		bonusDmg++;
+	}
+	if (isEquipped(C, "scepter")) {
+		bonusDmg++;
+		refundChance += 10;
 	}
 	if (!staffEquipped) {
 		return "*RED*You need to equip a Wand, Staff, or Scepter to cast spells!";
@@ -428,7 +506,7 @@ function Cast(battle, C, spellName, target) {
 			for (let i = 0; i < 3; i++) {
 				if (targets[indices[i]].HP > 0) {
 					let dmg = 3 + rand(3) + bonusDmg;
-					msg += DealDamage(new M_Attack(dmg), allies, C, targets, targets[i])[0];
+					msg += DealDamage(new M_Attack(dmg), allies, C, targets, targets[indices[i]])[0];
 				}
 			}
 		}
@@ -499,10 +577,13 @@ function Cast(battle, C, spellName, target) {
 			if (i == -1) {
 				return "*RED*Can't find target '" + target + "'\n";
 			}
-			let dmg = 8 + rand(5) + bonusDmg;
-			msg += "*BLUE*The " + targets[i].NAME + " is encased in ice!\n"
-			AddOrRefreshEffect(targets[i], new Effect("Stunned", "Lose your next turn.", 1));
+			let dmg = 2 + rand(5) + bonusDmg;
+			let chance = rand(100);
 			msg += DealDamage(new M_Attack(dmg), allies, C, targets, targets[i])[0];
+			if (chance <= 75) {
+				msg += "*BLUE*The " + targets[i].NAME + " is encased in ice!\n"
+				AddOrRefreshEffect(targets[i], new Effect("Stunned", "Lose your next turn.", 1));
+			}
 		}
 	}
 	else if (spell.school == "imperial") {
@@ -555,9 +636,9 @@ function Cast(battle, C, spellName, target) {
 			if (i == -1) {
 				return "*RED*Can't find target '" + target + "'\n";
 			}
-			msg += "*PINK*You siphon energy away from your foe.\n"
+			msg += "*PINK*You siphon health away from your foe.\n"
 			msg += DealDamage(new M_Attack(5, 100, 100), allies, C, targets, targets[i])
-			C.STAMINA = Math.min(MaxStamina(C), C.STAMINA + 5);
+			C.HP = Math.min(MaxHP(C), C.HP + 5);
 		}
 		else if (spellName == "balance") {
 			msg += "*PINK*You lash out at your foes.\n"
@@ -571,8 +652,14 @@ function Cast(battle, C, spellName, target) {
 	}
 	else if (spell.school == "blood") {
 		if (spellName == "balanced humors") {
+			if (C.STAMINA > 4) {
+				C.AP += 4;
+				C.STAMINA -= 4;
+			}
+			else {
+				return "*RED*You don't have enough Stamina to cast this!\n";
+			}
 			msg += "*RED*A slight coolness runs through you, and you feel refreshed.\n";
-			C.AP += 5;
 		}
 		else if (spellName == "reap") {
 			msg += "*RED*You harvest from the souls of your foes.\n"
@@ -583,6 +670,11 @@ function Cast(battle, C, spellName, target) {
 					C.HP++;
 					msg += DealDamage(new M_Attack(dmg), allies, C, targets, targets[i])[0];
 				}
+			}
+			if (hasRune(C, "autumn")) {
+				let ran = rand(allies.length);
+				msg += "*GREEN*" + Name(allies[ran]) + " is healed 5 HP!\n";
+				allies[ran].HP = Math.min(MaxHP(allies[ran]), allies[ran].HP + 5);
 			}
 			C.HP = Math.min(MaxHP(C) + 10, C.HP);
 		}
@@ -607,14 +699,21 @@ function Cast(battle, C, spellName, target) {
 			msg += "*GREEN*" + allies[i].NAME + " is healed for 5 HP!\n";
 			msg += "*RED*Your flesh grows cold; they feel a rush of warmth beneath their ribs.\n";
 			if (hasRune(C, "autumn")) {
-				msg += "*GREEN*You gain 3 HP!\n";
-				C.HP = Math.min(MaxHP(C), C.HP + 3);
+				let ran = rand(allies.length);
+				msg += "*GREEN*" + Name(allies[ran]) + " is healed 5 HP!\n";
+				allies[ran].HP = Math.min(MaxHP(allies[ran]), allies[ran].HP + 5);
 			}
 		}
 		else if (spellName == "restitution") {
-			msg += "*RED*You and your allies gain 15 Stamina!\n";
+			msg += "*RED*You and your allies gain 2 HP and 15 Stamina!\n";
 			for (let i = 0; i < allies.length; i++) {
 				allies[i].STAMINA = Math.min(allies[i].STAMINA + 15, MaxStamina(allies[i]));
+				allies[i].HP = allies[i].HP = Math.min(MaxHP(allies[i]), allies[i].HP + 2);
+			}
+			if (hasRune(C, "autumn")) {
+				let ran = rand(allies.length);
+				msg += "*GREEN*" + Name(allies[ran]) + " is healed 5 HP!\n";
+				allies[ran].HP = Math.min(MaxHP(allies[ran]), allies[ran].HP + 5);
 			}
 		}
 		else if (spellName == "purify") {
@@ -789,8 +888,9 @@ function Cast(battle, C, spellName, target) {
 			msg += "*GREEN*" + allies[i].NAME + " is healed for " + heal + " HP!\n";
 			msg += "*YELLOW*Their wounds shine with a soft, golden light, and are mended.\n";
 			if (hasRune(C, "autumn")) {
-				msg += "*GREEN*You gain 3 HP!\n";
-				C.HP = Math.min(MaxHP(C), C.HP + 3);
+				let ran = rand(allies.length);
+				msg += "*GREEN*" + Name(allies[ran]) + " is healed 5 HP!\n";
+				allies[ran].HP = Math.min(MaxHP(allies[ran]), allies[ran].HP + 5);
 			}
 		}
 		else if (spellName == "smite") {
@@ -886,6 +986,7 @@ function Cast(battle, C, spellName, target) {
 	return msg;
 }
 
+
 function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	let msg = "";
 	let enemy = Battle.enemies[enemyIndex];
@@ -893,7 +994,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	let weapon = C.INVENTORY[weaponIndex];
 	weapon.attacks[0]--;
 	let dmg = weapon.min + rand(1 + ((weapon.max + C.STATS[WEP]) - weapon.min));
-	if (hasRune(weapon, "powerful")) {
+	if (hasWeaponRune(weapon, "powerful")) {
 		dmg *= 1.2;
 	}
 	dmg = Math.floor(dmg * (1 + .1 * C.STATS[WEP]));
@@ -901,7 +1002,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		dmg += 2;
 	}
 	msg = "*GREEN*" + C.NAME + "*GREY*" + " attacks the *RED*" + enemy.NAME + "*GREY* with their " + weapon.name + ". ";	
-	if (hasRune(weapon, "maladious")) {
+	if (hasWeaponRune(weapon, "maladious")) {
 		let debuffs = 0;
 		for (let i = 0; i < enemy.EFFECTS.length; i++) {
 			if (enemy.EFFECTS[i].type == "debuff") {
@@ -909,7 +1010,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 			}
 		}
 		if (debuffs > 0) {
-			dmg += 2;
+			dmg += 1;
 			dmg += debuffs;
 		}
 	}
@@ -918,6 +1019,9 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 			dmg *= 2;
 			msg += "*GREEN*It's a wild blow!\n";
 		}
+	}
+	if (C.CLASS == "ranger" && hasEffect(enemy, "hunter's mark")) {
+		dmg *= 1.2;
 	}
 	
 	//RNG BALANCING -----------------
@@ -940,7 +1044,12 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	let result = DealDamage(new P_Attack(Math.round(dmg), weaponChance, weapon.pen), Battle.allies, C, Battle.enemies, enemy);
 	msg += result[0];
 	if (result[1] == -2) {
-		if (hasRune(weapon, "accurate")) {
+		if (hasWeaponRune(weapon, "pacifist")) {
+			for (let i = 0; i < Battle.enemies.length; i++) {
+				msg += DealDamage(new M_Attack(2, 100), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
+			}
+		}
+		if (hasWeaponRune(weapon, "accurate")) {
 			result = DealDamage(new P_Attack(Math.round(dmg), weaponChance, weapon.pen), Battle.allies, C, Battle.enemies, Battle.enemies[enemyIndex]);
 			msg += result[0];
 		}
@@ -956,7 +1065,17 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	
 	//PROC ON HIT EFFECTS -------------------------
 	if (result[1] > 0) {
-		if (hasRune(weapon, "leeching")) {
+		if (C.CLASS == "rogue") {
+			if (rand(2) == 0) {
+				C.GOLD++;
+				msg += "*YELLOW*You gain 1 gold.\n";
+			}
+		}
+		if (C.CLASS == "ranger") {
+			msg += "*GREEN*You mark your target!\n";
+			AddOrRefreshEffect(enemy, new Effect("Hunter's Mark", "Rangers deal 20% more damage.", 10));
+		}
+		if (hasWeaponRune(weapon, "leeching", true)) {
 			msg += "*GREEN*You gain 2 HP.\n";
 			C.HP = Math.min(C.HP + 2, MaxHP(C));
 		}
@@ -964,42 +1083,39 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 			msg += "*GREEN*You gain 2 HP.\n";
 			C.HP = Math.min(C.HP + 2, MaxHP(C));
 		}
-		if (hasRune(weapon, "siphoning")) {
-			msg += "*GREEN*You gain 1 AP.\n";
-			C.AP = Math.min(C.AP + 1, MaxAP(C));
+		if (hasWeaponRune(weapon, "siphoning")) {
+			msg += "*GREEN*You gain 4 Stamina.\n";
+			C.STAMINA = Math.min(C.STAMINA + 4, MaxStamina(C));
 		}
 		if (enemy.HP > 0) {
-			if (hasRune(weapon, "poisoned")) {
+			if (hasWeaponRune(weapon, "poisoned")) {
 				msg += "*GREEN*The " + enemy.NAME + " is poisoned!\n";
 				AddOrRefreshEffect(enemy, new Effect("Poison", "Take 1 dmg per turn.", 10));
 			}
-			if (hasRune(weapon, "envenomed")) {
+			if (hasWeaponRune(weapon, "envenomed")) {
 				let chance = rand(101);
 				if (chance <= 50) {
 					msg += "*GREEN*The " + enemy.NAME + " is envenomed!\n";
 					AddOrRefreshEffect(enemy, new Effect("Venom", "Take 4 dmg per turn.", 5));
 				}
 			}
-			if (hasRune(weapon, "jagged")) {
+			if (hasWeaponRune(weapon, "jagged")) {
 				let chance = rand(101);
 				if (chance <= 50) {
 					msg += "*GREEN*The *RED*" + enemy.NAME + "*GREEN* begins to bleed!\n";
 					AddOrRefreshEffect(enemy, new Effect("Bleed", "Take 4 dmg per turn.", 3));
 				}
 			}
-			if (hasRune(weapon, "icy")) {
+			if (hasWeaponRune(weapon, "icy")) {
 				let chance = rand(101);
 				if (chance <= 20) {
 					msg += "*GREEN*The " + enemy.NAME + " is frozen!\n";
 					AddOrRefreshEffect(enemy, new Effect("Stunned", "Lose your next turn.", 1));
 				}
 			}
-			if (hasRune(weapon, "envining")) {
-				let chance = rand(101);
-				if (chance <= 50) {
-					msg += "*GREEN*The " + enemy.NAME + " is wrapped in vines, rooting them!\n";
-					AddOrRefreshEffect(enemy, new Effect("Rooted", "Unable to Move.", 1));
-				}
+			if (hasWeaponRune(weapon, "envining")) {
+				msg += "*GREEN*The " + enemy.NAME + " is wrapped in vines, rooting them!\n";
+				AddOrRefreshEffect(enemy, new Effect("Rooted", "Unable to Move.", 1));
 			}
 			if (weapon.subclass == "whip") {
 				let chance = rand(101);
@@ -1009,7 +1125,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 				}
 			}
 		}
-		else if (hasRune(weapon, "death mark")) {
+		else if (hasWeaponRune(weapon, "death mark")) {
 			msg += "*GREEN*A zombie rises to your side!\n";
 			Battle.allies.push(summon("zombie", C.ROW));
 		}
@@ -1076,6 +1192,9 @@ function HandleEffects(target) {
 			msg += "*RED*" + tName + " takes 1 dmg!\n";
 		}
 	}
+	if (target.TYPE == "player" && hasEffect(target, "infested")) {
+		target.STAMINA = Math.max(C.STAMINA - 3, 0);
+	}
 	if (hasEffect(target, "venom")) {
 		let dmg = Math.min((target.HP - 1), 4);
 		if (dmg > 0) {
@@ -1098,25 +1217,25 @@ function HandleEffects(target) {
 }
 
 function StartTurn(allies, enemies, deadAllies, deadEnemies) {
-	let msg = "";
+	let msg = "\n*GREEN*It is now the players' turn!\n";
 	for (let i = allies.length - 1; i >= 0; i--) {
 		if (allies[i].HP > 0) {
 			let aName = allies[i].NAME;
 			if (allies[i].TYPE != "player") {
 				aName = "The " + aName;
 			}
-			if (hasRune(allies[i], "cultivation") && allies[i].HP < .25 * MaxHP(allies[i])) {
+			if (hasRune(allies[i], "cultivation") && allies[i].HP < .5 * MaxHP(allies[i])) {
 				allies[i].HP += 5;
 				msg += "*GREEN*" + allies[i].NAME + " cultivates 5 HP!\n";
 			}
 			if (hasRune(allies[i], "sunset")) {
 				for (let j = 0; j < enemies.length; j++) {
-					msg += DealDamage(new M_Attack(1), allies, allies[i], enemies, enemies[j])[0];
+					msg += DealDamage(new M_Attack(2, 100, 100), allies, allies[i], enemies, enemies[j])[0];
 				}
 			}
 			msg += HandleEffects(allies[i]);
 			if (hasRune(allies[i], "forthwith")) {
-				AddOrRefreshEffect(allies[i], new Effect("Forthwtih", "Your first spell damage does +5 Damage.", 0));
+				AddOrRefreshEffect(allies[i], new Effect("Forthwith", "Your first spell damage does +5 Damage.", 0));
 			}
 			if (hasEffect(allies[i], "stunned")) {
 				msg += "*GREEN*" + aName + " is stunned!\n";
@@ -1157,17 +1276,26 @@ function StartBattle(battle) {
 	}
 	else {
 		let avgLevel = 0;
+		let numPlayers = 0;
 		for (let i = 0; i < battle.allies.length; i++) {
-			avgLevel += battle.allies[i].LEVEL;
-			battle.allies[i].STAMINA = MaxStamina(battle.allies[i]);
+			numPlayers++;
+			if (battle.allies[i].TYPE == "player") {
+				avgLevel += battle.allies[i].LEVEL;
+				battle.allies[i].STAMINA = MaxStamina(battle.allies[i]);
+				if (battle.allies[i].CLASS == "noble") {
+					battle.allies.push(summon("servant", battle.allies[i].ROW));
+				}
+			}
 		}
-		avgLevel /= battle.allies.length;
+		avgLevel /= numPlayers;
 		
 		let rating = 25 * (1 + battle.allies.length);
-		rating *= (1 + .25 * (battle.level - 1));
+		rating *= (1 + .2 * (battle.level - 1));
 		rating *= Math.pow((1 + .25 * (avgLevel - 1)), 1.5);
-		console.log("Combat Difficulty: " + rating);
-		ran = rand(8);
+		if (avgLevel > 3) {
+			rating = Math.pow(rating, 1 + (avgLevel/100));
+		}
+		ran = rand(6);
 		if (ran == 0) {
 			let locationNames = ["Haunted Crypts", "Acrid Swamp", "Wilted Woods"];
 			msg += "*RED*You've enraged the " + locationNames[battle.zone] + "!\n";
@@ -1182,26 +1310,45 @@ function StartBattle(battle) {
 				validTeams.push(team);
 			}
 		}
-		console.log("# of Enemy Options: " + validTeams.length);
 		while (validTeams.length > 0 && rating > 0) {
+			console.log("# of Enemy Options: " + validTeams.length);
 			let method = rand(2);
 			let min = 0;
 			if (method == 0) {
 				min = rand(validTeams.length);
 			}
 			let index = min + rand((validTeams.length - min));
+			var quest = data["town"].quest;
+				
+			for (let i = 0; i < validTeams.length; i++) {
+				for (const enemy of validTeams[index]) {
+					if (enemy.NAME == quest.enemy) {
+						let ran = rand(3);
+						if (ran == 0) {
+							index = i;
+						}
+						break;
+					}
+				}
+			}
 			for (const enemy of validTeams[index]) {
-				battle.enemies.push(COPY(enemy));
+				let temp = COPY(enemy);
+				if (temp.NAME == "Swamp Stalker") {
+					temp.ROW = 4;
+				}
+				else if (rand(8) == 0) {
+					temp.ROW = 1;
+				}
+				battle.enemies.push(temp);
 				msg += "*RED*The " + enemy.NAME + " approaches. . .*GREY*\n";
 				rating -= enemy.DIFFICULTY;
 			}
 			var newTeams = [];
 			for (let i = 0; i < validTeams.length; i++) {
-				if (CalcDifficulty(teams[i]) <= rating) {
-					newTeams.push(teams[i]);
+				if (CalcDifficulty(validTeams[i]) <= rating) {
+					newTeams.push(validTeams[i]);
 				}
 			}
-			validTeams = newTeams;
 		}
 	}
 	return msg;
@@ -1230,6 +1377,12 @@ function WinBattle(battle) {
 		if (battle.allies[a].SUMMONED) {
 			battle.allies.splice(a, 1);
 		}
+		if (hasEffect(battle.allies[a], "deliverance")) {
+			if (battle.allies[a].HP <= 0) {
+				msg += "*YELLOW*" + Name(battle.allies[a]) + " is delivered from harm!\n";
+				battle.allies[a].HP = 1;
+			}
+		}
 		else if (battle.allies[a].HP <= 0) {
 			let INVENTORY = battle.allies[a].INVENTORY;
 			for (let i = 0; i < INVENTORY.length; i++) {
@@ -1243,12 +1396,14 @@ function WinBattle(battle) {
 		}
 	}
 	for (const ally of battle.deadAllies) {
-		let INVENTORY = ally.INVENTORY;
-		for (let i = 0; i < INVENTORY.length; i++) {
-			INVENTORY[i].equipped = false;
-			let ran = rand(100);
-			if (ran < 20) {
-				battle.loot.push(INVENTORY[i]);
+		if (ally.TYPE == "player") {
+			let INVENTORY = ally.INVENTORY;
+			for (let i = 0; i < INVENTORY.length; i++) {
+				INVENTORY[i].equipped = false;
+				let ran = rand(100);
+				if (ran < 20) {
+					battle.loot.push(INVENTORY[i]);
+				}
 			}
 		}
 	}
@@ -1280,9 +1435,6 @@ function WinBattle(battle) {
 				}
 			}
 		}
-		else {
-			console.log("Enemy was Summoned");
-		}
 	}
 	for (const player of battle.allies) {
 		msg += "*GREEN*Each player gains " + goldReward + " gold and " + expReward + " experience!\n";
@@ -1302,6 +1454,34 @@ function WinBattle(battle) {
 	return msg;
 }
 
+function CheckQuest(enemy, allies) {
+	var quest = data["town"].quest;
+	if (enemy.NAME == quest.enemy) {
+		quest.numKilled++;
+		if (quest.numRequired <= quest.numKilled) {
+			msg += "*YELLOW*Quest Completed! Town gains " + quest.value * 3 + " prosperity! Players gain " + quest.value + " gold!";
+			data["town"].prosperity += 3 * quest.value;
+			for (const player of allies) {
+				if (player.GOLD) {
+					player.GOLD += quest.value;
+				}
+			}
+			quest = createQuest();
+		}
+		data["town"].quest = quest;
+		SaveState();
+	}
+}
+
+function TurnCompleted(team) {
+	for (let i = 0; i < team.length; i++) {
+		if (team[i].TYPE == "player" && !(team[i].ENDED) && team[i].HP > 0) {
+			return false;
+		}
+	}
+	return true;
+}
+
 function HandleCombat(battle, purgeBattle = true, testing = false) {
 	let msg = "";
 	if (battle == null || !(battle.started)) {
@@ -1310,28 +1490,19 @@ function HandleCombat(battle, purgeBattle = true, testing = false) {
 	for (let i = battle.enemies.length - 1; i >= 0; i--) {
 		if (battle.enemies[i].HP <= 0) {
 			if (!testing) {
-				var quest = data["town"].quest;
-				if (battle.enemies[i].NAME == quest.enemy) {
-					quest.numKilled++;
-					if (quest.numRequired <= quest.numKilled) {
-						msg += "*YELLOW*Quest Completed! Town gains " + quest.value * 3 + " prosperity! Players gain " + quest.value + " gold!";
-						data["town"].prosperity += 3 * quest.value;
-						for (const player of battle.allies) {
-							if (player.GOLD) {
-								player.GOLD += quest.value;
-							}
-						}
-						quest = createQuest();
-					}
-					data["town"].quest = quest;
-					SaveState();
-				}
+				CheckQuest(battle.enemies[i], battle.allies);
 			}
 			battle.deadEnemies.push(COPY(battle.enemies[i]));
 			battle.enemies.splice(i, 1);
 		}
 	}
 	for (let i = battle.allies.length - 1; i >= 0; i--) {
+		if (hasEffect(battle.allies[i], "deliverance")) {
+			msg += "*YELLOW*" + Name(battle.allies[i]) + " is delivered from harm!\n";
+			if (battle.allies[i].HP <= 0) {
+				battle.allies[i].HP = 1;
+			}
+		}
 		if (battle.allies[i].HP <= 0) {
 			battle.deadAllies.push(COPY(battle.allies[i]));
 			battle.allies.splice(i, 1);
@@ -1341,30 +1512,15 @@ function HandleCombat(battle, purgeBattle = true, testing = false) {
 	if (!battle.started && !testing) {
 		msg += WinBattle(battle);
 	}
-	if (battle.started && battle.allyTurn) {
-		battle.allyTurn = false;
-		for (let i = 0; i < battle.allies.length; i++) {
-			if (battle.allies[i].TYPE == "player" && !(battle.allies[i].ENDED) && battle.allies[i].HP > 0) {
-				battle.allyTurn = true;
-				break;
-			}
-		}
-		if (!battle.allyTurn) {
+	if (battle.started) {
+		if (TurnCompleted(battle.allies)) {
 			msg += StartTurn(battle.enemies, battle.allies, battle.deadEnemies, battle.deadAllies);
 		}
-	}
-	if (battle.started && !battle.allyTurn) {
-		battle.allyTurn = true;
-		for (let i = 0; i < battle.enemies.length; i++) {
-			if (battle.enemies[i].TYPE == "player" && !(battle.enemies[i].ENDED) && battle.enemies[i].HP > 0) {
-				battle.allyTurn = false;
-				break;
-			}
-		}
-		if (battle.allyTurn) {
+		if (TurnCompleted(battle.enemies)) {
 			msg += StartTurn(battle.allies, battle.enemies, battle.deadAllies, battle.deadEnemies);
 		}
 	}
+	
 	if (purgeBattle) {
 		PurgeBattles();
 	}
@@ -1402,9 +1558,16 @@ function runBattle(teamOne, teamTwo, index, debug = false) {
 	for (const enemy of teamOne) {
 		let en = COPY(enemy);
 		en.ROW = 4;
+		if (enemy.NAME == "Swamp Stalker") {
+			en.ROW = 1;
+		}
 		battle.allies.push(COPY(en));
 	}
 	for (const enemy of teamTwo) {
+		let en = COPY(enemy);
+		if (enemy.NAME == "Swamp Stalker") {
+			en.ROW = 4;
+		}
 		battle.enemies.push(COPY(enemy));
 	}
 	let turns = 0;
@@ -1436,10 +1599,10 @@ function runBattle(teamOne, teamTwo, index, debug = false) {
 	if (turns >= 200) {
 		//console.log(teamOne);
 		//console.log(teamTwo);
-		console.log(teamOne[0].NAME);
-		console.log(teamTwo[0].NAME);
-		console.log("-----");
-		console.log(msg);
+		//console.log(teamOne[0].NAME);
+		//console.log(teamTwo[0].NAME);
+		//console.log("-----");
+		//console.log(msg);
 	}
 	else if (debug) {
 		console.log("Combat Log: " + msg);
@@ -1501,13 +1664,13 @@ client.on('ready', () => {
 	console.log("Connected as " + client.user.tag);
 	client.user.setActivity("Terrain Gen 3");
 
-	let TESTING = false;
+	let TESTING = true;
 	let numRounds = 10;
 	if (TESTING) {
 		console.log(enemies.length);
-		let zoneNames = ["Crypts", "Swamp", "Forest"];
-		let zones = [[], [], []];
-		let difficulties = [0, 0, 0];
+		let zoneNames = ["Crypts", "Swamp", "Forest", "Island"];
+		let zones = [[], [], [], []];
+		let difficulties = [0, 0, 0, 0];
 		for (const enemy of enemies) {
 			for (const zone of enemy.ZONES) {
 				zones[zone].push(enemy);
@@ -1520,7 +1683,9 @@ client.on('ready', () => {
 		let total = 0;
 		let i = 0;
 		for (const team of enemies) {
-			wins.push({index: i, wins: 0, battles: 0, name: "", cost: 0, team: [team]});
+			if (team.DIFFICULTY > 50) {
+				wins.push({index: i, wins: 0, battles: 0, name: "", cost: 0, team: [team]});
+			}
 			i++;
 		}
 		for (let i = 0; i < wins.length; i++ ){
@@ -1532,6 +1697,7 @@ client.on('ready', () => {
 					case 0: color = "*RED*"; break;
 					case 1: color = "*YELLOW*"; break;
 					case 2: color = "*GREEN*"; break;
+					case 3: color = "*BLUE*"; break;
 					default: color = "*GREY*"; break;
 				}
 				teamName += color + wins[i].team[j].NAME + "*GREY*";
@@ -1545,7 +1711,7 @@ client.on('ready', () => {
 		}
 		for (let i = 0; i < wins.length; i++) {
 			if (i > 0) {
-				clearLastLine();
+				//clearLastLine();
 			}
 			console.log(i + "/" + wins.length);
 			for (let j = i + 1; j < wins.length; j++) {
@@ -1554,14 +1720,14 @@ client.on('ready', () => {
 				let hasDebugged = false;
 				for (let k = 0; k < numRounds; k++) {
 					let debug = false;
-					/*if (!hasDebugged) {
-						if (wins[i].name.includes("Wandering Moon") || wins[j].name.includes("Wandering Moon")) {
-							if (wins[i].name.includes("Mushroom Mage") || wins[j].name.includes("Mushroom Mage")) {
+					if (!hasDebugged) {
+						if (wins[i].name.includes("Beekeeper") || wins[j].name.includes("Beekeeper")) {
+							if (wins[i].name.includes("Carcinos") || wins[j].name.includes("Carcinos")) {
 								debug = true;
 								hasDebugged = true;
 							}
 						}
-					}*/
+					}
 					
 					let results = runBattle(wins[i].team, wins[j].team, k, debug);
 					wins[i].battles++;
@@ -1571,12 +1737,12 @@ client.on('ready', () => {
 					winsOne += results[0];
 					winsTwo += results[1];
 				}
-				/*if (wins[i].name == "Vampire") {
+				if (wins[i].name.includes("Beekeeper")) {
 					console.log(wins[i].name + " won " + winsOne + "/"+numRounds+" vs. " + wins[j].name);
 				}
-				if (wins[j].name == "Vampire") {
+				if (wins[j].name.includes("Beekeeper")) {
 					console.log(wins[j].name + " won " + winsTwo + "/"+numRounds+" vs. " + wins[i].name);
-				}*/
+				}
 			}
 		}
 		let sorted = [];
@@ -1663,7 +1829,7 @@ function parseText(msg) {
 	return "\`\`\`ansi\n" + text + "\`\`\`";
 }
 
-function ItemDescription(item) {
+function ItemDescription(C, item) {
 	let msg = "";
 	let max = maxRunes(item);
 	if (item.type == "weapon") {
@@ -1671,7 +1837,7 @@ function ItemDescription(item) {
 		if (item.type == "weapon") {
 			
 		}
-		msg += "Deals *RED*" + item.min + "-" + item.max + " dmg*GREY* to targets within *GREEN*" + item.range + " range*GREY*, ignoring *CYAN*" + item.pen + "%*GREY* of their armor; can be used *PINK*" + item.attacks[1] + "*GREY* times per turn at a cost of *GREEN*" + item.AP + " AP*GREY* per attack.\n"
+		msg += "Deals *RED*" + item.min + "-" + (item.max + C.STATS[WEP]) + " dmg*GREY* to targets within *GREEN*" + item.range + " range*GREY*, ignoring *CYAN*" + item.pen + "%*GREY* of their armor; can be used *PINK*" + item.attacks[1] + "*GREY* times per turn at a cost of *GREEN*" + item.AP + " AP*GREY* per attack.\n"
 	}
 	else if (item.type == "armor") {
 		msg += "*RED*" + item.name + "*BLACK* | *CYAN*⛊*GREY*" + item.armor[0] + " *CYAN*✱*GREY*" + item.armor[1] + "*BLACK* | *YELLOW*" + item.value + "G*GREY*\n";
@@ -1744,7 +1910,6 @@ function Inventory(C) {
 	let msg = "";
 	msg += "*YELLOW*INVENTORY *GREY*- *YELLOW*" + C.GOLD + " Gold\n";
 	let strings = ["", "", ""];
-	console.log(C.INVENTORY)
 	for (let i = 0; i < 15; i++) {
 		if (i < 5 || C.BACKPACK) {
 			let item = "---";
@@ -1754,7 +1919,6 @@ function Inventory(C) {
 				isItem = true;
 				isEquipped = C.INVENTORY[i].equipped;
 				item = C.INVENTORY[i].name;
-				console.log(item);
 				if (C.INVENTORY[i].runes) {
 					for (const rune of C.INVENTORY[i].runes) {
 						item += "+";
@@ -1771,7 +1935,6 @@ function Inventory(C) {
 					equipStr = "*GREY*[*RED*" + equipStr + "*GREY*] *BLUE*";
 					item = equipStr + item;
 				}
-				console.log(item);
 				if (measureText(item) > 30) {
 					item = item.substring(0, 17);
 					item += "...";
@@ -1856,6 +2019,24 @@ function EnemyDescription(enemy, showEffects = true) {
 	return msg;
 }
 
+function DrawGuildHall() {
+	let msg = "";
+	let retired = data["town"].retired;
+	if (retired.length == 0) {
+		msg += "*RED*No adventurers have taken up residence in the guild hall. . .\n";
+	}
+	else if (retired.length == 1) {
+		msg += "*CYAN*Only a single resident currently resides here.\n\n";
+	}
+	else {
+		msg += "*CYAN*Multiple residents currently reside here.\n\n";
+	}
+	for (const hero of retired) {
+		msg += "*GREEN*" + hero.NAME + "*GREY* - *CYAN*" + Prettify(hero.CLASS) + " *YELLOW*Level " + hero.LEVEL + "\n"; 
+	}
+	return msg;
+}
+
 function DrawGraveyard() {
 	let graves = data["town"].graves;
 	let msg = "\nThere are " + graves.length + " graves in the graveyard.\n\n";
@@ -1865,7 +2046,7 @@ function DrawGraveyard() {
 			unmarked++;
 		}
 		else {
-			msg += "*GREEN*" + death.NAME + "*GREY* the *BLUE*" + death.CLASS + "*GREY*, *YELLOW*Level " + death.LEVEL + "\n";
+			msg += "*GREEN*" + death.NAME + "*GREY* the *BLUE*" + Prettify(death.CLASS) + "*GREY*, *YELLOW*Level " + death.LEVEL + "\n";
 			if (death.DESCRIPTION) {
 				msg += "*WHITE*" + death.DESCRIPTION + "\n";
 			}
@@ -1897,7 +2078,7 @@ function RoomDescription(C) {
 	}
 	if (C.BUILDING != "") {
 		let building = findBuilding(C.BUILDING);
-		msg += "*RED*" + room.id + "*GREY* - *BLUE*" + building.id + "*GREY*" + "\n\n";
+		msg += "*RED*" + room.id + "*GREY* - *BLUE*" + building.id + "*GREY*" + "\n";
 		msg += building.description + "\n\n"
 		NPCList = building.people
 	}
@@ -1971,6 +2152,9 @@ function RoomDescription(C) {
 	msg += DrawPlayers(C);
 	if (room.id.toLowerCase() == "the graveyard") {
 		msg += DrawGraveyard();
+	}
+	if (C.BUILDING.toLowerCase() == "guild hall") {
+		msg += DrawGuildHall();
 	}
 	return msg;
 }
@@ -2138,14 +2322,21 @@ function DrawCombat(room, index) {
 		}
 		let AP = "*GREEN* AP " + battle.allies[i].AP;
 		let atks = 0;
-		for (const item of battle.allies[i].INVENTORY) {
-			if (item.type == "weapon") {
-				if (item.equipped) {
-					atks += item.attacks[0];
+		if (battle.allies[i].TYPE == "player") {
+			for (const item of battle.allies[i].INVENTORY) {
+				if (item.type == "weapon") {
+					if (item.equipped) {
+						atks += item.attacks[0];
+					}
 				}
 			}
+			atks = "*RED*x" + atks;
 		}
-		otherStr += color + "P" + (i + 1) + " " + name + AP + " *RED*x" + atks + " *CYAN*⛊*GREY*" + battle.allies[i].ARMOR[0] + " *CYAN*✱*GREY*" + battle.allies[i].ARMOR[1] + " *GREY*\n";
+		else {
+			AP = "";
+			atks = "";
+		}
+		otherStr += color + "P" + (i + 1) + " " + name + AP + " " + atks + " *CYAN*⛊*GREY*" + battle.allies[i].ARMOR[0] + " *CYAN*✱*GREY*" + battle.allies[i].ARMOR[1] + " *GREY*\n";
 	}
 	otherStr = StackStrings(otherStr, barStr, 25);
 	if (battle.loot.length > 0) {
@@ -2195,6 +2386,7 @@ function DrawTrade(C) {
 	let descStr = "";
 	let max = 0;
 	let maxName = 0;
+	let maxRune = 0;
 	if (NPC.INDEX >= NPC.CONVERSATIONS.length) {
 		NPC.INDEX = 0;
 	}
@@ -2202,34 +2394,40 @@ function DrawTrade(C) {
 	msg += "*YELLOW*" + NPC.NAME + "*GREY*: ";
 	msg += NPC.CONVERSATIONS[NPC.INDEX++] + "\n\n";
 	for (let i = 0; i < NPC.ITEMS.length; i++) {
+		let str = "";
 		let num = (i + 1).toString().padStart(2, '0');
-		itemStr += "*PINK*" + num + ") *GREY*" + NPC.ITEMS[i].name;
+		str += "*PINK*" + num + ") *GREY*" + NPC.ITEMS[i].name;
 		if (NPC.ITEMS[i].type == "weapon") {
 			let attacks = NPC.ITEMS[i].attacks[1];
-			itemStr += " *YELLOW*" + attacks + " ATKs *GREEN*" + NPC.ITEMS[i].AP + " AP*GREY*";
+			str += " *YELLOW*" + attacks + " ATKs *GREEN*" + NPC.ITEMS[i].AP + " AP*GREY*";
+			weaponOrArmorPresent = true;
 		}
 		else if (NPC.ITEMS[i].type == "armor") {
-			itemStr += " *CYAN*" + NPC.ITEMS[i].armor[0] + "*BLACK* | *CYAN*" + NPC.ITEMS[i].armor[1];
+			str += " *CYAN*" + NPC.ITEMS[i].armor[0] + "*BLACK* | *CYAN*" + NPC.ITEMS[i].armor[1];
 			if (NPC.ITEMS[i].AP > 0) {
-				itemStr += "*BLACK* | *RED*+" + NPC.ITEMS[i].AP;
+				str += "*BLACK* | *RED*+" + NPC.ITEMS[i].AP;
 			}
-			itemStr += "*GREY*";
+			str += "*GREY*";
 		}
 		else if (NPC.ITEMS[i].type == "rune") {
 			descStr += " *CYAN*" + NPC.ITEMS[i].description;
 			if (NPC.ITEMS[i].description.length > max) {
 				max = NPC.ITEMS[i].description.length;
 			}
-			if (NPC.ITEMS[i].name.length > maxName) {
-				maxName = NPC.ITEMS[i].name.length;
+			if (NPC.ITEMS[i].name.length > maxRune) {
+				maxRune = NPC.ITEMS[i].name.length;
 			}
 		}
+		if (measureText(str) > maxName) {
+			maxName = measureText(str);
+		}
 		descStr += "\n";
-		itemStr += "\n";
+		itemStr += str + "\n";
 		priceStr += "*YELLOW*" + NPC.ITEMS[i].value + "\n";
 	}
-	let distance = maxName + max + 10;
-	itemStr = StackStrings(itemStr, descStr, maxName + 5);
+	max = Math.max(maxName, max + maxRune);
+	let distance = max + 10;
+	itemStr = StackStrings(itemStr, descStr, maxRune + 5);
 	msg += StackStrings(itemStr, priceStr, distance);
 	msg += "*GREY*Your Gold: *YELLOW*" + C.GOLD;
 	return msg;
@@ -2273,48 +2471,16 @@ function DrawPlayers(C) {
 
 function Command(message) {
 	let words = message.content.substring(1).toLowerCase().split(" ");
+	for (let i = 0; i < words.length; i++) {
+		if (words[i].length == 0) {
+			words.splice(i, 1);
+		}
+	}
 	let keyword = words[0];
 	let msg = "";
 	let C = data[message.author.id].CHARACTER;
 	let index = -1;
 	let numRepeat = 1;
-	if (C) {
-		if (C.TRADING == -1) {
-			C.TRADING = "";
-		}
-		let location = findLocation(C.LOCATION);
-		index = BattleIndex(C.ID);
-		if (C.HP <= 0) {
-			for (let i = 0; i < location.players; i++) {
-				if (location.players[i].ID == C.ID) {
-					location.players.splice(i, 1);
-					break;
-				}
-			}
-			data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.DESCRIPTION));
-			data[message.author.id].CHARACTER = null;
-			C = null;
-		}
-		else {
-			if (index == -1) {
-				C.STAMINA = MaxStamina(C);
-				for (let i = 0; i < C.EFFECTS.length; i++) {
-					endEffect(C, i);
-				}
-			}
-			let found = false;
-			for (let i = 0; i < location.players; i++) {
-				if (location.players[i].ID == C.ID) {
-					location.players.splice(i, 1);
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				location.players.push(C);
-			}
-		}
-	}
 	
 	let requireCharacter = ["heal", "cheat", "fish", "reel", "haircut", "inventory", "enchant", "level", "stop", "move", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "read", "buy", "sell", "spells"];
 	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "push"];
@@ -2323,20 +2489,64 @@ function Command(message) {
 		requireCharacter.push(requireBattle[i]);
 	}
 	
-	if (C == null && requireCharacter.indexOf(keyword) > -1) {
-		return "*RED*You need to make a character first with !character";
-	}
-	if (index == -1 && requireBattle.indexOf(keyword) > -1) {
-		return "*RED*You must be in combat to do this action!";
-	}
 	if (requireCharacter.indexOf(keyword) > -1 && words[words.length - 1][0] == "x" && words[words.length - 1].length == 2) {
 		numRepeat = parseInt(words[words.length - 1][1]);
 		if (isNaN(numRepeat) || numRepeat == 0) {
 			numRepeat = 1;
 		}
+		words.splice(words.length - 1, 1);
 	}
-	
 	for (let i = 0; i < numRepeat; i++) {
+		if (C) {
+			if (C.TRADING == -1) {
+				C.TRADING = "";
+			}
+			let location = findLocation(C.LOCATION);
+			index = BattleIndex(C.ID);
+			if (C.HP <= 0) {
+				if (hasEffect(C, "deliverance")) {
+					msg += "*YELLOW*" + C.NAME + " is delivered from harm!\n";
+					C.HP = 1;
+				}
+				else {
+					for (let i = 0; i < location.players; i++) {
+						if (location.players[i].ID == C.ID) {
+							location.players.splice(i, 1);
+							break;
+						}
+					}
+					data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.DESCRIPTION));
+					data[message.author.id].CHARACTER = null;
+					C = null;
+				}
+			}
+			else {
+				if (index == -1) {
+					C.STAMINA = MaxStamina(C);
+					for (let i = 0; i < C.EFFECTS.length; i++) {
+						endEffect(C, i);
+					}
+				}
+				let found = false;
+				for (let i = 0; i < location.players; i++) {
+					if (location.players[i].ID == C.ID) {
+						location.players.splice(i, 1);
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					location.players.push(C);
+				}
+			}
+		}
+		
+		if (C == null && requireCharacter.indexOf(keyword) > -1) {
+			return "*RED*You need to make a character first with !character";
+		}
+		if (index == -1 && requireBattle.indexOf(keyword) > -1) {
+			return "*RED*You must be in combat to do this action!";
+		}
 		if (keyword == "help") {
 			return ListCommands(index);
 		}
@@ -2363,7 +2573,7 @@ function Command(message) {
 			msg += "*BLUE*Ranged - Ranged weapons have good damage, low AP costs, and very high range, allowing the user to attack from safety.\n";
 		}
 		else if (keyword == "item" || keyword == "look") {
-			msg += CommandDescribe(words, C, index);
+			msg += CommandDescribe(COPY(words), C, index);
 		}
 		else if (keyword == "stats") {
 			msg += CommandStats(C);
@@ -2413,7 +2623,6 @@ function Command(message) {
 		else if (keyword == "quest") {
 			let quest = data["town"].quest;
 			let index = findTarget(enemies, quest.enemy);
-			console.log(index);
 			
 			if (index > -1 && index < enemies.length) {
 				msg += EnemyDescription(enemies[index], false);
@@ -2423,22 +2632,31 @@ function Command(message) {
 			}
 		}
 		else if (keyword == "equip" || keyword == "dequip" || keyword == "remove" || keyword == "unequip") {
-			msg += CommandEquip(words, C);
+			msg += CommandEquip(COPY(words), C);
 		}
 		else if (keyword == "cast") {
-			msg += CommandCast(words, C, index);
+			msg += CommandCast(COPY(words), C, index);
+			if (i == numRepeat - 1) {
+				msg += RoomDescription(C);
+			}
 		}
 		else if (keyword == "drop") {
-			msg += CommandDrop(words, C, index);
+			msg += CommandDrop(COPY(words), C, index);
 		}
 		else if (keyword == "enchant") {
-			msg += CommandEnchant(words, C);
+			msg += CommandEnchant(COPY(words), C);
 		}
 		else if (keyword == "attack") {
-			msg += CommandAttack(words, C, index);
+			msg += CommandAttack(COPY(words), C, index, );
+			if (i == numRepeat - 1) {
+				msg += RoomDescription(C);
+			}
 		}
 		else if (keyword == "push") {
-			msg += CommandAttack(words, C, index, true);
+			msg += CommandAttack(COPY(words), C, index, true);
+			if (i == numRepeat - 1) {
+				msg += RoomDescription(C);
+			}
 		}
 		else if (keyword == "here") {
 			msg += RoomDescription(C);
@@ -2450,25 +2668,28 @@ function Command(message) {
 			msg += CommandLeave(C, index);
 		}
 		else if (keyword == "go" || keyword == "move" || keyword == "enter" || keyword == "travel" || keyword == "leave") {
-			msg += CommandTravel(words, C, index);
+			msg += CommandTravel(COPY(words), C, index);
+			if (i == numRepeat - 1) {
+				msg += RoomDescription(C);
+			}
 		}
 		else if (keyword == "flee") {
 			msg += CommandFlee(C, index);
 		}
 		else if (keyword == "trade") {
-			msg += CommandTrade(words, C);
+			msg += CommandTrade(COPY(words), C);
 		}
 		else if (keyword == "talk") {
-			msg += CommandTalk(words, C);
+			msg += CommandTalk(COPY(words), C);
 		}
 		else if (keyword == "buy") {
-			msg += CommandBuy(words, C);
+			msg += CommandBuy(COPY(words), C);
 		}
 		else if (keyword == "sell") {
-			msg += CommandSell(words, C);
+			msg += CommandSell(COPY(words), C);
 		}
 		else if (keyword == "take") {
-			msg += CommandTake(words, C, index);
+			msg += CommandTake(COPY(words), C, index);
 		}
 		else if (keyword == "suicide") {
 			C.HP = 0;
@@ -2496,7 +2717,7 @@ function Command(message) {
 			}
 			else {
 				C = new Character();
-				msg += CommandCharacter(words, C, message.author.id);
+				msg += CommandCharacter(COPY(words), C, message.author.id);
 			}
 		}
 		else if (keyword == "level") {
@@ -2518,21 +2739,21 @@ function Command(message) {
 			msg += "*GREEN*You level up your " + stats[index] + " stat to " + C.STATS[index] + "!";
 		}
 		else if (keyword == "read") {
-			msg += CommandRead(words, C);
+			msg += CommandRead(COPY(words), C);
 		}
 		else if (keyword == "spells") {
 			msg += CommandSpells(C);
 		}
 		else if (keyword == "drink") {
-			msg += CommandDrink(words, C);
+			msg += CommandDrink(COPY(words), C);
 		}
 		else if (keyword == "classes") {
-			msg += "*BLUE*Rogue*GREY* - +2 AVD. Starts with a cloak, two daggers, and 40 gold.\n";
-			msg += "*RED*Peasant*GREY* - +2 END +2 Vitality. Starts with a club and no gold.\n";
-			msg += "*BLUE*Warrior*GREY* - +1 VIT. +1 DEX. Starts with a Leather Cuirass, a Hatchet, and a Buckler.\n";
-			msg += "*RED*Noble*GREY* - Starts with 150 gold, a stylish shirt, and a rondel dagger.\n";
-			msg += "*BLUE*Mage*GREY* - +2 MAG. Starts with a spellbook and a simple spell but no gold.\n";
-			msg += "*RED*Ranger*GREY* - +1 WEP +1 AVD. Start with a Sling, Crossbow, or Hunting Bow.\n";
+			msg += "*PINK*Peasant*GREY* - *CYAN*+2 END +2 VIT*GREY*. Starts with a club but *RED*no gold*GREY*.\n\n";
+			msg += "*BLUE*Mage*GREY* - *CYAN*+2 MAG*GREY*. Starts with a spellbook and a simple spell but *RED*no gold*GREY*.\n\n";
+			msg += "*PINK*Noble*GREY* - Starts with *YELLOW*150 gold*GREY*, a stylish shirt, and a scimitar. A *GREEN*loyal servant*GREY* follows you into battle.\n\n";
+			msg += "*BLUE*Rogue*GREY* - *CYAN*+2 AVD*GREY*. Starts with *YELLOW*40 gold*GREY*, a cloak, and two daggers. Each attack gives you a 50% chance to earn *YELLOW*1 gold*GREY*.\n\n";
+			msg += "*PINK*Warrior*GREY* - *CYAN*+1 VIT +1 DEX +1 Armor*GREY*. Starts with *YELLOW*25 gold*GREY*, a Leather Cuirass, a Hatchet, and a Buckler.\n\n";
+			msg += "*BLUE*Ranger*GREY* - *CYAN*+1 WEP +1 AVD*GREY*. Start with *YELLOW*25 gold*GREY* and a ranged weapon. Your attacks *CYAN*mark enemies*GREY*, increasing damage you deal to them.\n\n";
 		}
 		else if (keyword == "effects") {
 			msg += WriteEffects(C);
@@ -2540,6 +2761,41 @@ function Command(message) {
 		else if (keyword == "stop") {
 			C.TRADING = "";
 			msg += RoomDescription(C);
+		}
+		else if (keyword == "play") {
+			if (data["town"].prosperity > 2500) {
+				if (C) {
+					return "*RED*You already have a character! Retire or kill yourself first . . .\n";
+				}
+				if (words[1] == "as") {
+					for (let i = 0; i < data["town"].retired.length; i++) {
+						let hero = data["town"].retired[i];
+						if (hero.NAME.toLowerCase() == words[2]) {
+							C = hero;
+							msg += "*GREEN*The mighty hero " + C.NAME + " returns from retirement. . .\n\n";
+							data["town"].retired.splice(i, 1);
+							break;
+						}
+					}
+					if (!C) {
+						return "*RED*Couldn't find hero '" + words[2] + "' in Guild Hall.\n";
+					}
+				}
+				msg += CharacterDescription(C);
+			}
+			else { 
+				return "*RED*The town needs more prosperity to access the guild hall . . .\n";
+			}
+		}
+		else if (keyword == "retire") {
+			if (C.LEVEL >= 3) {
+				msg += "*YELLOW*You retire to live in the Guild Hall on the edge of town. . .\n";
+				data["town"].retired.push(C);
+				C = null;
+			}
+			else {
+				return "*RED*You haven't accomplished enough to retire! You need to be at least level 3.\n";
+			}
 		}
 		else if (keyword == "sleep" || keyword == "rest" || keyword == "heal") {
 			if (C.HP == MaxHP(C)) {
@@ -2573,7 +2829,6 @@ function Command(message) {
 					msg += "\n";
 					for (let j = 0; j < locations[i].buildings.length; j++) {
 						msg += "*GREY* - *GREEN*" + locations[i].buildings[j].id;
-						console.log(locations[i].buildings[j].prosperity);
 						if (locations[i].buildings[j].prosperity > prosperity) {
 							msg += "*GREY* - *RED*" + locations[i].buildings[j].prosperity;
 						}
@@ -2594,13 +2849,13 @@ function Command(message) {
 		else if (keyword == "cheat") {
 			if (message.author.id == "462829989465948180") {
 				if (words[1].toLowerCase() == "gold") {
-					let amount = words.slice(2, words.length).join(" ");
+					let amount = COPY(words).slice(2, COPY(words).length).join(" ");
 					let value = parseInt(amount);
 					C.GOLD = value;
 					return "*GREEN*Gold set to " + amount + ".\n";
 				}
 				else {
-					let item = words.slice(1, words.length).join(" ");
+					let item = COPY(words).slice(1, COPY(words).length).join(" ");
 					for (let i = 0; i < items.length; i++) {
 						if (items[i].name.toLowerCase() == item.toLowerCase()) {
 							if (CanTake(C, items[i])) {
@@ -2620,168 +2875,10 @@ function Command(message) {
 			}
 		}
 		else if (keyword == "fish") {
-			let event = data[message.author.id].CATCH;
-			if (event) {
-				if (event.valid) {
-					return "*RED*You're already fishing!\n";
-				}
-			}
-			let location = findLocation(C.LOCATION);
-			let poleTier = GetPoleTier(C);
-			if (poleTier == 0) {
-				return "*RED*You need to equip a fishing pole to be able to fish!\n";
-			}
-			if (location.fish.length == 0) {
-				return "*RED*You can't fish here!";
-			}
-			msg += "*GREEN*You cast your line far out into the water, hoping that something will bite. . .\n";
-			let delay = ((10 - poleTier) + rand(5) + rand((8 - poleTier) * 2));
-			let date = new Date();
-			date.setSeconds(date.getSeconds() + delay);
-			data[message.author.id].CATCH = new FishEvent(location.fish[rand(location.fish.length)], date, C.LOCATION);
-			console.log("Fishing for a " + data[message.author.id].CATCH.fish.name);
-			if (delay > 12) {
-				let ran = rand(4);
-				let idle = "*YELLOW*The water seems still. . .";
-				if (ran == 0) {
-					idle = "*YELLOW*A cool breeze passes over the water, dipping ripples into its mirrored surface. . .";
-				}
-				if (ran == 1) {
-					idle = "*YELLOW*You start to zone out. . .";
-				}
-				if (ran == 2) {
-					idle = "*YELLOW*You feel at peace. . .";
-				}
-				if (ran == 3) {
-					idle = "*YELLOW*Was that a bite? Nevermind, it was nothing. . .";
-				}
-				setTimeout(() => {
-					if (data[message.author.id].CATCH.valid) {
-						if (C.LOCATION == data[message.author.id].CATCH.location && C.BUILDING == "") {
-							PrintMessage(parseText(idle), message.channel);
-						}
-						else {
-							data[message.author.id].CATCH.valid = false;
-						}
-					}
-				}, 8000 + (rand(5) * 1000));
-			}
-			setTimeout(() => {
-				if (data[message.author.id].CATCH.valid) {
-					let startDate = new Date(data[message.author.id].CATCH.date);
-					let date = new Date();
-					let seconds = (date.getTime() - startDate.getTime()) / 1000;
-					if (seconds >= 0) {
-						if (C.LOCATION == data[message.author.id].CATCH.location && C.BUILDING == "") {
-							PrintMessage(parseText("*GREEN*You feel a bite! *CYAN*Reel!"), message.channel);
-						}
-						else {
-							data[message.author.id].CATCH.valid = false;
-						}
-					}
-				}
-			}, delay * 1000);	
-		}
-		else if (keyword == "testfish") {
-			msg += "\n";
-			for (let poleTier = 1; poleTier < 5; poleTier++) {
-				let seconds = 0;
-				let goldEarned = 0;
-				let location = findLocation(C.LOCATION);
-				for (let j = 0; j < 100; j++) {
-					seconds += ((10 - poleTier) + rand(5) + rand((8 - poleTier) * 2));
-					let fish = location.fish[rand(location.fish.length)];
-					let caught = false;
-					while (!caught) {
-						seconds += 3 + rand(10 - poleTier)
-						let ran = rand(1 + Math.max(0, Math.floor((fish.value - 3 * poleTier)/8)));
-						if (ran == 0) {
-							caught = true;
-							seconds += 3 + rand(10 - poleTier)
-						}
-					}
-					if (8 - (2 * poleTier) <= rand(14)) {
-						goldEarned += Math.ceil(fish.value/2);
-					}
-				}
-				msg += "Pole Level " + poleTier + " earned " + goldEarned + " gold in " + seconds + " seconds. (" + Math.floor(100*(goldEarned/(seconds/60)))/100 + " gold/minute)\n";
-			}
+			msg += CommandFish(C, message);
 		}
 		else if (keyword == "reel") {
-			let location = findLocation(C.LOCATION);
-			let poleTier = GetPoleTier(C);
-			if (poleTier == 0) {
-				return "*RED*You need to equip a fishing pole to be able to reel!\n";
-			}
-			if (location.fish.length == 0) {
-				return "*RED*You can't fish here!";
-			}
-			if (!data[message.author.id].CATCH) {
-				return "*RED*Try !fish";
-			}
-			let event = data[message.author.id].CATCH;
-			console.log(event);
-			if (event && event.valid && C.BUILDING == "" && C.LOCATION == event.location) {
-				let startDate = new Date(data[message.author.id].CATCH.date);
-				let delay = 3 + rand(10 - poleTier);
-				let date = new Date();
-				let seconds = (date.getTime() - startDate.getTime()) / 1000;
-				console.log("Seconds so far: " + seconds);
-				let threshold = 1.75 + .5 * rand(3);
-				/*if (message.author.id == "388524907450990603") {
-					threshold += .5;
-				}*/
-				if (seconds > 0 && seconds < threshold) {
-					if (data[message.author.id].CATCH.caught) {
-						data[message.author.id].CATCH.valid = false;
-						let fish = event.fish;
-						msg += "*GREEN*You caught a fish! *GREY*It's " + an(fish.name) + " *YELLOW*" + fish.name + "*GREY*!\n";
-						if (fish.value > poleTier * 8) {
-							if (8 - (2 * poleTier) > rand(14)) {
-								return "*RED*Your line breaks! The " + fish.name + " gets away!\n";
-							}
-						}
-						msg += ItemDescription(fish) + "\n";
-						if (!CanTake(C, fish)) {
-							return "*RED*You don't have room in your inventory for the fish! It gets away!\n";
-						}
-						C.INVENTORY.push(fish);
-					}
-					else {
-						msg += "*GREEN*You reel your line in a little. Wait for the next bite!\n";
-						date.setSeconds(date.getSeconds() + delay);
-						let ran = rand(1 + Math.max(0, Math.floor((event.fish.value - 3 * poleTier)/8)));
-						if (ran == 0) {
-							data[message.author.id].CATCH = new FishEvent(event.fish, date, C.LOCATION, true);
-							setTimeout(() => {
-								if (data[message.author.id].CATCH.valid) {
-									PrintMessage(parseText("*GREEN*You've hooked the fish! *CYAN*Reel!"), message.channel);
-								}
-							}, delay * 1000);	
-						}
-						else {
-							data[message.author.id].CATCH = new FishEvent(event.fish, date, C.LOCATION);
-							setTimeout(() => {
-								if (data[message.author.id].CATCH.valid) {
-									PrintMessage(parseText("*GREEN*You feel a bite! *CYAN*Reel!"), message.channel);
-								}
-							}, delay * 1000);	
-						}
-					}
-				}
-				else if (seconds < 0) {
-					data[message.author.id].CATCH.valid = false;
-					return "*RED*Your empty hook rises out of the water, you've reeled your line all the way in.";
-				}
-				else {
-					data[message.author.id].CATCH.valid = false;
-					return "*RED*You were too slow; The fish got away. . .";
-				}
-			}
-			else {
-				data[message.author.id].CATCH.valid = false;
-				return "*RED*Try !fish";
-			}
+			msg += CommandReel(C, message);
 		}
 		else {
 			return "*RED*Command '" + keyword + "' not found!";
@@ -2796,4 +2893,3 @@ initItems();
 initSpells();
 initEnemies();
 initLocations();
-

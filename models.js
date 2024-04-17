@@ -99,7 +99,7 @@ function Building(id, description) {
 	this.prosperity = 0;
 }
 
-function Weapon(name, weaponType, hands, attacks, value, chance, min, max, pen, AP, range) {
+function Weapon(name, weaponType, hands, attacks, value, chance, min, max, pen, AP, range, canDrop = true) {
 	this.type = "weapon";
 	this.subclass = weaponType;
 	this.description = "";
@@ -116,6 +116,7 @@ function Weapon(name, weaponType, hands, attacks, value, chance, min, max, pen, 
 	this.AP = AP;
 	this.range = range;
 	this.equipped = false;
+	this.canDrop = canDrop;
 }
 
 function createQuest(){
@@ -161,20 +162,23 @@ function Town() {
 	this.prosperity = 0;
 	this.quest = createQuest();
 	this.graves = [];
+	this.retired = [];
 }
 
 function P_Attack(damage, hitChance, pen) {
 	this.type = 0;
+	this.number = 1;
 	this.damage = damage;
 	this.pen = pen;
-	this.hitchance = hitChance;
+	this.hitChance = hitChance;
 }
 
 function M_Attack(damage, hitChance = 100, pen = 0) {
 	this.type = 1;
+	this.number = 1;
 	this.damage = damage;
 	this.pen = pen;
-	this.hitchance = hitChance;
+	this.hitChance = hitChance;
 }
 
 function Attack(verb, damage, hitChance, type = 0, number = 1, range = 1, pen = 0) {
@@ -187,7 +191,7 @@ function Attack(verb, damage, hitChance, type = 0, number = 1, range = 1, pen = 
 	this.pen = pen;
 }
 
-function Armor(name, physical, magical, AP, value, description) {
+function Armor(name, physical, magical, AP, value, description, canDrop = true) {
 	this.type = "armor";
 	this.effect = "";
 	this.name = name;
@@ -197,6 +201,7 @@ function Armor(name, physical, magical, AP, value, description) {
 	this.runes = [];
 	this.equipped = false;
 	this.description = description;
+	this.canDrop = canDrop;
 }
 
 function FishEvent(fish, date, location, caught = false) {
