@@ -1,5 +1,5 @@
 function Dequip(C, invIndex) {
-	if (C.INVENTORY[invIndex].type == "weapon" || C.INVENTORY[invIndex].type == "armor") {
+	if (C.INVENTORY[invIndex].equipped) {
 		C.INVENTORY[invIndex].equipped = false;
 		if (C.INVENTORY[invIndex].type == "armor") {
 			C.ARMOR[0] -= C.INVENTORY[invIndex].armor[0];
@@ -13,18 +13,12 @@ function Dequip(C, invIndex) {
 		}
 		return "You unequip the *BLUE*" + C.INVENTORY[invIndex].name;
 	}
+	return "*RED*That item is not equipped!\n";
 }
 
 function Equip(C, invIndex) {
 	if (C.INVENTORY[invIndex].type == "weapon" || C.INVENTORY[invIndex].type == "armor" || C.INVENTORY[invIndex].type == "staff" || C.INVENTORY[invIndex].type == "pole") {
 		let index = BattleIndex(C.ID);
-		if (index > -1 && battles[index].started) {
-			let cost = 3 + APCost(C);
-			if (C.AP < cost) {
-				return "*RED*You don't have enough AP to equip anything.";
-			}
-			C.AP -= cost;
-		}
 		if (C.INVENTORY[invIndex].type == "armor") {
 			for (let i = 0; i < C.INVENTORY.length; i++) {
 				if (C.INVENTORY[i].type == "armor" && C.INVENTORY[i].equipped) {
@@ -74,6 +68,12 @@ function Equip(C, invIndex) {
 						resetPercent(C, RIGHT);
 					}
 				}
+			}
+		}
+		if (index > -1 && battles[index].started) {
+			if (C.INVENTORY[invIndex].type == "weapon") {
+				C.ENDED = true;
+				msg += HandleCombat(battles[index]);
 			}
 		}
 		C.INVENTORY[invIndex].equipped = true;
@@ -306,13 +306,22 @@ function findPerson(people, target) {
 	return -1;
 }
 
-function findItem(itemList, target) {
+function findItem(itemList, target, hesitate = false) {
 	let invIndex = parseInt(target);
+	let potential = -1;
 	if (isNaN(invIndex)) {
 		for (let i = 0; i < itemList.length; i++) {
 			if (itemList[i].name.toLowerCase() == target.toLowerCase()) {
-				return i;
+				if (hesitate && itemList[i].equipped) {
+					potential = i;
+				}
+				else {
+					return i;
+				}
 			}
+		}
+		if (potential > -1) {
+			return potential;
 		}
 	}
 	else {
@@ -336,6 +345,7 @@ function takeItem(C, item) {
 			C.BACKPACK = true;
 		}
 		else {
+			item.equipped = false;
 			C.INVENTORY.push(item);
 		}
 	}
@@ -353,7 +363,7 @@ function MaxHP(C) {
 	if (hasRune(C, "longevity")) {
 		bonus = 20;
 	}
-	return bonus + 20 + C.STATS[VIT] * 10;
+	return bonus + 30 + C.STATS[VIT] * 10;
 }
 
 function MaxAP(C) {
@@ -447,11 +457,11 @@ function CanUseWeapon(C, index, range = 0) {
 function genName(male) {
 	var name = "";
 	var mBegs = ["Le", "Ke", "Je", "Be", "Me", "Ko", "Ye", "E", "Cy", "Ce", "Ci", "A"];
-	var mMids = ["k", "r", "ke", "re", "vin", "t", "s", "d", "v"];
-	var mEnds = ["os", "ih", "o", "it", "en", "in", "de", "des", "re", "ro", "ov", "us", "on", "ic", "am"];
+	var mMids = ["k", "r", "ke", "re", "vin", "t", "s", "d", "v", "b"];
+	var mEnds = ["os", "ih", "o", "it", "en", "in", "de", "des", "re", "ro", "ov", "us", "on", "ic", "am", "es", "ev"];
 
-	var fBegs = [["Su", "A", "E", "O", "Ke", "Ti", "Di", "De", "Li", "Ki", "Ve", "Ma", "Ni", "Ari", "So", "Ky"], ["Al", "Ev", "Ky"]];
-	var fMids = [["or", "ex", "an"], ["k", "r", "n", "c", "s", "r", "ret", "ken", "y"]];
+	var fBegs = [["Su", "A", "E", "O", "Ke", "Ti", "Di", "De", "Li", "Ki", "Ve", "Ma", "Ni", "Ari", "So", "Ky"], ["Al", "Ev", "Ky", "Em", "An"]];
+	var fMids = [["or", "ex", "an", "et", "el"], ["k", "r", "n", "c", "s", "r", "ret", "ken", "y"]];
 	var fEnds = ["a", "i", "ei", "is", "ia", "a", "iev", "ana", "in"];
 	if (male) {
 		return "" + mBegs[Math.floor(Math.random() * mBegs.length)] + "" + mMids[Math.floor(Math.random() * mMids.length)] + "" + mEnds[Math.floor(Math.random() * mEnds.length)];

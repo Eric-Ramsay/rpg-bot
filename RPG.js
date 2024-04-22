@@ -8,6 +8,7 @@ eval(fs.readFileSync('init.js') + '');
 eval(fs.readFileSync('helpers.js') + '');
 eval(fs.readFileSync('commands.js') + '');
 eval(fs.readFileSync('AI.js') + '');
+eval(fs.readFileSync('battle.js') + '');
 eval(fs.readFileSync('login.js') + '');
 
 var data = require('./data.json');
@@ -74,35 +75,32 @@ function isEquipped(C, item) {
 }
 function Mitigate(target, dmg, pen = 0, type = 0) {
 	if (target.TYPE == "player") {
+		let dodgeChance = 10 * target.STATS[AVD];
+		if (type == MAGICAL) {
+			dodgeChance = 0;
+		}
 		if (hasRune(target, "reflex")) {
-			let ran = rand(100);
-			if (ran < 20) {
-				return 0;
+			dodgeChance += 20;
+		}	
+		dodgeChance = Math.min(95, dodgeChance);
+		let ran = rand(100);
+		if (ran < dodgeChance) {
+			return 0;
+		}
+		if (isEquipped(target, "shield")) {
+			ran = rand(100);
+			if (ran <= 30) {
+				return -1;
 			}
 		}
-		if (type == 0) {
-			let bonus = 0;
-			
-			let dodgeChance = Math.min(95, 10 * target.STATS[AVD] + bonus);
-			let ran = rand(100);
-			if (ran < dodgeChance) {
-				return 0;
+		if (isEquipped(target, "buckler")) {
+			if (ran <= 20) {
+				return -1;
 			}
-			if (isEquipped(target, "shield")) {
-				ran = rand(100);
-				if (ran <= 30) {
-					return -1;
-				}
-			}
-			if (isEquipped(target, "buckler")) {
-				if (ran <= 20) {
-					return -1;
-				}
-			}
-			if (isEquipped(target, "spiked shield")) {
-				if (ran <= 15) {
-					return -1;
-				}
+		}
+		if (isEquipped(target, "spiked shield")) {
+			if (ran <= 15) {
+				return -1;
 			}
 		}
 	}
@@ -124,34 +122,41 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 	let msg = "";
 	if (target.HP <= 0) {
 		target.HP = 0;
-		return msg;
+		return [msg, -2];
 	}
 	let damage = attack.damage;
 	let isPlayer = (target.TYPE == "player");
-	let aName = attacker.NAME;
-	let tName = target.NAME;
-	if (target.TYPE != "player") {
-		tName = "The " + tName;
-	}
-	if (attacker.TYPE != "player") {
-		aName = "The " + aName;
+	let aName = Name(attacker);
+	let tName = Name(target);
+	
+	if (hasRune(attacker, "cascade")) {
+		damage++;
 	}
 	
 	//Redirect all Magical Damage to the Warded Totem
 	if (attack.type == MAGICAL && target.NAME != "Warded Totem") {
 		for (let i = 0; i < targets.length; i++) {
 			if (targets[i].NAME == "Warded Totem") {
-				return DealDamage(attack, attackers, targets, targets[i]);
+				return DealDamage(attack, attackers, attacker, targets, targets[i]);
 			}
 		}
 	}
 	
-	if (attack.type == 0 && hasEffect(attacker, "stronger")) {
-		damage += 3;
+	if (attack.type == PHYSICAL) {
+		if (hasEffect(attacker, "stronger")) {
+			damage += 3;
+		}
+		if (hasEffect(attacker, "destructive synergy")) {
+			for (let i = 0; i < attacker.EFFECTS.length; i++) {
+				if (attacker.EFFECTS[i].type == "buff") {
+					damage++;
+				}
+			}
+		}
 	}
 	damage = Mitigate(target, damage, attack.pen, attack.type);
 
-	let chance = rand(101);
+	let chance = rand(100);
 	if (chance > attack.hitChance) {
 		damage = -2;
 		msg += "*RED*" + aName + " misses!\n";
@@ -161,14 +166,20 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 		let chance = rand(101);
 		if (chance < 50) {
 			damage = -2;
-			msg = "*RED*" + aName + " misses!\n";
+			msg = "*RED*" + aName + " is blinded and misses!\n";
 		}
 	}
 	
 	if (damage > 0) {
-		if (damage > 12 && hasRune(target, "jade")) {
-			msg = "*GREEN*The damage to " + tName + " is reduced from " + damage + " to 12.\n";
-			damage = 12;
+		if (hasRune(target, "jade")) {
+			damage--;
+			if (damage > 10) {
+				damage = 10;
+			}
+		}
+		if (damage > 10 && hasRune(target, "jade")) {
+			msg = "*GREEN*The damage to " + tName + " is reduced from " + damage + " to 10.\n";
+			damage = 10;
 		}
 		target.HP -= damage;
 		if (target.HP > 0 && target.NAME == "Ephemeral Warrior") {
@@ -203,6 +214,7 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 		}
 		if (hasRune(target, "amber")) {
 			target.STAMINA += 6;
+			target.HP = Math.min(target.HP + 2, MaxHP(target));
 			msg = "*GREEN*" + tName + " gains 6 Stamina.\n";
 		}
 	}
@@ -228,7 +240,7 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 				}
 			}
 			if (target.NAME == "Lost Mariner") {
-				let ran = rand(4);
+				let ran = rand(3);
 				if (ran == 0) {
 					msg += "*GREEN*The Parasitic Barnacles fall away from the old mariner, and his sanity returns!\n";
 					attackers.push(summon("Mariner", target.ROW));
@@ -241,7 +253,7 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 				msg += "The *RED*Scoundrel*GREY* cries out for mercy before it dies.\n";
 			}
 			if (target.NAME == "Deep Horror") {
-				msg += "The *RED*Deep Horror*GREY* bursts into a blob of ruptured flesh as the pressure field collapses!\n";
+				msg += "The *RED*Deep Horror*GREY* bursts into a blob of ruptured flesh as its pressure field collapses!\n";
 			}
 			if (target.NAME == "Slimelord") {
 				msg += "The *RED*Slimelord*GREY* splits into several *RED*Living Slimes*GREY*!";
@@ -273,7 +285,7 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 				}
 			}
 			else {
-				msg += "The *RED*" + target.NAME + "*GREY* has been slain!\n";
+				msg += "*GREY*The *RED*" + target.NAME + "*GREY* has been slain!\n";
 			}
 			let crabbed = false;
 			for (let i = 0; i < targets.length; i++) {
@@ -341,10 +353,10 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 		if (hasRune(target, "reflect")) {
 			rDamage = Mitigate(attacker, 5, 0, 1);
 		}
-		if (target.NAME == "Briar Beast") {
+		if (target.NAME == "Briar Beast" || hasEffect(target, "minor reflect")) {
 			rDamage = Mitigate(attacker, 3, 0, 1);
 		}
-		if (target.NAME == "Briar Monster") {
+		if (target.NAME == "Briar Monster" || hasEffect(target, "greater reflect")) {
 			rDamage = Math.max(Mitigate(attacker, 5, 0, 1), Mitigate(attacker, Math.floor(damage/2), 0, 1));
 		}
 		if (target.NAME == "Fumous Fiend") {
@@ -367,8 +379,11 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 		}
 	}
 	else if (damage == 0) {
+		if (target.CLASS == "rogue") {
+			msg += DealDamage(new P_Attack(6), targets, target, attackers, attacker)[0];
+		}
 		if (hasRune(target, "amethyst")) {
-			msg += DealDamage(new M_Attack(8), targets, target, attackers, attacker);
+			msg += DealDamage(new M_Attack(8), targets, target, attackers, attacker)[0];
 		}
 		msg += "*RED*" + tName + " dodges the damage!\n";		
 	}
@@ -578,12 +593,15 @@ function Cast(battle, C, spellName, target) {
 			if (i == -1) {
 				return "*RED*Can't find target '" + target + "'\n";
 			}
-			let dmg = 2 + rand(5) + bonusDmg;
+			let dmg = 4 + rand(5) + bonusDmg;
 			let chance = rand(100);
 			msg += DealDamage(new M_Attack(dmg), allies, C, targets, targets[i])[0];
-			if (chance <= 75) {
+			if (chance <= 80) {
 				msg += "*BLUE*The " + targets[i].NAME + " is encased in ice!\n"
 				AddOrRefreshEffect(targets[i], new Effect("Stunned", "Lose your next turn.", 1));
+			}
+			else {
+				msg += "*BLUE*The " + Name(targets[i]) + " isn't stunned. . .\n";
 			}
 		}
 	}
@@ -594,7 +612,7 @@ function Cast(battle, C, spellName, target) {
 		}
 		else if (spellName == "ferocity") {
 			msg += "*PINK*You feel more ferocious!\n";
-			AddOrRefreshEffect(C, new Effect("Ferocity", "Your spells deal +2 DMG", 1, "buff"));
+			AddOrRefreshEffect(C, new Effect("Ferocity", "Your spells deal +2 DMG", 3, "buff"));
 		}
 		else if (spellName == "meditation") {
 			msg += "*PINK*You feel at peace and re-energized!\n";
@@ -988,168 +1006,6 @@ function Cast(battle, C, spellName, target) {
 }
 
 
-function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
-	let msg = "";
-	let enemy = Battle.enemies[enemyIndex];
-	let targetRow = enemy.ROW;
-	let weapon = C.INVENTORY[weaponIndex];
-	weapon.attacks[0]--;
-	let dmg = weapon.min + rand(1 + ((weapon.max + C.STATS[WEP]) - weapon.min));
-	if (hasWeaponRune(weapon, "powerful")) {
-		dmg *= 1.2;
-	}
-	dmg = Math.floor(dmg * (1 + .1 * C.STATS[WEP]));
-	if (hasEffect(C, "cascade")) {
-		dmg += 2;
-	}
-	msg = "*GREEN*" + C.NAME + "*GREY*" + " attacks the *RED*" + enemy.NAME + "*GREY* with their " + weapon.name + ". ";	
-	if (hasWeaponRune(weapon, "maladious")) {
-		let debuffs = 0;
-		for (let i = 0; i < enemy.EFFECTS.length; i++) {
-			if (enemy.EFFECTS[i].type == "debuff") {
-				debuffs++;
-			}
-		}
-		if (debuffs > 0) {
-			dmg += 1;
-			dmg += debuffs;
-		}
-	}
-	if (weapon.subclass == "axe") {
-		if (rand(101) <= 15) {
-			dmg *= 2;
-			msg += "*GREEN*It's a wild blow!\n";
-		}
-	}
-	if (C.CLASS == "ranger" && hasEffect(enemy, "hunter's mark")) {
-		dmg *= 1.2;
-	}
-	
-	//RNG BALANCING -----------------
-	let hand = LEFT;
-	let weaponChance = weapon.chance;
-	if (weaponChance > hitPercent(C, hand)) {
-		weaponChance *= 1.25;
-		console.log("RNG is being boosted because RNG of " + Math.floor(100 * hitPercent(C, hand))/100 + "% is lower than expected value of " + weapon.chance + "%");
-	}
-	if (C.LEFT == weaponIndex) {
-		C.ATTEMPTS[LEFT]++;
-		
-	}
-	if (C.RIGHT == weaponIndex) {
-		C.ATTEMPTS[RIGHT]++;
-		hand = RIGHT;
-	}
-	//-------------------------------
-	
-	let result = DealDamage(new P_Attack(Math.round(dmg), weaponChance, weapon.pen), Battle.allies, C, Battle.enemies, enemy);
-	msg += result[0];
-	if (result[1] == -2) {
-		if (hasWeaponRune(weapon, "pacifist")) {
-			for (let i = 0; i < Battle.enemies.length; i++) {
-				msg += DealDamage(new M_Attack(2, 100), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
-			}
-		}
-		if (hasWeaponRune(weapon, "accurate")) {
-			result = DealDamage(new P_Attack(Math.round(dmg), weaponChance, weapon.pen), Battle.allies, C, Battle.enemies, Battle.enemies[enemyIndex]);
-			msg += result[0];
-		}
-	}
-	else {
-		if (C.LEFT == weaponIndex) {
-			C.HITS[LEFT]++;
-		}
-		if (C.RIGHT == weaponIndex) {
-			C.HITS[RIGHT]++;
-		}
-	}
-	
-	//PROC ON HIT EFFECTS -------------------------
-	if (result[1] > 0) {
-		if (C.CLASS == "rogue") {
-			if (rand(2) == 0) {
-				C.GOLD++;
-				msg += "*YELLOW*You gain 1 gold.\n";
-			}
-		}
-		if (C.CLASS == "ranger") {
-			msg += "*GREEN*You mark your target!\n";
-			AddOrRefreshEffect(enemy, new Effect("Hunter's Mark", "Rangers deal 20% more damage.", 10));
-		}
-		if (hasWeaponRune(weapon, "leeching", true)) {
-			msg += "*GREEN*You gain 2 HP.\n";
-			C.HP = Math.min(C.HP + 2, MaxHP(C));
-		}
-		if (weapon.name == "Vampire Fang") {
-			msg += "*GREEN*You gain 2 HP.\n";
-			C.HP = Math.min(C.HP + 2, MaxHP(C));
-		}
-		if (hasWeaponRune(weapon, "siphoning")) {
-			msg += "*GREEN*You gain 4 Stamina.\n";
-			C.STAMINA = Math.min(C.STAMINA + 4, MaxStamina(C));
-		}
-		if (enemy.HP > 0) {
-			if (hasWeaponRune(weapon, "poisoned")) {
-				msg += "*GREEN*The " + enemy.NAME + " is poisoned!\n";
-				AddOrRefreshEffect(enemy, new Effect("Poison", "Take 1 dmg per turn.", 10));
-			}
-			if (hasWeaponRune(weapon, "envenomed")) {
-				let chance = rand(101);
-				if (chance <= 50) {
-					msg += "*GREEN*The " + enemy.NAME + " is envenomed!\n";
-					AddOrRefreshEffect(enemy, new Effect("Venom", "Take 4 dmg per turn.", 5));
-				}
-			}
-			if (hasWeaponRune(weapon, "jagged")) {
-				let chance = rand(101);
-				if (chance <= 50) {
-					msg += "*GREEN*The *RED*" + enemy.NAME + "*GREEN* begins to bleed!\n";
-					AddOrRefreshEffect(enemy, new Effect("Bleed", "Take 4 dmg per turn.", 3));
-				}
-			}
-			if (hasWeaponRune(weapon, "icy")) {
-				let chance = rand(101);
-				if (chance <= 20) {
-					msg += "*GREEN*The " + enemy.NAME + " is frozen!\n";
-					AddOrRefreshEffect(enemy, new Effect("Stunned", "Lose your next turn.", 1));
-				}
-			}
-			if (hasWeaponRune(weapon, "envining")) {
-				msg += "*GREEN*The " + enemy.NAME + " is wrapped in vines, rooting them!\n";
-				AddOrRefreshEffect(enemy, new Effect("Rooted", "Unable to Move.", 1));
-			}
-			if (weapon.subclass == "whip") {
-				let chance = rand(101);
-				if (chance <= 50) {
-					msg += "*GREEN*The *RED*" + enemy.NAME + "*GREEN* begins to bleed!\n";
-					AddOrRefreshEffect(enemy, new Effect("bleed", "Take 4 damage each turn.", 3));
-				}
-			}
-		}
-		else if (hasWeaponRune(weapon, "death mark")) {
-			msg += "*GREEN*A zombie rises to your side!\n";
-			Battle.allies.push(summon("zombie", C.ROW));
-		}
-	}
-	//---------------------------------------------
-	
-	if (weapon.subclass == "blunt") {
-		for (let i = 0; i < Battle.enemies.length; i++) {
-			if (i != enemyIndex && Battle.enemies[i].ROW == targetRow) {
-				msg += DealDamage(new P_Attack(2), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
-			}
-		}
-	}
-	
-	C.AP -= (weapon.AP + APCost(C));
-	if (enemy.HP > 0) {
-		msg += "The *RED*" + enemy.NAME + "*GREY* has *RED*" + enemy.HP + "*GREY* HP remaining.\n"
-	}
-	msg += "*GREEN*" + C.NAME + "*GREY* has " + C.AP + " *GREEN*AP*GREY* left this turn.\n";
-	msg += "\n";
-	return msg;
-}
-
 function summon(name, row, summoned = true) {
 	let index = 0;
 	for (let i = 0; i < enemies.length; i++) {
@@ -1181,353 +1037,6 @@ function APCost(C) {
 	return cost;
 }
 
-function HandleEffects(target) {
-	let msg = "";
-	let tName = target.NAME;
-	if (target.TYPE != "player") {
-		tName = "The " + tName;
-	}
-	if (hasEffect(target, "poison")) {
-		if (target.HP > 1) {
-			target.HP -= 1;
-			msg += "*RED*" + tName + " takes 1 dmg!\n";
-		}
-	}
-	if (target.TYPE == "player" && hasEffect(target, "infested")) {
-		target.STAMINA = Math.max(C.STAMINA - 3, 0);
-	}
-	if (hasEffect(target, "venom")) {
-		let dmg = Math.min((target.HP - 1), 4);
-		if (dmg > 0) {
-			target.HP -= dmg;
-			msg += "*RED*" + tName + " takes " + dmg + " dmg from Venom.\n";
-		}
-	}
-	if (hasEffect(target, "bleed")) {
-		let dmg = 4;
-		target.HP = Math.max(0, target.HP - dmg);
-		msg += "*RED*" + tName + " bleeds for " + dmg + " dmg!\n";
-	}
-	for (let j = target.EFFECTS.length - 1; j >= 0; j--) {
-		target.EFFECTS[j].duration--;
-		if (target.EFFECTS[j].duration < 0) {
-			endEffect(target, j);
-		}
-	}
-	return msg;
-}
-
-function StartTurn(allies, enemies, deadAllies, deadEnemies) {
-	let msg = "\n*GREEN*It is now the players' turn!\n";
-	for (let i = allies.length - 1; i >= 0; i--) {
-		if (allies[i].HP > 0) {
-			let aName = allies[i].NAME;
-			if (allies[i].TYPE != "player") {
-				aName = "The " + aName;
-			}
-			if (hasRune(allies[i], "cultivation") && allies[i].HP < .5 * MaxHP(allies[i])) {
-				allies[i].HP += 5;
-				msg += "*GREEN*" + allies[i].NAME + " cultivates 5 HP!\n";
-			}
-			if (hasRune(allies[i], "sunset")) {
-				for (let j = 0; j < enemies.length; j++) {
-					msg += DealDamage(new M_Attack(2, 100, 100), allies, allies[i], enemies, enemies[j])[0];
-				}
-			}
-			msg += HandleEffects(allies[i]);
-			if (hasRune(allies[i], "forthwith")) {
-				AddOrRefreshEffect(allies[i], new Effect("Forthwith", "Your first spell damage does +5 Damage.", 0));
-			}
-			if (hasEffect(allies[i], "stunned")) {
-				msg += "*GREEN*" + aName + " is stunned!\n";
-			}
-			else if (allies[i].TYPE == "player") {
-				for (let j = 0; j < allies[i].INVENTORY.length; j++) {
-					if (allies[i].INVENTORY[j].type == "weapon") {
-						allies[i].INVENTORY[j].attacks[0] = allies[i].INVENTORY[j].attacks[1];
-					}
-				}
-				allies[i].STAMINA += 2 * (1 + allies[i].STATS[END]) + allies[i].AP;
-				allies[i].STAMINA = Math.min(allies[i].STAMINA, MaxStamina(allies[i]));
-				allies[i].AP = MaxAP(allies[i]);
-				if (allies[i].AP > allies[i].STAMINA) {
-					allies[i].AP = allies[i].STAMINA
-				}
-				allies[i].STAMINA -= allies[i].AP;				
-				allies[i].ENDED = false;
-			}
-			else {
-				msg += enemyAttack(i, allies, enemies, deadAllies, deadEnemies);
-			}
-		}
-		else {
-			deadAllies.push(COPY(allies[i]));
-			allies.splice(i, 1);
-		}
-	}
-	return msg;
-}
-
-function StartBattle(battle) {
-	let msg = "";
-	let ran = rand(30);
-	if (ran == 0) {
-		battle.enemies.push(new Enemy("Treasure Chest",	50,	0, 0, 0, [], 50, 0, "construction", "An old wooden chest with a heavy iron lock."));
-		msg += "*GREEN*You come upon an old treasure chest. . .\n";
-	}
-	else {
-		let avgLevel = 0;
-		let numPlayers = 0;
-		for (let i = 0; i < battle.allies.length; i++) {
-			numPlayers++;
-			if (battle.allies[i].TYPE == "player") {
-				avgLevel += battle.allies[i].LEVEL;
-				battle.allies[i].STAMINA = MaxStamina(battle.allies[i]);
-				if (battle.allies[i].CLASS == "noble") {
-					battle.allies.push(summon("servant", battle.allies[i].ROW));
-				}
-			}
-		}
-		avgLevel /= numPlayers;
-		
-		let rating = 25 * (1 + battle.allies.length);
-		rating *= (1 + .2 * (battle.level - 1));
-		rating *= Math.pow((1 + .25 * (avgLevel - 1)), 1.5);
-		if (avgLevel > 3) {
-			rating = Math.pow(rating, 1 + (avgLevel/100));
-		}
-		ran = rand(6);
-		if (ran == 0) {
-			let locationNames = ["Haunted Crypts", "Acrid Swamp", "Wilted Woods"];
-			msg += "*RED*You've enraged the " + locationNames[battle.zone] + "!\n";
-			rating *= 1.5;
-		}
-		
-		console.log("Combat Difficulty: " + rating);
-		
-		let validTeams = [];
-		for (const team of enemyLevels[battle.level - 1]) {
-			if (validZone(team, battle.zone) && CalcDifficulty(team) <= rating) {
-				validTeams.push(team);
-			}
-		}
-		while (validTeams.length > 0 && rating > 0) {
-			console.log("# of Enemy Options: " + validTeams.length);
-			let method = rand(2);
-			let min = 0;
-			if (method == 0) {
-				min = rand(validTeams.length);
-			}
-			let index = min + rand((validTeams.length - min));
-			var quest = data["town"].quest;
-				
-			for (let i = 0; i < validTeams.length; i++) {
-				for (const enemy of validTeams[index]) {
-					if (enemy.NAME == quest.enemy) {
-						let ran = rand(3);
-						if (ran == 0) {
-							index = i;
-						}
-						break;
-					}
-				}
-			}
-			for (const enemy of validTeams[index]) {
-				let temp = COPY(enemy);
-				if (temp.NAME == "Swamp Stalker") {
-					temp.ROW = 4;
-				}
-				else if (rand(8) == 0) {
-					temp.ROW = 1;
-				}
-				battle.enemies.push(temp);
-				msg += "*RED*The " + enemy.NAME + " approaches. . .*GREY*\n";
-				rating -= enemy.DIFFICULTY;
-			}
-			var newTeams = [];
-			for (let i = 0; i < validTeams.length; i++) {
-				if (CalcDifficulty(validTeams[i]) <= rating) {
-					newTeams.push(validTeams[i]);
-				}
-			}
-		}
-	}
-	return msg;
-}
-
-function PurgeBattles() {
-	for (let i = battles.length - 1; i >= 0; i--) {
-		let hasPlayers = false;
-		for (let j = 0; j < battles[i].allies.length; j++) {
-			if (battles[i].allies[j].TYPE == "player" && battles[i].allies[j].HP > 0) {
-				hasPlayers = true;
-			}
-		}
-		if (!hasPlayers) {
-			battles.splice(i, 1);
-		}
-	}
-}
-
-function WinBattle(battle) {
-	let msg = "";
-	battle.started = false;
-	msg += "*GREEN*The enemies are all slain!*GREY*\n";
-	//HANDLE LOOT
-	for (let a = battle.allies.length - 1; a >= 0; a--) {
-		if (battle.allies[a].SUMMONED) {
-			battle.allies.splice(a, 1);
-		}
-		if (hasEffect(battle.allies[a], "deliverance")) {
-			if (battle.allies[a].HP <= 0) {
-				msg += "*YELLOW*" + Name(battle.allies[a]) + " is delivered from harm!\n";
-				battle.allies[a].HP = 1;
-			}
-		}
-		else if (battle.allies[a].HP <= 0) {
-			let INVENTORY = battle.allies[a].INVENTORY;
-			for (let i = 0; i < INVENTORY.length; i++) {
-				INVENTORY[i].equipped = false;
-				let ran = rand(100);
-				if (ran < 20) {
-					battle.loot.push(INVENTORY[i]);
-				}
-			}
-			battle.allies.splice(a, 1);
-		}
-	}
-	for (const ally of battle.deadAllies) {
-		if (ally.TYPE == "player") {
-			let INVENTORY = ally.INVENTORY;
-			for (let i = 0; i < INVENTORY.length; i++) {
-				INVENTORY[i].equipped = false;
-				let ran = rand(100);
-				if (ran < 20) {
-					battle.loot.push(INVENTORY[i]);
-				}
-			}
-		}
-	}
-	let goldReward = 0;
-	let expReward = 0;
-	for (const enemy of battle.deadEnemies) {
-		if (!enemy.SUMMONED) {
-			goldReward += enemy.GOLD;
-			expReward += Math.floor(enemy.DIFFICULTY + (enemy.DIFFICULTY*enemy.DIFFICULTY)/200);
-			for (const drop of enemy.LOOT) {
-				let ran = rand(100);
-				if (ran <= drop.chance) {
-					let num = drop.min;
-					for (let i = 0; i < (drop.max - drop.min); i++) {
-						if (rand(100) < drop.addChance) {
-							num++;
-						}
-					}
-					let index = -1;
-					for (let i = 0; i < items.length; i++) {
-						if (items[i].name == drop.name) {
-							index = i;
-							break;
-						}
-					}
-					if (index > -1) {
-						battle.loot.push(items[index]);
-					}
-				}
-			}
-		}
-	}
-	for (const player of battle.allies) {
-		msg += "*GREEN*Each player gains " + goldReward + " gold and " + expReward + " experience!\n";
-		player.GOLD += goldReward;
-		player.XP += expReward;
-		let xpRequired = player.LEVEL * 100;
-		if (player.XP >= xpRequired) {
-			msg += "*GREEN*" + player.NAME + " levels up!\n";
-			player.XP -= xpRequired;
-			player.LEVEL++;
-			player.SP++;
-		}
-	}
-	battle.enemies = [];
-	battle.deadEnemies = [];
-	battle.deadAllies = [];
-	return msg;
-}
-
-function CheckQuest(enemy, allies) {
-	var quest = data["town"].quest;
-	if (enemy.NAME == quest.enemy) {
-		quest.numKilled++;
-		if (quest.numRequired <= quest.numKilled) {
-			msg += "*YELLOW*Quest Completed! Town gains " + quest.value * 3 + " prosperity! Players gain " + quest.value + " gold!";
-			data["town"].prosperity += 3 * quest.value;
-			for (const player of allies) {
-				if (player.GOLD) {
-					player.GOLD += quest.value;
-				}
-			}
-			quest = createQuest();
-		}
-		data["town"].quest = quest;
-		SaveState();
-	}
-}
-
-function TurnCompleted(team) {
-	for (let i = 0; i < team.length; i++) {
-		if (team[i].TYPE == "player" && !(team[i].ENDED) && team[i].HP > 0) {
-			return false;
-		}
-	}
-	return true;
-}
-
-function HandleCombat(battle, purgeBattle = true, testing = false) {
-	let msg = "";
-	if (battle == null || !(battle.started)) {
-		return "";
-	}
-	for (let i = battle.enemies.length - 1; i >= 0; i--) {
-		if (battle.enemies[i].HP <= 0) {
-			if (!testing) {
-				CheckQuest(battle.enemies[i], battle.allies);
-			}
-			battle.deadEnemies.push(COPY(battle.enemies[i]));
-			battle.enemies.splice(i, 1);
-		}
-	}
-	for (let i = battle.allies.length - 1; i >= 0; i--) {
-		if (hasEffect(battle.allies[i], "deliverance")) {
-			msg += "*YELLOW*" + Name(battle.allies[i]) + " is delivered from harm!\n";
-			if (battle.allies[i].HP <= 0) {
-				battle.allies[i].HP = 1;
-			}
-		}
-		if (battle.allies[i].HP <= 0) {
-			battle.deadAllies.push(COPY(battle.allies[i]));
-			battle.allies.splice(i, 1);
-		}
-	}
-	battle.started = battle.started && (battle.allies.length > 0 && battle.enemies.length > 0);
-	if (!battle.started && !testing) {
-		msg += WinBattle(battle);
-	}
-	if (battle.started) {
-		if (TurnCompleted(battle.allies)) {
-			msg += StartTurn(battle.enemies, battle.allies, battle.deadEnemies, battle.deadAllies);
-		}
-		if (TurnCompleted(battle.enemies)) {
-			msg += StartTurn(battle.allies, battle.enemies, battle.deadAllies, battle.deadEnemies);
-		}
-	}
-	
-	if (purgeBattle) {
-		PurgeBattles();
-	}
-	return msg;
-}
-
 function Prettify(string) {
 	let arr = string.split(" ");
 	for (let i = 0; i < arr.length; i++) {
@@ -1552,61 +1061,39 @@ function shitSort(list) {
 	return sorted;
 }
 
-function runBattle(teamOne, teamTwo, index, debug = false) {
-	let msg = "";
+function runBattle(teamOne, teamTwo, index, channel = null) {
 	let results = [0, 0];
 	let battle = new Battle("blah");
 	for (const enemy of teamOne) {
-		let en = COPY(enemy);
+		let en = summon(enemy, 4);
 		en.ROW = 4;
-		if (enemy.NAME == "Swamp Stalker") {
+		if (en.NAME == "Swamp Stalker") {
 			en.ROW = 1;
 		}
-		battle.allies.push(COPY(en));
+		battle.allies.push(en);
 	}
 	for (const enemy of teamTwo) {
-		let en = COPY(enemy);
-		if (enemy.NAME == "Swamp Stalker") {
+		let en = summon(enemy, 4);
+		en.ROW = 1;
+		if (en.NAME == "Swamp Stalker") {
 			en.ROW = 4;
 		}
-		battle.enemies.push(COPY(enemy));
+		battle.enemies.push(en);
 	}
 	let turns = 0;
 	battle.started = true;
 	if (index % 2 == 0) {
 		battle.allyTurn = false;
 	}
-	while (battle.started && turns++ < 200) {
+	let msg = "";
+	while (battle.started && turns++ < 50 && (battle.allies.length + battle.enemies.length < 100)) {
 		msg += HandleCombat(battle, false, true) + "\n";
-		let allyHP = 0;
-		let numAllies = 0;
-		let enemyHP = 0;
-		let numEnemies = 0;
-		for (const enemy of battle.allies) {
-			if (enemy.HP > 0) {
-				allyHP += enemy.HP;
-				numAllies++;
-			}
+		if (channel && battle.started && turns++ < 50 && (battle.allies.length + battle.enemies.length < 100)) {
+			msg += DrawCombat("Testing", battle);
 		}
-		for (const enemy of battle.enemies) {
-			if (enemy.HP > 0) {
-				enemyHP += enemy.HP;
-				numEnemies++;
-			}
-		}
-		msg += "Team One: " + numAllies + " Alive | " + allyHP + " HP\n";
-		msg += "Team Two: " + numEnemies + " Alive | " + enemyHP + " HP\n";
 	}
-	if (turns >= 200) {
-		//console.log(teamOne);
-		//console.log(teamTwo);
-		//console.log(teamOne[0].NAME);
-		//console.log(teamTwo[0].NAME);
-		//console.log("-----");
-		//console.log(msg);
-	}
-	else if (debug) {
-		console.log("Combat Log: " + msg);
+	if (channel) {
+		PrintMessage(parseText(msg), channel);
 	}
 	if (battle.allies.length > 0) {
 		results[0] = 1;
@@ -1665,8 +1152,8 @@ client.on('ready', () => {
 	console.log("Connected as " + client.user.tag);
 	client.user.setActivity("Terrain Gen 3");
 
-	let TESTING = true;
-	let numRounds = 10;
+	let TESTING = false;
+	let numRounds = 3;
 	if (TESTING) {
 		console.log(enemies.length);
 		let zoneNames = ["Crypts", "Swamp", "Forest", "Island"];
@@ -1683,10 +1170,12 @@ client.on('ready', () => {
 		}
 		let total = 0;
 		let i = 0;
-		for (const team of enemies) {
-			if (team.DIFFICULTY > 50) {
-				wins.push({index: i, wins: 0, battles: 0, name: "", cost: 0, team: [team]});
+		for (const team of teams) {
+			let teamNames = [];
+			for (const enemy of team) {
+				teamNames.push(enemy.NAME);
 			}
+			wins.push({index: i, wins: 0, battles: 0, name: "", cost: 0, team: teamNames});
 			i++;
 		}
 		for (let i = 0; i < wins.length; i++ ){
@@ -1694,43 +1183,48 @@ client.on('ready', () => {
 			let teamCost = 0;
 			for (let j = 0; j < wins[i].team.length; j++) {
 				let color = "";
-				switch (wins[i].team[j].ZONES[0]) {
+				let enemy = summon(wins[i].team[j]);
+				switch (enemy.ZONES[0]) {
 					case 0: color = "*RED*"; break;
 					case 1: color = "*YELLOW*"; break;
 					case 2: color = "*GREEN*"; break;
-					case 3: color = "*BLUE*"; break;
+					case 3: color = "*CYAN*"; break;
 					default: color = "*GREY*"; break;
 				}
-				teamName += color + wins[i].team[j].NAME + "*GREY*";
+				teamName += color + wins[i].team[j] + "*GREY*";
 				if (j < wins[i].team.length - 1) {
 					teamName += ", ";
 				}
-				teamCost += wins[i].team[j].DIFFICULTY;
+				teamCost += enemy.DIFFICULTY;
 			}
 			wins[i].name = teamName;
 			wins[i].cost = teamCost;
 		}
 		for (let i = 0; i < wins.length; i++) {
 			if (i > 0) {
-				//clearLastLine();
+				clearLastLine();
 			}
 			console.log(i + "/" + wins.length);
 			for (let j = i + 1; j < wins.length; j++) {
 				let winsOne = 0;
 				let winsTwo = 0;
+				let enemyOne = "Flaming Wisp";
+				let enemyTwo = "Toxic Mushroom";
 				let hasDebugged = false;
+				//console.log(wins[i].name + " vs " + wins[j].name);
 				for (let k = 0; k < numRounds; k++) {
 					let debug = false;
 					if (!hasDebugged) {
-						if (wins[i].name.includes("Beekeeper") || wins[j].name.includes("Beekeeper")) {
-							if (wins[i].name.includes("Carcinos") || wins[j].name.includes("Carcinos")) {
-								debug = true;
-								hasDebugged = true;
+						if (wins[i].name.includes(enemyOne) || wins[j].name.includes(enemyOne)) {
+							if (wins[i].name.includes(enemyTwo) || wins[j].name.includes(enemyTwo)) {
+								//console.log("Made it");
+								//debug = true;
+								//hasDebugged = true;
 							}
 						}
 					}
 					
-					let results = runBattle(wins[i].team, wins[j].team, k, debug);
+					let results = runBattle(wins[i].team, wins[j].team, k);
 					wins[i].battles++;
 					wins[i].wins += results[0];
 					wins[j].wins += results[1];
@@ -1738,11 +1232,11 @@ client.on('ready', () => {
 					winsOne += results[0];
 					winsTwo += results[1];
 				}
-				if (wins[i].name.includes("Beekeeper")) {
-					console.log(wins[i].name + " won " + winsOne + "/"+numRounds+" vs. " + wins[j].name);
+				if (wins[i].name.includes(enemyOne)) {
+					//console.log(wins[i].name + " won " + winsOne + "/"+numRounds+" vs. " + wins[j].name);
 				}
-				if (wins[j].name.includes("Beekeeper")) {
-					console.log(wins[j].name + " won " + winsTwo + "/"+numRounds+" vs. " + wins[i].name);
+				if (wins[j].name.includes(enemyOne)) {
+					//console.log(wins[j].name + " won " + winsTwo + "/"+numRounds+" vs. " + wins[i].name);
 				}
 			}
 		}
@@ -1776,6 +1270,9 @@ client.on('ready', () => {
 
 function PrintMessage(msg, channel) {
 	let message = msg;
+	if (msg == "") {
+		return;
+	}
 	if (message.length > 2000) {
 		for (let i = 1000; i < message.length; i++) {
 			if (message[i] == '\n') {
@@ -1844,7 +1341,7 @@ function ItemDescription(C, item) {
 		msg += "*RED*" + item.name + "*BLACK* | *CYAN*⛊*GREY*" + item.armor[0] + " *CYAN*✱*GREY*" + item.armor[1] + "*BLACK* | *YELLOW*" + item.value + "G*GREY*\n";
 		msg += item.description+"\n";
 		if (item.AP > 0) {
-			msg += "*RED*Reduces*GREY* your *GREEN*AP*GREY* by *RED*" + item.AP + "*GREY* and your *GREEN*Stamina*GREY* by *RED*" + item.AP * 5 + "!\n";
+			msg += "*RED*Reduces*GREY* your *GREEN*AP*GREY* by *RED*" + item.AP + "*GREY* and your *GREEN*Stamina*GREY* by *RED*" + item.AP * 5 + "*GREY*!\n";
 		}
 	}
 	else {
@@ -1992,7 +1489,7 @@ function EnemyDescription(enemy, showEffects = true) {
 	msg += DrawBar(enemy.HP, MaxHP(enemy), 30, "*RED*") + "\n";
 	msg += enemy.DESCRIPTION + "\n\n";
 	if (enemy.ZONES.length > 0) {
-		let locationNames = ["Haunted Crypts", "Acrid Swamp", "Wilted Woods"];
+		let locationNames = ["Haunted Crypts", "Acrid Swamp", "Wilted Woods", "Stony Island"];
 		msg += "This enemy is commonly found in ";
 		for (let i = 0; i < enemy.ZONES.length; i++) {
 			msg += "the *GREEN*" + locationNames[enemy.ZONES[i]] + "*GREY*";
@@ -2049,7 +1546,7 @@ function DrawGraveyard() {
 		else {
 			msg += "*GREEN*" + death.NAME + "*GREY* the *BLUE*" + Prettify(death.CLASS) + "*GREY*, *YELLOW*Level " + death.LEVEL + "\n";
 			if (death.DESCRIPTION) {
-				msg += "*WHITE*" + death.DESCRIPTION + "\n";
+				msg += "*WHITE*    " + death.DESCRIPTION + "\n";
 			}
 		}
 	}
@@ -2072,7 +1569,7 @@ function RoomDescription(C) {
 		}
 	}
 	if (index > -1) {
-		return DrawCombat(room, index);
+		return DrawCombat(room.id, battles[index]);
 	}
 	if (C.TRADING) {
 		return DrawTrade(C);
@@ -2138,7 +1635,7 @@ function RoomDescription(C) {
 					msg += ", ";
 				}
 				if (i == NPCList.length - 2) {
-					msg += "and ";
+					msg += " and ";
 				}
 			}
 			i++;
@@ -2240,10 +1737,10 @@ function StackStrings(left, right, spaces, newLines = true, separator = " ") {
 	return msg;
 }
 
-function DrawCombat(room, index) {
+function DrawCombat(battleLocation, battle) {
 	let msg = "";
-	let battle = battles[index];
 	let battleStr = "";
+	let defStr = "";
 	let barStr = "";
 	let turn = "";
 	if (battle.allyTurn) {
@@ -2252,7 +1749,7 @@ function DrawCombat(room, index) {
 	else {
 		turn = "*RED*Enemies' Turn*GREY*";
 	}
-	msg += "*RED*" + room.id + "*GREY* - *PINK*Level " + battle.level + "*GREY* - " + turn + "\n";
+	msg += "*RED*" + battleLocation + "*GREY* - *PINK*Level " + battle.level + "*GREY* - " + turn + "\n";
 	for (let i = 0; i < 5; i++) {
 		battleStr += "*GREY*R" + (i+1) + " - ";
 		for (let j = 0; j < battle.enemies.length; j++) {
@@ -2278,6 +1775,7 @@ function DrawCombat(room, index) {
 	let otherStr = "";
 	otherStr = "Enemies\n";
 	barStr += "\n";
+	defStr += "\n";
 	for (let i = 0; i < battle.enemies.length; i++) {
 		let color = "*BLACK*";
 		if (battle.enemies[i].HP > 0) {
@@ -2295,11 +1793,13 @@ function DrawCombat(room, index) {
 			}
 		}
 		barStr += DrawBar(battle.enemies[i].HP, battle.enemies[i].MaxHP, 15, "*RED*") + "\n";
-		otherStr += color + "E" + (i + 1) + " *GREY*" + name + " *CYAN*⛊*GREY*" + battle.enemies[i].ARMOR[0] + " *CYAN*✱*GREY*" + battle.enemies[i].ARMOR[1] + " *GREY*\n";
+		defStr += " *CYAN*⛊*GREY*" + battle.enemies[i].ARMOR[0] + " *CYAN*✱*GREY*" + battle.enemies[i].ARMOR[1] + " *GREY*\n";
+		otherStr += color + "E" + (i + 1) + " *GREY*" + name + "\n"; 
 	}
 	otherStr += "\n";
 	otherStr += "Allies\n";
 	barStr += "\n \n";
+	defStr += "\n \n";
 	for (let i = 0; i < battle.allies.length; i++) {
 		let color = "*BLACK*";
 		if (battle.allies[i].HP > 0) {
@@ -2337,9 +1837,11 @@ function DrawCombat(room, index) {
 			AP = "";
 			atks = "";
 		}
-		otherStr += color + "P" + (i + 1) + " " + name + AP + " " + atks + " *CYAN*⛊*GREY*" + battle.allies[i].ARMOR[0] + " *CYAN*✱*GREY*" + battle.allies[i].ARMOR[1] + " *GREY*\n";
+		otherStr += color + "P" + (i + 1) + " " + name + AP + " " + atks + "\n";
+		defStr += " *CYAN*⛊*GREY*" + battle.allies[i].ARMOR[0] + " *CYAN*✱*GREY*" + battle.allies[i].ARMOR[1] + " *GREY*\n";
 	}
-	otherStr = StackStrings(otherStr, barStr, 25);
+	otherStr = StackStrings(otherStr, defStr, 23);
+	otherStr = StackStrings(otherStr, barStr, 31);
 	if (battle.loot.length > 0) {
 		let lootStr = "\n*GREY*Loot\n"
 		let numStr = "\n \n";
@@ -2358,6 +1860,7 @@ function DrawCombat(room, index) {
 		}
 		battleStr += lootStr+"\n";
 	}
+	
 	msg += StackStrings(battleStr, otherStr, 30);
 	return msg;
 }
@@ -2499,6 +2002,13 @@ function Command(message) {
 	}
 	for (let i = 0; i < numRepeat; i++) {
 		if (C) {
+			let xpRequired = C.LEVEL * 100;
+			if (C.XP >= xpRequired) {
+				msg += "*GREEN*" + C.NAME + " levels up!\n";
+				C.XP -= xpRequired;
+				C.LEVEL++;
+				C.SP++;
+			}
 			if (C.TRADING == -1) {
 				C.TRADING = "";
 			}
@@ -2550,6 +2060,21 @@ function Command(message) {
 		}
 		if (keyword == "help") {
 			return ListCommands(index);
+		}
+		else if (keyword == "test") {
+			words.splice(0, 1);
+			let sides = words.join(" ").split("vs");
+			let teamOne = sides[0].split(",");
+			let teamTwo = sides[1].split(",");
+			for (let i = 0; i < teamOne.length; i++) {
+				teamOne[i] = teamOne[i].trim();
+			}
+			for (let i = 0; i < teamTwo.length; i++) {
+				teamTwo[i] = teamTwo[i].trim();
+			}
+			console.log(teamOne);
+			console.log(teamTwo);
+			runBattle(teamOne, teamTwo, rand(2), message.channel);
 		}
 		else if (keyword == "tutorial") {
 			msg += "*GREEN*Welcome!\n";
@@ -2683,6 +2208,12 @@ function Command(message) {
 		else if (keyword == "talk") {
 			msg += CommandTalk(COPY(words), C);
 		}
+		else if (keyword == "accuracy") {
+			let l_accuracy = Math.floor(100 * C.HITS[LEFT]/C.ATTEMPTS[LEFT])/100;
+			let r_accuracy = Math.floor(100 * C.HITS[RIGHT]/C.ATTEMPTS[RIGHT])/100;
+			msg += "*BLUE*Left Hand Accuracy: " + l_accuracy + "%\n";
+			msg += "*BLUE*Right Hand Accuracy: " + r_accuracy + "%\n";
+		}
 		else if (keyword == "buy") {
 			msg += CommandBuy(COPY(words), C);
 		}
@@ -2723,11 +2254,11 @@ function Command(message) {
 		}
 		else if (keyword == "level") {
 			if (C.SP <= 0) {
-				return "*RED*You don't have any skill points!";
+				return "*RED*You don't have any skill points!\n";
 			}
 			let index = stats.indexOf(words[1].toUpperCase());
 			if (index == -1) {
-				return "*RED*Stat not found '" + words[1] + "'";
+				return "*RED*Stat not found '" + words[1] + "'\n";
 			}
 			C.STATS[index]++;
 			C.SP--;
@@ -2737,7 +2268,7 @@ function Command(message) {
 			if (index == END) {
 				C.STAMINA += 15;
 			}
-			msg += "*GREEN*You level up your " + stats[index] + " stat to " + C.STATS[index] + "!";
+			msg += "*GREEN*You level up your " + stats[index] + " stat to " + C.STATS[index] + "!\n";
 		}
 		else if (keyword == "read") {
 			msg += CommandRead(COPY(words), C);
@@ -2752,8 +2283,8 @@ function Command(message) {
 			msg += "*PINK*Peasant*GREY* - *CYAN*+2 END +2 VIT*GREY*. Starts with a club but *RED*no gold*GREY*.\n\n";
 			msg += "*BLUE*Mage*GREY* - *CYAN*+2 MAG*GREY*. Starts with a spellbook and a simple spell but *RED*no gold*GREY*.\n\n";
 			msg += "*PINK*Noble*GREY* - Starts with *YELLOW*150 gold*GREY*, a stylish shirt, and a scimitar. A *GREEN*loyal servant*GREY* follows you into battle.\n\n";
-			msg += "*BLUE*Rogue*GREY* - *CYAN*+2 AVD*GREY*. Starts with *YELLOW*40 gold*GREY*, a cloak, and two daggers. Each attack gives you a 50% chance to earn *YELLOW*1 gold*GREY*.\n\n";
-			msg += "*PINK*Warrior*GREY* - *CYAN*+1 VIT +1 DEX +1 Armor*GREY*. Starts with *YELLOW*25 gold*GREY*, a Leather Cuirass, a Hatchet, and a Buckler.\n\n";
+			msg += "*BLUE*Rogue*GREY* - *CYAN*+2 AVD*GREY*. Starts with *YELLOW*40 gold*GREY*, a cloak, and two daggers. Whenever you dodge an attack, deal 6 damage to your attacker.\n\n";
+			msg += "*PINK*Warrior*GREY* - *CYAN*+1 VIT +1 DEX +2 Armor*GREY*. Starts with *YELLOW*25 gold*GREY*, a Leather Cuirass, a Hatchet, and a Buckler.\n\n";
 			msg += "*BLUE*Ranger*GREY* - *CYAN*+1 WEP +1 AVD*GREY*. Start with *YELLOW*25 gold*GREY* and a ranged weapon. Your attacks *CYAN*mark enemies*GREY*, increasing damage you deal to them.\n\n";
 		}
 		else if (keyword == "effects") {
@@ -2790,7 +2321,7 @@ function Command(message) {
 		}
 		else if (keyword == "retire") {
 			if (C.LEVEL >= 3) {
-				msg += "*YELLOW*You retire to live in the Guild Hall on the edge of town. . .\n";
+				msg += "*YELLOW*You retire to live in the Guild Hall on the Stony Island. . .\n";
 				data["town"].retired.push(C);
 				C = null;
 			}
@@ -2821,31 +2352,32 @@ function Command(message) {
 			let prosperity = data["town"].prosperity;
 			msg += "*YELLOW*Town Prosperity: " + prosperity + "\n\n";
 			msg += "*YELLOW*Town Locations\n";
-			for (let i = 0; i < locations.length; i++) {
-				if (!locations[i].dungeon) {
-					msg += "*BLUE*" + locations[i].id;
-					if (locations[i].prosperity > prosperity) {
-						msg += "*GREY* - *RED*" + locations[i].prosperity;
-					}
-					msg += "\n";
-					for (let j = 0; j < locations[i].buildings.length; j++) {
-						msg += "*GREY* - *GREEN*" + locations[i].buildings[j].id;
-						if (locations[i].buildings[j].prosperity > prosperity) {
-							msg += "*GREY* - *RED*" + locations[i].buildings[j].prosperity;
+			for (let k = 0; k < 2; k++) {
+				for (let i = 0; i < locations.length; i++) {
+					if ((k == 0 && !locations[i].dungeon) || (k == 1 && locations[i].dungeon)) {
+						let color = "*BLUE*";
+						if (k == 1) {
+							color = "*RED*";
+						}
+						msg += color + locations[i].id;
+						if (locations[i].prosperity > prosperity) {
+							msg += "*GREY* - *RED*" + locations[i].prosperity;
 						}
 						msg += "\n";
+						for (let j = 0; j < locations[i].buildings.length; j++) {
+							msg += "*GREY* - *GREEN*" + locations[i].buildings[j].id;
+							if (locations[i].buildings[j].prosperity > prosperity) {
+								msg += "*GREY* - *RED*" + locations[i].buildings[j].prosperity;
+							}
+							msg += "\n";
+						}
 					}
+				}
+				if (k == 0) {
+					msg += "\n*YELLOW*Dangerous Areas\n*RED*";
 				}
 			}
 			msg += "\n";
-			
-			msg += "*YELLOW*Dangerous Areas\n*RED*";
-			for (let i = 0; i < locations.length; i++) {
-				if (locations[i].dungeon) {
-					msg += "*GREY* - *RED*" + locations[i].id + "\n";
-				}
-			}
-			
 		}
 		else if (keyword == "cheat") {
 			if (message.author.id == "462829989465948180") {

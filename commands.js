@@ -121,13 +121,9 @@ function CommandDelve(C) {
 		return "*RED*You can't delve here!";
 	}
 	msg += C.NAME + " is *RED*delving*GREY* into *RED*" + location.id + "\n\n";
-	let zone = 2;
-	if (location.id == "The Acrid Swamp") {
-		zone = 1;
-	}
-	else if (location.id == "The Haunted Crypts") {
-		zone = 0;
-	}
+	let locationNames = ["The Haunted Crypts", "The Acrid Swamp", "The Wilted Woods", "The Stony Island"];
+	console.log(location.id);
+	let zone = locationNames.indexOf(location.id);
 	let found = false;
 	for (let i = 0; i < battles.length; i++) {
 		if (battles[i].parent == location.id && !battles[i].started) {
@@ -300,10 +296,10 @@ function CommandAttack(words, C, index, isPushing = false) {
 	}
 	else {
 		if (isDead) {
-			return "*RED*This enemy is already dead.";
+			return "*RED*This enemy is already dead.\n";
 		}
 		else {
-			return "*RED*Unable to find enemy '" + target + "'";
+			return "*RED*Unable to find enemy '" + target + "'\n";
 		}
 	}
 	return msg;
@@ -506,7 +502,7 @@ function CommandTravel(words, C, index) {
 							msg += "*GREY*You pay *YELLOW*" + locations[i].cost + " Gold*GREY*.\n";
 						}
 						Travel(C, locations[i]);	
-						msg = "*GREEN*You travel to *BLUE*" + locations[i].id + "*GREY* and enter the *GREEN*" + name + ".\n";
+						msg = "*GREEN*You travel to *BLUE*" + locations[i].id + "*GREY* and enter the *GREEN*" + Prettify(name) + ".\n";
 					}
 					C.BUILDING = name;
 					return msg;
@@ -535,6 +531,9 @@ function CommandFlee(C, index) {
 	C.ENDED = true;
 	C.AP -= (3 + APCost(C));
 	let ran = rand(10);
+	if (hasEffect(C, "coward's haste")) {
+		ran = 0;
+	}
 	if (ran >= 5 + C.STATS[AVD]) {
 		return "*RED*You fail to flee!\n";
 	}
@@ -581,7 +580,9 @@ function CommandCharacter(words, C, authorId) {
 		C.CLASS = classes[rand(classes.length)];
 	}
 	if (words.length >= 3) {
-		C.NAME = Prettify(words[2].substring(0, 20));
+		words = words.slice(2, words.length);
+		let word = words.join(" ");
+		C.NAME = Prettify(word.substring(0, 20));
 		for (let i = 0; i < enemies.length; i++) {
 			if (enemies[i].NAME.toLowerCase() == C.NAME.toLowerCase()) {
 				C.NAME = genName(rand(2));
@@ -696,18 +697,20 @@ function CommandDrink(words, C) {
 		msg = "*GREY*You drink the potion and gain *RED*" + HP + " health*GREY*!\n";
 		C.HP += HP;
 	}
-	if (name == "antidote") {
-		for (let i = 0; i < C.EFFECTS.length; i++) {
-			if (C.EFFECTS.name.toLowerCase() == "poison" || C.EFFECTS.name.toLowerCase() == "venom") {
-				C.EFFECTS.duration = 0;
+	if (name == "Panacea") {
+		for (let j = allies[i].EFFECTS.length - 1; j >= 0; j--) {
+			if (allies[i].EFFECTS[j].type == "debuff") {
+				endEffect(allies[i], j);
 			}
 		}
 	}
 	if (name == "skill potion") {
 		C.SP++;
+		msg = "*GREEN*You feel as if your potential has increased . . .\n";
 	}
 	if (name == "haste potion") {
 		C.AP += 6;
+		msg = "*GREEN*You feel a rush of energy . . .\n";
 	}
 	if (name == "stamina potion") {
 		let stamina = Math.min(C.STATS[END] * 5 + 40 + rand(21), MaxStamina(C) - C.STAMINA);
@@ -820,9 +823,12 @@ function CommandTrade(words, C) {
 function CommandDrop(words, C, index) {
 	let msg = "";
 	let args = words.slice(1, words.length).join(" ");
-	let invIndex = findItem(C.INVENTORY, args);
+	let invIndex = findItem(C.INVENTORY, args, true);
 	if (invIndex == -1 || invIndex > C.INVENTORY.length) {
 		return "*RED*Can't find item '" + args + "'\n";
+	}
+	if (C.INVENTORY[invIndex].equipped) {
+		return "*Dequip this item before you drop it.\n";
 	}
 	battles[index].loot.push(C.INVENTORY[invIndex]);
 	msg = "*YELLOW*You drop your " + C.INVENTORY[invIndex].name + "!\n";
@@ -837,9 +843,12 @@ function CommandSell(words, C) {
 	if (location.dungeon) {
 		return "*RED*You must be in town to sell your items.\n";
 	}
-	let invIndex = findItem(C.INVENTORY, args);
-	if (invIndex == -1) {
+	let invIndex = findItem(C.INVENTORY, args, true);
+	if (invIndex == -1 || invIndex > C.INVENTORY.length) {
 		return "*RED*Can't find item '" + args + "'\n";
+	}
+	if (C.INVENTORY[invIndex].equipped) {
+		return "*RED*Dequip this item before you sell it.\n";
 	}
 
 	let gold = C.INVENTORY[invIndex].value;
@@ -989,6 +998,15 @@ function CommandEnchant(words, C) {
 				return "*RED*This item has already been enchanted with that rune.\n";
 			}
 		}
+		if (rune.name.toLowerCase() == "invigorant") {
+			C.INVENTORY[i].attacks++;
+		}
+		if (rune.name.toLowerCase() == "reach") {
+			if (C.INVENTORY[i].range >= 5) {
+				return "*RED*This item's range can not be increased further!\n";
+			}
+			C.INVENTORY[i].range++;
+		}
 		if (rune.name.toLowerCase() == "precise") {
 			C.INVENTORY[i].min += 2;
 			C.INVENTORY[i].max += 2;
@@ -1102,7 +1120,6 @@ function CommandReel(C, message) {
 		let delay = 3 + rand(10 - poleTier);
 		let date = new Date();
 		let seconds = (date.getTime() - startDate.getTime()) / 1000;
-		console.log("Seconds so far: " + seconds);
 		let threshold = 1.75 + .5 * rand(3);
 		/*if (message.author.id == "388524907450990603") {
 			threshold += .5;

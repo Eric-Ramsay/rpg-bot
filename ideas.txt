@@ -7,84 +7,57 @@ Ideas for the Text RPG
 	- Boss Fights
 
 - More depth to the town
-	- Cardinal Direction Redesign
-	- Fishing
 	- Improved Dialogue System
-	- Invest money to unlock buildings
 
 - Quest System
 	- NPC Quests
 
 - Other Features
-	- Character Description
 	- Renown System
 	
-- Weapon System
 
-Hammers: - Hit Multiple Enemies
-Polearms: - High Damage at Range
-Swords: - +1 Rune Slot
-Daggers: - High Single Target Damage
-Axes: - Idk
-Whips: - High Damage at Range, low Pierce
-
-- QoL changes: Travel Overhaul, Village Layout Reworked, !tutorial
-- Weapon overhaul. !weapons
-- Added new Prosperity System !prosperity
-- New potions, and made potions cheaper
-- New Enemies, some enemies rebalanced or fixed
-- Added 1 new Rune
-- # of Atks Remaining Indicator
-- Level Selection in Dungeons
-- Ferry
-- Bait Shop
-- Barbershop
-- Graveyard
-
-- Fishing
-- Reduce Fishing Time with Better Poles
-- Add More Fish & Fishing Locations, Improve Fish Level by which Fishing Pole you have
+Enemies to Add:
+- Tidliwincus
+- Succubus
+- Glutton
 
 Things to Add: 
-- Island
 - Random Allies that will join you!!! ie Dwarf, Coward, Healer, Some Kinda Critter
-- Ephemeral enemy that fades out on its own but gets stronger if you attack it
-- Totem enemy that absorbs all magic damage
-- Stalker
-- Class Passives
+- instakill rune
+- fire rune
+- tank runes
+- extra range runes
+- extra attack runes
+- confused or goading
 
-Enemy Ideas:
-- Succubus
-- Enemy that pushes you back
+Enemy Rework -> More fights vs 1 difficult enemy
+Premade Boss Fights, 1 Final Boss per Zone -> Beat the Game
+Party Members
 
 
+Poison should antiheal
 
-
-
-else if (keyword == "testfish") {
-	msg += "\n";
-	for (let poleTier = 1; poleTier < 5; poleTier++) {
-		let seconds = 0;
-		let goldEarned = 0;
-		let location = findLocation(C.LOCATION);
-		for (let j = 0; j < 100; j++) {
-			seconds += ((10 - poleTier) + rand(5) + rand((8 - poleTier) * 2));
-			let fish = location.fish[rand(location.fish.length)];
-			let caught = false;
-			while (!caught) {
-				seconds += 3 + rand(10 - poleTier)
-				let ran = rand(1 + Math.max(0, Math.floor((fish.value - 3 * poleTier)/8)));
-				if (ran == 0) {
-					caught = true;
-					seconds += 3 + rand(10 - poleTier)
-				}
-			}
-			if (8 - (2 * poleTier) <= rand(14)) {
-				goldEarned += Math.ceil(fish.value/2);
-			}
-		}
-		msg += "Pole Level " + poleTier + " earned " + goldEarned + " gold in " + seconds + " seconds. (" + Math.floor(100*(goldEarned/(seconds/60)))/100 + " gold/minute)\n";
-	}
-}
+Changes Made
+ - RNG boosting hit tracking resets each combat (this will help RNG boosting prevent streaks of misses)
+ - You can view your accuracy stats with !accuracy.
+ - Equipping a weapon during combat ends your turn.
+ - Accurate Rune now affects RNG boosting and procs all runic/weapon effects.
+ - You have 100% chance to flee on the first turn of combat, and can do it from any Row.
+ - Fixed a bug with enemy spawns being more difficult than they should have been.
+ - You can't drop/sell equip items
+ - Base HP raised from 20 to 30
+ - Rune Changes:
+	- Removed:
+		- Icy
+		- Envining
+		- Revenge
+		- Poisoned
+	- Added:
+		- Invigorant: +1 # of Attacks on Weapon
+		- Reach: +1 Range on Weapon
+	- Changed: 
+		- Pacifist: Now has 100% Pen
+		- Accurate: Now counts for RNG boosting, procs all weapon effects/runes
+		- Amber: 2 HP Heal -> 1 HP Heal
 
 

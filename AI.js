@@ -73,26 +73,45 @@ function CalcDifficulty(enemies) {
 	return value;
 }
 
-function desiredRow(targets, row, type = "") {
-	let minDist = 7;
-	let minRow = row;
+function desiredRow(enemy, targets, range, type = "close") {
+	let min = 999;
+	let minRow = enemy.ROW;
 	let strongest = 0;
 	if (targets.length == 0) {
-		return row;
+		return enemy.ROW;
 	}
-	for (let i = 0; i < targets.length; i++) {
-		if (targets[i].HP > 0) {
-			if (Math.abs(targets[i].ROW - row) < minDist) {
-				minDist = Math.abs(targets[i].ROW - row);
-				minRow = targets[i].ROW;
+	for (let r = 0; r < 5; r++) {
+		let index = findVictim(r, targets, range);
+		if (index > -1) {
+			let dist = Math.abs(r - enemy.ROW);
+			if (type == "kite") {
+				let numEnemies = 0;
+				for (const target of targets) {
+					if (target.ROW == r) {
+						numEnemies++;
+					}
+				}
+				if (numEnemies < min) {
+					min = numEnemies;
+					minRow = r;
+				}
 			}
-			if (MaxHP(targets[i]) > MaxHP(targets[strongest])) {
-				strongest = i;
+			else if (dist < min) {
+				min = dist;
+				minRow = r;
+			}
+			if (MaxHP(targets[index]) > MaxHP(targets[strongest])) {
+				strongest = index;
 			}
 		}
 	}
 	if (type == "strongest") {
-		minRow = targets[strongest].ROW;
+		return targets[strongest].ROW;
+	}
+	if (type == "kite") {
+		if (findVictim(enemy.ROW, targets, range) == -1) {
+			return desiredRow(enemy, targets, range, "close");
+		}
 	}
 	return minRow;
 }
@@ -137,9 +156,9 @@ function moveToRow(enemy, targetRow) {
 	return msg;
 }
 
-function moveInRange(enemy, targets, range, type = "") {
+function moveInRange(enemy, targets, range, type = "close") {
 	let msg = "";
-	let targetRow = desiredRow(targets, enemy.ROW, type);
+	let targetRow = desiredRow(enemy, targets, range, type);
 	msg += moveToRow(enemy, targetRow);
 	return msg;
 }
@@ -156,8 +175,12 @@ function moveAttack(enemies, enemy, targets, attack, type = "random") {
 				if (target.TYPE != "player") {
 					tName = "the " + tName;
 				}
-				msg += "The *RED*" + enemy.NAME + "*GREY* " + attack.verb + " " + tName + "*GREY*!\n";
-				msg += DealDamage(attack, enemies, enemy, targets, targets[index])[0];
+				msg += "*GREY*The *RED*" + enemy.NAME + "*GREY* " + attack.verb + " " + tName + "*GREY*!\n";
+				let result = DealDamage(attack, enemies, enemy, targets, targets[index]);
+				msg += result[0];
+				if (result[1] <= 0) {
+					target = null;
+				}
 				index = findVictim(enemy.ROW, targets, attack.range, type);
 			}
 		}
@@ -173,7 +196,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 	//console.log("Attacking: " + enemy.NAME);
 	let msg = "";
 	let max = 0;
-	let min = 0;
+	let min = enemy.ROW;
 	let rows = [0, 0, 0, 0, 0];
 	for (let i = 0; i < targets.length; i++) {
 		rows[targets[i].ROW] += targets[i].HP;
@@ -290,7 +313,16 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 		}
 		else if (enemy.NAME == "Giant Amoeba") {
-			msg += moveAttack(allies, enemy, targets, new Attack("bumps into", 6 + rand(7), 100, 0))[0];
+			let ran = rand(4);
+			if (ran == 0) {
+				msg += "*RED*The Giant Amoeba splits in two!\n";
+				let amoeba = summon("Giant Amoeba", enemy.ROW);
+				amoeba.HP = enemy.HP;
+				allies.push(amoeba);
+			}
+			else {
+				msg += moveAttack(allies, enemy, targets, new Attack("bumps into", 6 + rand(7), 100, 0))[0];
+			}
 		}
 		else if (enemy.NAME == "Flaming Wisp") {
 			let ran = rand(3); 
@@ -298,16 +330,18 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				msg += "*RED*The " + enemy.NAME + " begins to burn brighter. . .\n"
 				enemy.HP += 10;
 				enemy.MaxHP += 5;
+				enemy.ARMOR[0] += 2;
+				enemy.ARMOR[1] += 2;
 				if (enemy.HP > enemy.MaxHP) {
 					enemy.HP = enemy.MaxHP;
 				}
 			}
 			else {
-				msg += moveAttack(allies, enemy, targets, new Attack("burns", 6 + rand(7), 100, 1))[0];
+				msg += moveAttack(allies, enemy, targets, new Attack("burns", 6 + rand(7), 100, 1, 1, 2))[0];
 			}
 		}
 		else if (enemy.NAME == "Swamp Stalker") {
-			let result = moveAttack(allies, enemy, targets, new Attack("grabs", 14 + rand(7), 85, 1, 1, 2));
+			let result = moveAttack(allies, enemy, targets, new Attack("grabs", 14 + rand(7), 75, 1, 1, 2));
 			msg += result[0];
 			if (result[1] != null) {
 				msg += "*RED*" + result[1].NAME + " is wrapped by the " + enemy.NAME + "'s stinging tentacles and can't move! They're envenomed!\n";
@@ -443,7 +477,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				}
 			}
 			else if (ran == 1) {
-				msg += "*RED*The " + enemy.NAME + " summons Living Sfpores!\n";
+				msg += "*RED*The " + enemy.NAME + " summons Living Spores!\n";
 				ran = 1 + rand(4);
 				for (let i = 0; i < ran; i++) {
 					allies.push(summon("Living Spore", rand(5)));
@@ -488,17 +522,18 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			let ran = rand(15);
 			if (ran == 0) {
 				msg += "*RED*The " + enemy.NAME + " sinks into the earth and sprouts into a Toxic Mushroom!\n";
-				enemy = summon("Toxic Mushroom", enemy.ROW);
+				let mushroom = summon("Toxic Mushroom", enemy.ROW);
+				enemy.NAME = "Toxic Mushroom";
+				enemy.HP *= 3;
+				enemy.MaxHP = 15;
+				enemy.ARMOR = [2, 2];
 			}
 			else {
 				msg = moveInRange(enemy, targets, 1);
-				if (msg != "") {
-					return msg;
-				}
 				let index = findVictim(enemy.ROW, targets, 1);
 				if (index > -1) {
 					msg += "*RED*The " + enemy.NAME + " burrows into " + targets[index].NAME + "!\n";
-					let result = DealDamage(new P_Attack(2 + rand(7), 100, 100), allies, enemy, targets, targets[index]);
+					let result = DealDamage(new P_Attack(2 + rand(5), 100, 100), allies, enemy, targets, targets[index]);
 					msg += result[0];
 					if (result[1]) {
 						msg += "*RED*" + targets[index].NAME + " is poisoned!\n";
@@ -739,7 +774,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				index = findVictim(enemy.ROW, targets, 4);
 				if (ran == 0 && index > -1) {
 					msg += "*RED*The Giant Frog flicks its tongue at " + targets[index].NAME + ".\n";
-					result = DealDamage(new P_Attack(4 + rand(5), 90), allies, enemy, targets, targets[index]);
+					result = DealDamage(new P_Attack(6 + rand(7), 100), allies, enemy, targets, targets[index]);
 					msg += result[0];
 					if (result[1]) {
 						msg += "*RED*" + targets[index].NAME + " is pulled towards the Giant Frog!\n";
@@ -841,7 +876,8 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			msg += moveAttack(allies, enemy, targets, new Attack("shanks", 4 + rand(5), 85, 0, 4))[0];
 		}
 		else if (enemy.NAME == "Servant") {
-			msg += moveAttack(allies, enemy, targets, new Attack("strikes", 8 + rand(7), 100))[0];
+			let bonusDmg = Math.floor(enemy.MaxHP/10);
+			msg += moveAttack(allies, enemy, targets, new Attack("strikes", 5 + bonusDmg + rand(4 + bonusDmg), 100))[0];
 		}
 		else if (enemy.NAME == "Warded Totem") {
 			let ran = rand(3);
@@ -933,6 +969,14 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					else if (max < enemy.ROW && i <= enemy.ROW) {
 						rowNames.push(i);
 					}
+					else {
+						if (i <= enemy.ROW && enemy.ROW > 2) {
+							rowNames.push(i);
+						}
+						else if (i >= enemy.ROW && enemy.ROW < 3) {
+							rowNames.push(i);
+						}
+					}
 				}
 				for (let i = 0; i < rowNames.length; i++) {
 					msg += "R" + (rowNames[i] + 1);
@@ -1001,7 +1045,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				}
 			}
 			else {
-				msg += moveInRange(enemy, targets, 3);
+				msg += moveInRange(enemy, targets, 3, "kite");
 			}
 		}
 		else if (enemy.NAME == "Houndlord") {
@@ -1085,7 +1129,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				}
 			}
 			else {
-				msg = moveInRange(enemy, targets, 3);
+				msg = moveInRange(enemy, targets, 3, "kite");
 			}
 		}
 		else if (enemy.NAME == "Witch") {
@@ -1102,7 +1146,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					}
 				}
 				else {
-					msg = moveInRange(enemy, targets, 3);
+					msg = moveInRange(enemy, targets, 3, "kite");
 				}
 			}
 			else {
@@ -1115,7 +1159,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 						msg += DealDamage(new M_Attack(12 + rand(11)), allies, enemy, targets, targets[index])[0];
 					}
 					else {
-						msg = moveInRange(enemy, targets, 3);
+						msg = moveInRange(enemy, targets, 3, "kite");
 					}
 				}
 				else {
@@ -1302,9 +1346,6 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 		}
 		else if (enemy.NAME == "Anchorite Worm") {
 			msg = moveInRange(enemy, targets, 1);
-			if (msg != "") {
-				return msg;
-			}
 			let index = findVictim(enemy.ROW, targets, 1);
 			if (index > -1) {
 				msg += "*RED*The " + enemy.NAME + " wriggles into " + Name(targets[index]) + "!\n";
@@ -1313,27 +1354,224 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				enemy.HP = 0;
 			}
 		}
-		else if (enemy.NAME == "Squallbird") {
-			let ran = rand(2);
-			if (ran == 0) {
-				if (min == enemy.ROW) {
-					ran = 1;
-				}
-				else {
-					msg += "*RED*The " + enemy.NAME + " away from the commotion!\n";
-					msg += moveToRow(enemy, min);
-				}
+		else if (enemy.NAME == "Tube Snail") {
+			msg = moveInRange(enemy, targets, 1);
+			if (msg != "") {
+				return msg;
 			}
-			if (ran == 1) {
-				msg += "*RED*The " + enemy.NAME + " dives fiendishly at its foe!\n";
-				msg += moveInRange(enemy, targets, 1);
+			for (let i = 0; i < 3; i++) {
 				let index = findVictim(enemy.ROW, targets, 1);
 				if (index > -1) {
-					for (let i = 0; i < 4; i++) {
-						msg += "*RED*The " + enemy.NAME + " pecks " + Name(targets[index]) + "!\n";
-						msg += DealDamage(new P_Attack(2 + rand(5), 90, 50), allies, enemy, targets, targets[index])[0];
+					msg += "*RED*The Tube Snail's spine stabs into " + Name(targets[index]) + "!\n";
+					msg += DealDamage(new P_Attack(2 + rand(5), 90, 50), allies, enemy, targets, targets[index])[0];
+					let ran = rand(3);
+					if (ran < 1) {
+						msg += "*RED*" + targets[index].NAME + " feels unwell. . .\n";
+						targets[index].EFFECTS.push(new Effect("Infested", "Lose 3 Stamina Per Turn.", 999));
 					}
 				}
+			}
+		}
+		else if (enemy.NAME == "Swarmer Shark") {
+			let hasAttacked = false;
+			for (let i = 0; i < targets.length; i++) {
+				if (hasEffect(targets[i], "bleed")) {
+					msg += "*RED*The " + enemy.NAME + " is frenzied by the smell of blood!\n";
+					if (enemy.ROW == targets[i].ROW) {
+						hasAttacked = true;
+						msg += "*RED*The " + enemy.NAME + " tears into " + Name(targets[i]) + "!\n";
+						let result = DealDamage(new P_Attack(12 + rand(9), 75, 30), allies, enemy, targets, targets[i]);
+						msg += result[0];
+						if (result[1] > 0) {
+							msg += "*RED*" + Name(targets[i]) + " begins to bleed!\n";
+							AddOrRefreshEffect(targets[i], new Effect("Bleed", "Take 4 dmg per turn.", 1));
+						}
+					}
+					else {
+						msg += moveToRow(enemy, targets[i].ROW);
+					}
+					break;
+				}
+			}
+			if (!hasAttacked) {
+				let result = moveAttack(allies, enemy, targets, new Attack("bites", 8 + rand(7), 85));
+				msg += result[0];
+				if (result[1]) {
+					msg += "*RED*" + Name(result[1]) + " begins to bleed!\n";
+					AddOrRefreshEffect(result[1], new Effect("Bleed", "Take 4 dmg per turn.", 1));
+				}
+			}
+		}
+		else if (enemy.NAME == "Coral Shard") {
+			for (let i = 0; i < targets.length; i++) {
+				if (targets[i].ROW == enemy.ROW) {
+					if (rand(4) == 0) {
+						msg += "*RED*" + Name(targets[i]) + " cuts themself on the sharp Coral Shard!\n";
+						let result = DealDamage(new P_Attack(4 + rand(3)), allies, enemy, targets, targets[i]);
+						msg += result[0];
+						if (result[1] > 0) {
+							msg += "*RED*" + Name(targets[i]) + " begins to bleed!\n";
+							AddOrRefreshEffect(targets[i], new Effect("Bleed", "Take 4 dmg per turn.", 1));
+						}
+					}
+				}
+			}
+		}
+		else if (enemy.NAME == "Giant Anemone") {
+			for (let i = 0; i < targets.length; i++) {
+				if (targets[i].ROW == enemy.ROW) {
+					msg += "*RED*" + Name(targets[i]) + " is shocked by the Giant Anemone!\n";
+					msg += DealDamage(new P_Attack(4+ rand(3)), allies, enemy, targets, targets[i])[0];
+					if (rand(4) == 0) {
+						msg += "*RED*" + Name(targets[i]) + " is stunned by the Giant Anemone!\n";
+						AddOrRefreshEffect(targets[i], new Effect("Stunned", "Lose your next turn.", 1));
+					}
+				}
+			}
+		}
+		else if (enemy.NAME == "Sea Sorceror") {
+			let ran = rand(3);
+			let indexThree = findVictim(enemy.ROW, targets, 3, "strong");
+			if (indexThree == -1) {
+				ran = 1 + rand(2);
+			}
+			if (allies.length < 3) {
+				ran = 1;
+			}
+			if (ran == 0) {
+				msg += "*RED*The " + enemy.NAME + " casts Water Bubble Blast!\n";
+				msg += DealDamage(new M_Attack(6 + rand(7)), allies, enemy, targets, targets[indexThree])[0];
+			}
+			if (ran == 1) {
+				let options = ["Coral Shard", "Giant Anemone"];
+				for (let i = 0; i < 2; i++) {
+					let en = options[rand(2)];
+					msg += "*RED*The " + enemy.NAME + " summons a " + en + "!\n";
+					allies.push(summon(en, rand(5)));
+				}
+			}
+			if (ran == 2) {
+				msg += "*RED*The " + enemy.NAME + " empowers the nearby sea life!\n";
+				for (let i = 0; i < allies.length; i++) {
+					AddOrRefreshEffect(allies[i], new Effect("Stronger", "Deal +3 Damage per Attack", 1, "buff"));
+				}
+			}
+		}
+		else if (enemy.NAME == "Tidliwincus") {
+			let foundPlayer = false;
+			let isEnamoured = false;
+			for (const effect of enemy.EFFECTS) {
+				let name = effect.name.toLowerCase();
+				if (name.includes("enamoured")) {
+					isEnamoured = true;
+					for (let i = 0; i < targets.length; i++) {
+						if (name.includes(targets[i].NAME.toLowerCase())) {
+							foundPlayer = true;
+							if (targets[i].ROW != enemy.ROW) {
+								moveToRow(enemy, targets[i].ROW);
+							}
+							else {
+								let ran = rand(3);
+								let row = rand(5);
+								if (row == enemy.ROW || ran == 0) {
+									msg += "*RED*The " + enemy.NAME + " lovingly pecks " + Name(targets[i]) + "!\n";
+									msg += DealDamage(new P_Attack(8 + rand(9), 90, 50), allies, enemy, targets, targets[i])[0];
+								}
+								else {
+									msg += "*RED*The " + enemy.NAME + " drags " + Name(targets[i]) + ", stunning them!\n";
+									AddOrRefreshEffect(targets[i], new Effect("Stunned", "Lose your next turn.", 1));
+									msg += DealDamage(new P_Attack(2, + rand(3)), allies, enemy, targets, targets[i])[0];
+									msg += moveToRow(enemy, row);
+									targets[i].ROW = enemy.ROW;
+								}
+							}
+						}
+					}
+				}
+			}
+			if (!foundPlayer) {
+				if (isEnamoured) {
+					msg += "*RED*The " + enemy.NAME + " sulks . . .\n";
+				}
+				else {
+					let target = targets[rand(targets.length)];
+					msg += "*RED*The " + enemy.NAME + " has become enamoured with " + Name(target) + "!\n";
+					AddOrRefreshEffect(enemy, new Effect("Enamoured with " + Name(target), "The Tidliwincus has eyes only for " + Name(target) + "!", 999));
+				}
+			}
+		}
+		else if (enemy.NAME == "Living Tide") {
+			let hpCutOff = 25 + rand(12);
+			if (enemy.HP < hpCutOff) {
+				let num = 10 + rand(10);
+				if (enemy.ROW != min) {
+					num = Math.floor(num/2);
+					msg += moveToRow(enemy, min);
+				}
+				msg += "*RED*Water flows into the body of the " + enemy.NAME + " and it heals for " + num + " HP.\n";
+				enemy.HP += num;
+			}
+			else {
+				let ran = rand(2);
+				let indexThree = findVictim(enemy.ROW, targets, 3, "strong");
+				let indexOne = findVictim(enemy.ROW, targets, 1, "strong");
+				if (indexOne > -1) {
+					ran = 3 + rand(2);
+				}
+				else if (indexThree > -1) {
+					ran = rand(3);
+				}
+				if (ran == 0) { // Global Range
+					msg += "*RED*Water flows out of the Living Tide and innundates its foes, slowing them!\n"
+					for (let i = 0; i < targets.length; i++) {
+						msg += DealDamage(new M_Attack(2 + rand(5)), allies, enemy, targets, targets[i])[0];
+						AddOrRefreshEffect(targets[i], new Effect("Slowed", "Movement costs are increased.", 1));
+					}
+				}
+				if (ran == 1) { // Global Range
+					msg += "*RED*Water flows out of the Living Tide and a mighty wave washes over the battlefield!\n";
+					for (let i = 0; i < targets.length; i++) {
+						if (targets[i].ROW < 4) {
+							targets[i].ROW++;
+							msg += Prettify(Name(targets[i])) + " is pushed back!\n";
+						}
+						msg += DealDamage(new M_Attack(6 + rand(7)), allies, enemy, targets, targets[i])[0];
+					}
+				}
+				if (ran == 2) { // 3 Range
+					msg += "*RED*Water flows out of the Living Tide and whips " + Name(targets[indexThree]) + "!\n";
+					msg += DealDamage(new M_Attack(8 + rand(6)), allies, enemy, targets, targets[indexThree])[0];
+				}
+				if (ran == 3) { // 1 Range
+					msg += "*RED*Water flows out of the Living Tide and strikes " + Name(targets[indexOne]) + " in a powerful jet!\n";
+					msg += DealDamage(new M_Attack(10 + rand(10)), allies, enemy, targets, targets[indexOne])[0];
+					for (let i = 0; i < 2; i++) {
+						msg += PushTarget(enemy, targets[indexOne]);
+					}
+				}
+				if (ran == 4) { // 1 Range
+					msg += "*RED*Water flows out of the Living Tide and crashes onto " + Name(targets[indexOne]) + ", drowning them and reducing their Stamina!\n";
+					targets[indexOne].STAMINA = Math.max(0, targets[indexOne].STAMINA - 15);
+					for (let i = 0; i < 4; i++) {
+						msg += DealDamage(new M_Attack(2 + rand(5)), allies, enemy, targets, targets[indexOne])[0];
+					}
+				}
+				enemy.HP -= (5 + rand(6));
+			}
+		}
+		else if (enemy.NAME == "Squallbird") {
+			msg += "*RED*The " + enemy.NAME + " dives fiendishly at its foe!\n";
+			msg += moveInRange(enemy, targets, 1);
+			let index = findVictim(enemy.ROW, targets, 1);
+			if (index > -1) {
+				msg += "*RED*The " + enemy.NAME + " pecks " + Name(targets[index]) + "!\n";
+				for (let i = 0; i < 4; i++) {
+					msg += DealDamage(new P_Attack(2 + rand(5), 90, 50), allies, enemy, targets, targets[index])[0];
+				}
+			}
+			if (min != enemy.ROW && rand(2) == 0) {
+				msg += "*RED*The " + enemy.NAME + " flies away from the commotion!\n";
+				msg += moveToRow(enemy, min);
 			}
 		}
 		else if (enemy.NAME == "Reef Crab") {
@@ -1345,8 +1583,17 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				msg += "*RED*The " + enemy.NAME + " sprays a strong jet of water at " + Name(targets[index]) + "!\n";
 				msg += DealDamage(new P_Attack(8 + rand(9), 90), allies,enemy, targets, targets[index])[0];
 			}
-			let targetRow = rand(5);
-			msg += moveToRow(enemy, targetRow);
+			else {
+				msg += moveInRange(enemy, targets, 3, "kite");
+			}
+			let ran = rand(3);
+			if (ran == 0) {
+				let dialogue = ["*RED*The squelcher squeals. . .\n", "*RED*The squelcher makes a gargling sound. . .\n", "*RED*The squelcher makes a clicking noise. . .\n"];
+				msg += dialogue[rand(dialogue.length)];
+			}
+			else {
+				msg += moveInRange(enemy, targets, 3, "kite");
+			}
 		}
 		else if (enemy.NAME == "Sunfish") {
 			let ran = rand(3);
@@ -1366,6 +1613,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				if (allies[i].NAME == "Anchorite Worm") {
 					msg += "*RED*The " + enemy.NAME + " eats the Anchorite Worm!\n";
 					allies[i].HP = 0;
+					break;
 				}
 			}
 			if (enemy.HP < enemy.MaxHP) {
@@ -1414,10 +1662,10 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 		else if (enemy.NAME == "Fishman Archer") {
 			let ran = rand(2);
 			if (ran == 0) {
-				msg += moveAttack(allies, enemy, targets, new Attack("looses an arrow at", 4 + rand(7), 90, 0, 2, 6, 20), "strong")[0];
+				msg += moveAttack(allies, enemy, targets, new Attack("looses an arrow at", 4 + rand(8), 90, 0, 2, 6, 20), "strong")[0];
 			}
 			else {
-				msg += moveAttack(allies, enemy, targets, new Attack("looses an arrow at", 4 + rand(7), 90, 0, 2, 6, 20), "weak")[0];
+				msg += moveAttack(allies, enemy, targets, new Attack("looses an arrow at", 4 + rand(8), 90, 0, 2, 6, 20), "weak")[0];
 			}
 		}
 		else if (enemy.NAME == "Fishman Tridentier") {
@@ -1426,24 +1674,34 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 		else if (enemy.NAME == "Sea Priest" || enemy.NAME == "Sea Priestess") {
 			let ran = rand(4);
 			let numAllies = 0;
+			let numWoundedOrDebuffed = 0;
 			for (let i = 0; i < allies.length; i++) {
 				if (allies[i].HP > 0) {
 					numAllies++;
+					if (allies[i].HP < allies[i].MaxHP) {
+						numWoundedOrDebuffed++;
+					}
+					else {
+						for (const effect of allies[i].EFFECTS) {
+							if (effect.type == "debuff") {
+								numWoundedOrDebuffed++;
+								break;
+							}
+						}
+					}
 				}
 			}
-			if (numAllies.length > 10) {
+			if (numAllies > 6) {
 				ran = 1 + rand(3);
 			}
-			if (numAllies < 3) {
-				ran = 1 + rand(2);
+			if (numWoundedOrDebuffed / numAllies < .5) {
+				ran = rand(3);
 			}
 			if (ran == 0) {
-				for (let i = 0; i < 2; i++) {
-					let enemies = ["reef crab", "coral crawler", "sunfish", "squallbird", "squelcher"];
-					let index = rand(enemies.length);
-					msg += "The " + enemy.NAME + " forms a " + Prettify(enemies[index]) + " out of the sea foam!\n";
-					allies.push(summon(enemies[index]), enemy.ROW);
-				}
+				let enemies = ["reef crab", "coral crawler", "sunfish", "squallbird", "squelcher"];
+				let index = rand(enemies.length);
+				msg += "The " + enemy.NAME + " forms a " + Prettify(enemies[index]) + " out of the sea foam!\n";
+				allies.push(summon(enemies[index], enemy.ROW));
 			}
 			else if (ran == 1) {
 				let words = ["I shall wash ye in the waters of the earth.", "Prepare to be baptised."];
@@ -1463,16 +1721,14 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				AddOrRefreshEffect(targets[index], new Effect("Stunned", "Lose your next turn.", 1));
 			}
 			else if (ran == 3) {
+				let words = ["Let the waters clean you, my children.", "Be cleansed, my children."];
+				msg += "\n*RED*" + enemy.NAME + ": *GREY*" + words[rand(2)] + "\n\n";
 				for (let i = 0; i < allies.length; i++) {
-					let words = ["Let the waters clean you, my children.", "Be cleansed, my children."];
-					msg += "\n*RED*" + enemy.NAME + ": *GREY*" + words[rand(2)] + "\n\n";
-					for (let i = 0; i < allies.length; i++) {
-						if (allies[i].HP > 0) {
-							allies[i].HP = Math.min(allies[i].HP + 5, MaxHP(allies[i]));
-							for (let j = allies[i].EFFECTS.length - 1; j >= 0; j--) {
-								if (allies[i].EFFECTS[j].type == "debuff" && allies[i].EFFECTS[j].name != "Infested") {
-									endEffect(allies[i], j);
-								}
+					if (allies[i].HP > 0) {
+						allies[i].HP = Math.min(allies[i].HP + 5, MaxHP(allies[i]));
+						for (let j = allies[i].EFFECTS.length - 1; j >= 0; j--) {
+							if (allies[i].EFFECTS[j].type == "debuff" && allies[i].EFFECTS[j].name != "Infested") {
+								endEffect(allies[i], j);
 							}
 						}
 					}
@@ -1488,9 +1744,10 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				let crab = false
 				for (let i = 0; i < allies.length; i++) {
 					if (allies[i].NAME.toLowerCase().includes("crab") & allies[i].HP > 0) {
-						msg += moveAttack(targets, enemy, allies, new Attack("swings its strong beak at", 12 + rand(11), 90, 0, 1, 2, 90))[0];
-						msg += DealDamage(new P_Attack(12 + rand(11), 90, 100), allies, enemy, targets, targets[index])[0];
+						msg += moveAttack("*RED*The " + enemy.NAME + " swings its strong beak at " + Name(allies[i]) + "!\n");
+						msg += DealDamage(new P_Attack(12 + rand(11), 90, 100), allies, enemy, targets, allies[i])[0];
 						crab = true;
+						break;
 					}
 				}
 				if (!crab) {
@@ -1502,7 +1759,39 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 		}
 		else if (enemy.NAME == "Risen Whale") {
-			
+			let ran = rand(3);
+			let indexThree = findVictim(enemy.ROW, targets, 3, "strong");
+			if (indexThree == -1) {
+				ran = rand(2);
+			}
+			if (ran == 0) {
+				msg += moveAttack(allies, enemy, targets, new Attack("bites", 14 + rand(14), 90, 0, 1, 1, 20))[0];
+			}
+			if (ran == 1) {
+				let dmg = Math.floor(enemy.MaxHP - enemy.HP)/10;
+				if (dmg < 8) {
+					msg += "*RED*A foul smell taints the air, though the worst of it remains trapped in bloated pockets of the Risen Whale's rotten flesh."
+				}
+				else if (dmg < 15) {
+					msg += "*RED*The stench of the risen whale spreads over the battlefield, of rotten flesh, seeping out of the Risen Whale's many wounds."
+				}
+				else {
+					msg += "*RED*The air is putrid, tainted by the terrible decay of the Risen Whale!\n";
+				}
+				for (let i = 0; i < targets.length; i++) {
+					msg += DealDamage(new M_Attack(1 + dmg), allies, enemy, targets, targets[i])[0];
+				}
+			}
+			if (ran == 2) {
+				msg += "*RED*The Risen Whale emits an ear-splitting barrage of clicks, stunning " + Name(targets[indexThree]) + "!\n";
+				msg += DealDamage(new M_Attack(8 + rand(7)), allies, enemy, targets, targets[indexThree])[0];
+				AddOrRefreshEffect(targets[indexThree], new Effect("Stunned", "Lose your next turn.", 1));
+				for (let i = 0; i < targets.length; i++) {
+					if (i != indexThree) {
+						msg += DealDamage(new M_Attack(3 + rand(4)), allies, enemy, targets, targets[i])[0];
+					}
+				}
+			}
 		}
 		else if (enemy.NAME == "Deep Horror") {
 			for (let i = 0; i < targets.length; i++) {
@@ -1553,7 +1842,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				if (allies[closest].ROW == enemy.ROW) {
 					for (let i = 0; i < 4; i++) {
 						if (allies[closest].HP > 0) {
-							msg += "*RED*The " + enemy.NAME + " bites " + Name(targets[index]) + "!\n";
+							msg += "*RED*The " + enemy.NAME + " bites " + Name(allies[closest]) + "!\n";
 							msg += DealDamage(new P_Attack(8 + rand(9), 90, 20), allies, enemy, allies, allies[closest])[0];
 						}
 						else {
@@ -1570,15 +1859,31 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 		}
 		else if (enemy.NAME == "Carcinos") {
-			let ran = rand(2);
-			if (ran == 0) {
-				let options = ["Carcinos seems annoyed. . .", "Carcinos doesn't seem interested in fighting.", "Carcinos seems to only be focused on its work."];
-				msg += "*RED*" + options[rand(3)];
+			let index = findVictim(enemy.ROW, targets, 1);
+			if (index > -1) {
+				msg += moveAttack(allies, enemy, targets, new Attack("pinches", 14 + rand(13), 85))[0];
 			}
-			msg += moveAttack(allies, enemy, targets, new Attack("pinches", 14 + rand(13), 85))[0];
+			else {
+				let ran = rand(2);
+				if (ran == 0) {
+					for (let i = 0; i < allies.length; i++) {
+						if (allies[i].NAME.toLowerCase().includes("crab")) {
+							if (allies[i].ROW != enemy.ROW) {
+								msg += moveToRow(enemy, allies[i].ROW);
+							}
+							if (allies[i].ROW == enemy.ROW) {
+								msg += "*RED*Carcinos seems to be inspecting the crab on R" + (enemy.ROW + 1) + ".\n";
+							}
+						}
+					}
+				}
+				else {
+					let options = ["Carcinos speaks in a chittering, clicky language. . .", "Carcinos seems annoyed. . .", "Carcinos doesn't seem interested in fighting.", "Carcinos seems to only be focused on its work."];
+					msg += "*RED*" + options[rand(3)];
+				}
+			}
 		}
 		else if (enemy.NAME == "Siren") {
-			let index = findVictim(enemy.ROW, targets, 1);
 			let ran = rand(3);
 			if (ran == 0) {
 				msg += "*RED*A beautifully alluring pitch emits from the " + enemy.NAME + " drawing its foes closer!\n";
@@ -1597,20 +1902,52 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 						}
 					}
 				}
+				let index = findVictim(enemy.ROW, targets, 1);
+				if (index > -1) {
+					msg += "*RED*The " + enemy.NAME + " chomps down on " + targets[index].NAME + "!\n";
+					msg += DealDamage(new P_Attack(16 + rand(13), 90, 50), allies, enemy, targets, targets[index])[0];
+				}
 			}
 			else {
 				msg += moveAttack(allies, enemy, targets, new Attack("chomps", 16 + rand(11), 90, 0, 1, 1, 50))[0];
 			}
-			if (index > -1) {
-				msg += "*RED*The " + enemy.NAME + " chomps down on " + targets[index].NAME + "!\n";
-				msg += DealDamage(new P_Attack(16 + rand(11), 90, 50), allies, enemy, targets, targets[index])[0];
-			}
+			
 		}
 		else if (enemy.NAME == "Dirge") {
+			let numBuffs = 0;
+			for (let i = 0; i < enemy.EFFECTS.length; i++) {
+				if (enemy.EFFECTS[i].type == "buff") {
+					numBuffs++;
+				}
+			}
+			let effects = [
+				new Effect("Stronger", "Deal +3 Damage per Attack", 7, "buff"),
+				new Effect("Aura", "Deal 2 Damage to All Enemies", 7, "buff"),
+				new Effect("Regenerative", "Regenerate 4 HP per turn.", 7, "buff"),
+				new Effect("Minor Reflect", "When you're attacked, reflect 3 damage.", 7, "buff"),
+				new Effect("Greater Reflect", "When you're attacked, reflect half the damage back.", 7, "buff"),
+				new Effect("Destructive Synergy", "Deal +1 damage for each active buff.", 7, "buff"),
+				new Effect("Restorative Synergy", "Heal 1 HP for each active buff.", 7, "buff")
+			];
+			for (let i = 0; i < effects.length; i++) {
+				if (!hasEffect(enemy, effects[i].name)) {
+					AddOrRefreshEffect(enemy, effects[i]);
+					msg += "*RED*The Dirge's skin shifts and shimmers, and lines like a rune's appear. It gains the effect '" + effects[i].name + "'!\n";
+					break;
+				}
+			}
 			
-		}
-		else if (enemy.NAME == "Living Tide") {
-			
+			if (numBuffs < 6) {
+				let index = findVictim(enemy.ROW, targets, 2);
+				if (index > -1) {
+					msg += moveAttack(allies, enemy, targets, new Attack("stings", 4 + rand(5), 90, 0, 3, 2, 10))[0];
+				}
+				msg += moveToRow(enemy, min);
+				msg += "*RED*The Dirge seems hesitant to fight. . .\n";
+			}
+			else {
+				msg += moveAttack(allies, enemy, targets, new Attack("stings", 4 + rand(5), 90, 0, 3, 2, 10))[0];
+			}
 		}
 		else if (enemy.NAME == "Wadrin's Lizard") {
 			let ran = rand(3);
@@ -1627,6 +1964,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 			else {
 				let result = moveAttack(allies, enemy, targets, new Attack("swipes their massive tail at", 10 + rand(9), 90, 0, 1, 2, 50));
+				msg += moveAttack[0];
 				if (result[1]) {
 					if (result[1].TYPE == "player") {
 						msg += "*RED*" + Prettify(Name(result[1])) + " is winded by the blow!\n";
