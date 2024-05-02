@@ -1,10 +1,6 @@
 function Dequip(C, invIndex) {
 	if (C.INVENTORY[invIndex].equipped) {
 		C.INVENTORY[invIndex].equipped = false;
-		if (C.INVENTORY[invIndex].type == "armor") {
-			C.ARMOR[0] -= C.INVENTORY[invIndex].armor[0];
-			C.ARMOR[1] -= C.INVENTORY[invIndex].armor[1];
-		}
 		if (C.LEFT == invIndex) {
 			C.LEFT = -1;
 		}
@@ -23,12 +19,8 @@ function Equip(C, invIndex) {
 			for (let i = 0; i < C.INVENTORY.length; i++) {
 				if (C.INVENTORY[i].type == "armor" && C.INVENTORY[i].equipped) {
 					C.INVENTORY[i].equipped = false;
-					C.ARMOR[0] -= C.INVENTORY[i].armor[0];
-					C.ARMOR[1] -= C.INVENTORY[i].armor[1];
 				}
 			}
-			C.ARMOR[0] += C.INVENTORY[invIndex].armor[0];
-			C.ARMOR[1] += C.INVENTORY[invIndex].armor[1];
 		}
 		else {
 			if (C.INVENTORY[invIndex].type == "pole" || C.INVENTORY[invIndex].type == "staff" || C.INVENTORY[invIndex].hands == 2) {
@@ -99,16 +91,39 @@ function itemName(item) {
 	return name;
 }
 
-function LootItem(C, loot, index) {
-	let name = itemName(loot[index]);
-	if (!CanTake(C, loot[index])) {
+function LootItem(C, battle, index) {
+	let item = COPY(battle.loot[index]);
+	let name = itemName(item);
+	if (!CanTake(C, item)) {
 		return "*RED*You don't have room in your inventory to take that.\n";
 	}
-	C.INVENTORY.push(loot[index]);
-	loot.splice(index, 1);
-	return "*GREEN*You take the *BLUE*" + name + "\n";
+	battle.loot.splice(index, 1);
+	if (item.type == "mimic") {
+		let msg = "*RED*It's a mimic!\n";
+		battle.started = true;
+		let enemy = COPY(new Enemy("Mimic", 40, 0, 0, 50, [], 1, "", "A slow-moving creature born of early attempts at alchemical conjuration, now thriving in the wild. They submerge themselves underground, while a specialized organ resembling a commonplace object acts as a lure for careless adventurers."));
+		enemy.ROW = C.ROW;
+		battle.enemies.push(enemy);
+		C.ENDED = true;
+		msg += HandleCombat(battle);
+		return msg;
+	}
+	else {
+		C.INVENTORY.push(item);
+		return "*GREEN*You take the *BLUE*" + name + "\n";
+	}
 }
 
+
+function countEffect(C, name) {
+	let num = 0;
+	for (let i = 0; i < C.EFFECTS.length; i++) {
+		if (C.EFFECTS[i].name.toLowerCase() == name.toLowerCase()) {
+			num++;
+		}
+	}
+	return num;
+}
 
 function hasEffect(C, name) {
 	for (let i = 0; i < C.EFFECTS.length; i++) {
@@ -161,6 +176,7 @@ function resetPercent(C, hand) {
 
 function AddOrRefreshEffect(C, effect) {
 	let found = false;
+	let msg = "";
 	let name = effect.name.toLowerCase();
 	for (let i = 0; i < C.EFFECTS.length; i++) {
 		let eName = C.EFFECTS[i].name.toLowerCase();
@@ -169,28 +185,43 @@ function AddOrRefreshEffect(C, effect) {
 				C.EFFECTS[i].duration = effect.duration;
 			}
 			found = true;
+			msg += "*YELLOW*" + Prettify(name) + " is refreshed on " + Name(C) + ".\n";
 		}
 	}
 	if (!found) {
-		if (name == "poison" || name == "venom") {
-			if (C.TYPE == "evil" || C.TYPE == "construction") {
-				return;
+		if (C.TYPE == "construction") {
+			if (name == "bleed" || name == "venom" || name == "poison") {
+				return "*RED*" + Prettify(Name(C)) + " is immune!\n";
 			}
 		}
-		if (name == "bleed") {
-			if (C.TYPE == "construction") {
-				return;
-			}
+		if (effect.type == "buff") {
+			msg = "*CYAN*" + Prettify(Name(C)) + " is buffed with the effect " + effect.name + "!\n";
+		}
+		else {
+			msg = "*RED*" + Prettify(Name(C)) + " is afflicted with the effect " + effect.name + "!\n";
 		}
 		C.EFFECTS.push(effect);
 	}
+	return msg;
+}
+
+function findThing(list, target) {
+	let index = -1;
+	index = parseInt(target) - 1;
+	if (isNaN(index) || index == -1) {
+		index = -1;
+		for (let i = 0; i < list.length; i++) {
+			if (list[i].toLowerCase() == target.toLowerCase()) {
+				return i;
+			}
+		}
+	}
+	return index;
 }
 
 function findSpell(list, target) {
 	let index = -1;
-	if (target[0] == "s") {
-		index = parseInt(target.substring(1)) - 1;
-	}
+	index = parseInt(target) - 1;
 	if (isNaN(index) || index == -1) {
 		for (let i = 0; i < list.length; i++) {
 			if (list[i].name.toLowerCase() == target.toLowerCase()) {
@@ -213,9 +244,79 @@ function maxRunes(item) {
 		max = 3;
 	}
 	else if (item.type == "staff") {
-		max = 2;
+		max = 3;
+		if (item.name == "wand") {
+			max = 0;
+		}
 	}
 	return max;
+}
+
+function spellAPCost(C, spell) {
+	let cost = 0;
+	if (hasRune(C, "hollow")) {
+		cost--;
+	}
+	if (hasRune(C, "heavy")) {
+		cost += 2;
+	}
+	return cost + spell.AP;
+}
+
+function SpellHeal(allies, healer, target, amount, autumn = true) {
+	let msg = "";
+	let bonus = 0;
+	if (isEquipped(healer, "crook")) {
+		bonus += 2;
+	}
+	msg = Heal(target, amount + bonus);
+	if (autumn) {
+		if (hasRune(healer, "autumn")) {
+			let ran = rand(allies.length);
+			msg += "*GREEN*" + Heal(allies[ran], 3 + bonus);
+		}
+	}
+	return msg;
+}
+
+function MaxCasts(C) {
+	let numCasts = C.STATS[MAG];
+	if (hasRune(C, "light")) {
+		numCasts += 2;
+	}
+	if (hasRune(C, "focus")) {
+		return 1;
+	}
+	return numCasts;
+}
+
+function Heal(C, health, overheal = false) {
+	let startHP = C.HP;
+	let amount = health;
+	let multiplier = 1;
+	if (hasRune(C, "vine")) {
+		multiplier *= 1.5;
+	}
+	if (hasEffect(C, "poison")) {
+		multiplier *= .5;
+	}
+	//Beware of floating point fuckery
+	if (multiplier != 1) {
+		amount = Math.ceil(amount * multiplier);
+	}
+	C.HP += amount;
+	if (C.HP > MaxHP(C)) {
+		if (overheal) {
+			C.MaxHP = C.HP;
+		}
+		else {
+			C.HP = MaxHP(C);
+		}
+	}
+	if ((C.HP - startHP) <= 0) {
+		return "";
+	}
+	return "*PINK*" + Prettify(Name(C)) + " is healed for " + (C.HP - startHP) + " HP!\n";
 }
 
 function RemoveItem(C, index) {
@@ -231,13 +332,7 @@ function RemoveItem(C, index) {
 	else if (index < C.RIGHT) {
 		C.RIGHT--;
 	}
-	if ((C.INVENTORY[index].type == "armor" || C.INVENTORY[index].type == "weapon") && C.INVENTORY[index].equipped) {
-		if (C.INVENTORY[index].type == "armor") {
-			C.ARMOR[0] -= C.INVENTORY[index].armor[0];
-			C.ARMOR[1] -= C.INVENTORY[index].armor[1];
-		}
-		C.INVENTORY[index].equipped = false;
-	}
+	C.INVENTORY[index].equipped = false;
 	C.INVENTORY.splice(index, 1);
 }
 
@@ -255,7 +350,7 @@ function findTarget(list, target, row = 0) {
 	if (target[0] == "e" || target[0] == "p") {
 		index = parseInt(target.substring(1));
 	}
-	if (index <= 0 || isNaN(index)) {
+	if (isNaN(index) || index <= 0 || index > list.length) {
 		let closest = -1;
 		for (let i = 0; i < list.length; i++) {
 			if (list[i].HP > 0 && list[i].NAME.toLowerCase() == target.toLowerCase()) {
@@ -324,7 +419,7 @@ function findItem(itemList, target, hesitate = false) {
 			return potential;
 		}
 	}
-	else {
+	else if (invIndex <= itemList.length){
 		return invIndex - 1;
 	}
 	return -1;
@@ -354,6 +449,48 @@ function takeItem(C, item) {
 function rand(num) {
 	return Math.floor(Math.random() * num);
 }
+function P_Armor(C) {
+	let armor = C.ARMOR[0];
+	if (C.TYPE == "player") {
+		if (C.CLASS == "warrior") {
+			armor += 2;
+		}
+		for (let i = 0; i < C.INVENTORY.length; i++) {
+			if (C.INVENTORY[i].type == "armor" && C.INVENTORY[i].equipped) {
+				armor += C.INVENTORY[i].armor[0];
+				break;
+			}
+		}
+	}
+	if (hasEffect(C, "stoneskin")) {
+		armor += 8;
+	}
+	if (hasEffect(C, "protection")) {
+		armor += 2;
+	}
+	return armor;
+}
+function M_Armor(C) {
+	let armor = C.ARMOR[1];
+	if (C.TYPE == "player") {
+		if (C.CLASS == "warrior") {
+			armor += 2;
+		}
+		for (let i = 0; i < C.INVENTORY.length; i++) {
+			if (C.INVENTORY[i].type == "armor" && C.INVENTORY[i].equipped) {
+				armor += C.INVENTORY[i].armor[1];
+				break;
+			}
+		}
+	}
+	if (hasEffect(C, "stoneskin")) {
+		armor += 4;
+	}
+	if (hasEffect(C, "protection")) {
+		armor += 2;
+	}
+	return armor;
+}
 
 function MaxHP(C) {
 	if (C.TYPE != "player") {
@@ -368,9 +505,6 @@ function MaxHP(C) {
 
 function MaxAP(C) {
 	let bonus = 0;
-	if (hasRune(C, "dextrous")) {
-		bonus = 4;
-	}
 	if (C.TYPE == "player") {
 		for (let i = 0; i < C.INVENTORY.length; i++) {
 			if (C.INVENTORY[i].type == "armor" && C.INVENTORY[i].equipped) {
@@ -397,7 +531,18 @@ function MaxStamina(C) {
 	return Math.max(0, bonus + 30 + C.STATS[END] * 15);
 }
 
-function Travel(C, newLocation) {
+function Travel(C, newLocation, index = -1) {
+	if (index > -1) {
+		if (!battles[index].started) {
+			let battle = battles[index];
+			for (let a = battle.allies.length - 1; a >= 0; a--) {
+				if (battle.allies[a].ID == C.ID) {
+					battle.allies.splice(a, 1);
+					break;
+				}
+			}
+		}
+	}
 	for (let i = 0; i < locations.length; i++) {
 		if (locations[i].id.toLowerCase() == C.LOCATION.toLowerCase()) {
 			for (let i = 0; i < locations[i].players; i++) {

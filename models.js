@@ -29,7 +29,7 @@ function Character() {
 	this.BUILDING = "";
 	this.BACKPACK = false;
 	this.EFFECTS = [];
-	this.ROW = 0;
+	this.ROW = 3;
 	this.ATTACKS = 0;
 	this.CASTS = 0;
 	this.TRADING = "";
@@ -173,7 +173,15 @@ function P_Attack(damage, hitChance, pen) {
 	this.hitChance = hitChance;
 }
 
-function M_Attack(damage, hitChance = 100, pen = 0) {
+function T_Attack(damage) {
+	this.type = 2;
+	this.number = 1;
+	this.damage = damage;
+	this.pen = 100;
+	this.hitChance = 100;
+}
+
+function M_Attack(damage, pen = 0, hitChance = 100) {
 	this.type = 1;
 	this.number = 1;
 	this.damage = damage;
@@ -221,18 +229,20 @@ function Rune(name, value, target, description) {
 	this.equipped = false;
 }
 
-function Spell(school, name, description, AP, HP = 0, Gold = 0) {
+function Spell(name, school, description, AP, HP = 0, range = 6, numEnemies = 0, numRows = 0, numAllies = 0) {
+	this.school = school;
 	this.type = "spell";
-	this.range = 6;
+	this.range = range;
 	this.name = name;
 	this.description = description;
 	this.AP = AP;
 	this.HP = HP;
-	this.gold = Gold;
-	this.school = school;
+	this.numEnemies = numEnemies;
+	this.numRows = numRows;
+	this.numAllies = numAllies;
 }
 
-function Enemy(Name, HP, physical, magical, Difficulty, Zones, Gold, Moves, type, description = "The resurrected corpse of a fallen adventurer.") {
+function Enemy(Name, HP, physical, magical, Difficulty, Zones, Moves, type, description = "The resurrected corpse of a fallen adventurer.") {
 	this.TYPE = type;
 	this.NAME = Name;
 	this.HP = HP;
@@ -243,8 +253,7 @@ function Enemy(Name, HP, physical, magical, Difficulty, Zones, Gold, Moves, type
 	this.DIFFICULTY = Difficulty;
 	this.ZONES = Zones;
 	this.LOOT = [];
-	this.ROW = 0;
-	this.GOLD = Gold;
+	this.ROW = 4;
 	this.MOVES = Moves;
 	this.DESCRIPTION = description;
 }

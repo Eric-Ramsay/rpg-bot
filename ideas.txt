@@ -14,26 +14,35 @@ Ideas for the Text RPG
 
 - Other Features
 	- Renown System
-	
+
+- New Magical Class
+- New Magical Staffs -> Different Effects (ie Damage vs Refund Chance vs # of Casts) rather than basic progression
 
 Enemies to Add:
-- Tidliwincus
 - Succubus
 - Glutton
+
+- Cultivation Buff
+- Wild Conjuration Nerf
+- Serious Magic rebalance/redesign
+- Magic QoL casting improvements
+- New Magic Schools
+- Magical Progression (Levels on Spells)
+- Healer, Single Target, Summoner, AoE, Crowd Control
 
 Things to Add: 
 - Random Allies that will join you!!! ie Dwarf, Coward, Healer, Some Kinda Critter
 - instakill rune
 - fire rune
 - tank runes
-- extra range runes
-- extra attack runes
+- Higher AP but also Higher Dmg
 - confused or goading
 
 Enemy Rework -> More fights vs 1 difficult enemy
 Premade Boss Fights, 1 Final Boss per Zone -> Beat the Game
 Party Members
 
+Spears should lose push ability & just push back if enemy is on same row as you always
 
 Poison should antiheal
 
@@ -44,8 +53,11 @@ Changes Made
  - Accurate Rune now affects RNG boosting and procs all runic/weapon effects.
  - You have 100% chance to flee on the first turn of combat, and can do it from any Row.
  - Fixed a bug with enemy spawns being more difficult than they should have been.
+ - Rebalanced enemy spawns a bit to make solo easier, and large party battles more difficult.
+ - Additional difficulty scaling associated with delve level reduced from 20% per level to 10% per level
  - You can't drop/sell equip items
  - Base HP raised from 20 to 30
+ - Combat UI Overhaul
  - Rune Changes:
 	- Removed:
 		- Icy
@@ -58,6 +70,13 @@ Changes Made
 	- Changed: 
 		- Pacifist: Now has 100% Pen
 		- Accurate: Now counts for RNG boosting, procs all weapon effects/runes
-		- Amber: 2 HP Heal -> 1 HP Heal
-
+		- Amber: 2 HP Heal -> 1 HP Heal. No longer procs on effects.
+ - Magic Overhaul:
+	- Pretty much all spells reworked or removed.
+	- Lots of new spells
+	- Casting should be smoother and more responsive
+	- You can choose what spells you learn next.
+	- Scrolls will drop in combat with spells to learn.
+	- You can only cast 1 spell per turn per point of Magic you have.
+	- There are more options for casting tools depending on what focus you want to have
 
