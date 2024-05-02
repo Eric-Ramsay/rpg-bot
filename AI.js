@@ -844,14 +844,16 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			if (index > -1) {
 				if (hasEffect(targets[index], "rooted")) {
 					msg += "*PINK*" + Prettify(Name(enemy)) + " bites " + Name(targets[index]) + "!\n";
-					msg += DealDamage(new P_Attack(8 + rand(9), 100, 50), allies, enemy, targets, targets[index])[0];
+					msg += DealDamage(new P_Attack(8 + rand(11), 100, 50), allies, enemy, targets, targets[index])[0];
 				}
 				else {
 					msg += "*PINK*" + Prettify(Name(enemy)) + " grabs " + Name(targets[index]) + " with their tongue!\n";
 					msg += AddOrRefreshEffect(targets[index], new Effect("Rooted", "Unable to Move.", 1));
 				}
 			}
-			msg += moveAttack(allies, enemy, targets, new Attack("bites", 6 + rand(7), 100))[0];
+			else {
+				msg += moveInRange(enemy, targets, 1);
+			}
 		}
 		else if (enemy.NAME == "Forest Demon") {
 			let ran = rand(5);

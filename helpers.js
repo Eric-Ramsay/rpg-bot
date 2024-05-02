@@ -185,7 +185,7 @@ function AddOrRefreshEffect(C, effect) {
 				C.EFFECTS[i].duration = effect.duration;
 			}
 			found = true;
-			msg += "*YELLOW*" + Prettify(name) + " is refreshed on " + Name(C) + ".\n";
+			msg += "*CYAN*" + Prettify(name) + " is refreshed on " + Name(C) + ".\n";
 		}
 	}
 	if (!found) {
@@ -198,7 +198,7 @@ function AddOrRefreshEffect(C, effect) {
 			msg = "*CYAN*" + Prettify(Name(C)) + " is buffed with the effect " + effect.name + "!\n";
 		}
 		else {
-			msg = "*RED*" + Prettify(Name(C)) + " is afflicted with the effect " + effect.name + "!\n";
+			msg = "*CYAN*" + Prettify(Name(C)) + " is afflicted with the effect " + effect.name + "!\n";
 		}
 		C.EFFECTS.push(effect);
 	}

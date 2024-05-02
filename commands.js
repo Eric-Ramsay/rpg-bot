@@ -194,8 +194,8 @@ function partialNameMatch(words, targets) {
 }
 
 function CommandCast(words, C, index) {
-	if (hasEffect(C, "stunned")) {
-		return "*RED*You can't act while you're stunned!\n";
+	if (C.ENDED) {
+		return "*RED*You can't act while your turn is ended!\n";
 	}
 	if (words.length == 1) {
 		return "*RED*You must specify a spell name to cast.\n";
@@ -341,8 +341,8 @@ function CommandCast(words, C, index) {
 
 
 function CommandAttack(words, C, index, isPushing = false) {
-	if (hasEffect(C, "stunned")) {
-		return "*RED*You can't act while you're stunned!\n";
+	if (C.ENDED) {
+		return "*RED*You can't act while your turn is ended!\n";
 	}
 	let msg = "";
 	let weaponIndex = -1;
@@ -524,8 +524,8 @@ function CommandTravel(words, C, index) {
 	let newRoom;
 	C.TRADING = "";
 	if (index > -1) {
-		if (hasEffect(C, "stunned")) {
-			return "*RED*You can't act while you're stunned!\n";
+		if (C.ENDED) {
+			return "*RED*You can't act while your turn is ended!\n";
 		}
 		if (battles[index].started && hasEffect(C, "rooted")) {
 			return "*RED*You're rooted and can't move!";
@@ -701,7 +701,6 @@ function CommandFlee(C, index) {
 			return "*RED*You don't have enough AP to attempt fleeing. (3 Required).\n";
 		}
 	}
-	C.ENDED = true;
 	C.AP -= (3 + APCost(C));
 	let ran = rand(10);
 	if (!firstTurn && ran >= 5 + C.STATS[AVD]) {
@@ -849,8 +848,8 @@ function CommandCharacter(words, C, authorId) {
 }
 
 function CommandDrink(words, C) {
-	if (hasEffect(C, "stunned")) {
-		return "*RED*You can't act while you're stunned!\n";
+	if (C.ENDED) {
+		return "*RED*You can't act while your turn is ended!\n";
 	}
 	let msg = "";
 	let args = words.slice(1, words.length).join(" ");
