@@ -36,7 +36,6 @@ function ListCommands(index) {
 		msg += "*GREEN*!move LEFT/RIGHT *GREY*- Moves left or right a row. Costs 3 AP.\n";
 		msg += "*CYAN*!drink POTION *GREY*- Drinks a potion.\n";
 		msg += "*GREEN*!effects *GREY*- Lists effects on you.\n";
-		msg += "*CYAN*!push TARGET*GREY*- Pushes an enemy back. You must have a polearm to use.\n";
 	}
 
 	return msg;
@@ -46,66 +45,69 @@ function CommandDescribe(words, C, battleIndex) {
 	if (words[1] == "at") {
 		words.splice(1, 1);
 	}
+	let index = -1;
 	let args = words.slice(1, words.length).join(" ");
-	let index = findItem(C.INVENTORY, args);
+	if (battleIndex > -1) {
+		index = findItem(battles[battleIndex].loot, args);
+		if (index > -1) {
+			return ItemDescription(C, battles[battleIndex].loot[index]);
+		}
+	}
+	index = findItem(C.INVENTORY, args);
 	if (index >= 0) {
 		return ItemDescription(C, C.INVENTORY[index]);
 	}
-	else {
-		let index = findItem(items, args);
-		for (let i = 0; i < items.length; i++) {
-			if (items[i].name.toLowerCase() == args) {
-				return ItemDescription(C, items[i]);
-			}
+	if (battleIndex > -1) {
+		let battle = battles[battleIndex];
+		let index = -1;
+		if (args[0] == "e" || args[0] == "p") {
+			index = parseInt(args.substring(1));
 		}
-		if (battleIndex > -1) {
-			let battle = battles[battleIndex];
-			let index = -1;
-			if (args[0] == "e" || args[0] == "p") {
-				index = parseInt(args.substring(1));
+		if (isNaN(index) || index <= 0 || index > Math.max(battle.allies.length, battle.enemies.length)) {
+			index = findTarget(battle.enemies, args);
+			if (index > -1 && index < battle.enemies.length) {
+				return EnemyDescription(battle.enemies[index]);
 			}
-			if (isNaN(index) || index <= 0 || index > Math.max(battle.allies.length, battle.enemies.length)) {
-				index = findTarget(battle.enemies, args);
-				if (index > -1 && index < battle.enemies.length) {
-					return EnemyDescription(battle.enemies[index]);
-				}
-				index = findTarget(battle.allies, args);
-				if (index > -1 && index < battle.allies.length) {
-					return CharacterDescription(battle.allies[index]);
-				}
-			}
-			else {
-				if (args[0] == "p") {
-					return CharacterDescription(battle.allies[index-1]);
-				}
-				if (args[0] == "e") {
-					return EnemyDescription(battle.enemies[index-1]);
-				}
+			index = findTarget(battle.allies, args);
+			if (index > -1 && index < battle.allies.length) {
+				return CharacterDescription(battle.allies[index]);
 			}
 		}
 		else {
-			let NPCList = [];
-			let room;
-			for (let i = 0; i < locations.length; i++) {
-				if (locations[i].id.toLowerCase() == C.LOCATION.toLowerCase()) {
-					room = locations[i];
-					NPCList = room.people
-				}
+			if (args[0] == "p") {
+				return CharacterDescription(battle.allies[index-1]);
 			}
-			if (C.BUILDING != "") {
-				let building = findBuilding(C.BUILDING);
-				NPCList = building.people;
+			if (args[0] == "e") {
+				return EnemyDescription(battle.enemies[index-1]);
 			}
-			index = findPerson(NPCList, args);
-			if (index > -1) {
-				return CharacterDescription(NPCList[index]);
+		}
+	}
+	else {
+		index = findItem(items, args, false, false);
+		if (index >= 0) {
+			return ItemDescription(C, items[index]);
+		}
+		let NPCList = [];
+		let room;
+		for (let i = 0; i < locations.length; i++) {
+			if (locations[i].id.toLowerCase() == C.LOCATION.toLowerCase()) {
+				room = locations[i];
+				NPCList = room.people
 			}
-			else {
-				let player = findPlayer(args);
-				if (player != null) {
-					if (player.LOCATION == C.LOCATION && player.BUILDING == C.BUILDING) {
-						return CharacterDescription(player);
-					}
+		}
+		if (C.BUILDING != "") {
+			let building = findBuilding(C.BUILDING);
+			NPCList = building.people;
+		}
+		index = findPerson(NPCList, args);
+		if (index > -1) {
+			return CharacterDescription(NPCList[index]);
+		}
+		else {
+			let player = findPlayer(args);
+			if (player != null) {
+				if (player.LOCATION == C.LOCATION && player.BUILDING == C.BUILDING) {
+					return CharacterDescription(player);
 				}
 			}
 		}
@@ -340,7 +342,7 @@ function CommandCast(words, C, index) {
 }
 
 
-function CommandAttack(words, C, index, isPushing = false) {
+function CommandAttack(words, C, index) {
 	if (C.ENDED) {
 		return "*RED*You can't act while your turn is ended!\n";
 	}
@@ -358,11 +360,9 @@ function CommandAttack(words, C, index, isPushing = false) {
 	else {
 		target = args.slice(0, args.length - 1).join(" ");
 	}
-	let enemyIndex = -1;
-	if (target.length == 2 && target[0] == "e") {
-		enemyIndex = parseInt(target[1]) - 1;
-	}
-	else {
+	let enemyIndex = parseInt(target.substring(1));
+	if (isNaN(enemyIndex)) {
+		enemyIndex = -1;
 		for (let i = 0; i < battles[index].enemies.length; i++) {
 			if (battles[index].enemies[i].NAME.toLowerCase() == target) {
 				if (battles[index].enemies[i].HP > 0) {
@@ -372,8 +372,10 @@ function CommandAttack(words, C, index, isPushing = false) {
 					isDead = true;
 				}
 			}
-
 		}
+	}
+	else {
+		enemyIndex -= 1;
 	}
 	if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < battles[index].enemies.length) {
 		let range = Math.abs(battles[index].enemies[enemyIndex].ROW - C.ROW);
@@ -387,9 +389,6 @@ function CommandAttack(words, C, index, isPushing = false) {
 				if (ran == 0) {
 					weaponIndex = C.RIGHT;
 				}
-			}
-			if (isPushing) {
-				weaponIndex = C.LEFT;
 			}
 			//Auto Select Weapon
 			if (weaponIndex == -1) {
@@ -425,21 +424,14 @@ function CommandAttack(words, C, index, isPushing = false) {
 				}
 				return "*RED*You don't have a valid weapon to attack with!\n";
 			}
-			if ((isPushing && C.AP < 3) || (!isPushing && C.AP < (C.INVENTORY[weaponIndex].AP + APCost(C)))) {
-				return "*RED*You don't have enough AP to attack with this weapon.\n";
-			}
 			if (range > C.INVENTORY[weaponIndex].range) {
 				return "*RED*The enemy is too far away to attack with this weapon.\n";
 			}
-			if (!isPushing && !CanUseWeapon(C, weaponIndex)) {
+			if (!CanUseWeapon(C, weaponIndex)) {
 				if (C.INVENTORY[weaponIndex].attacks[0] == 0) {
 					return "*RED*This weapon can't attack again this turn.\n";
 				}
 				return "*RED*You don't have enough ammunition to use this weapon.\n";
-			}
-			if (isPushing && C.INVENTORY[weaponIndex].subclass == "polearm") {
-				msg = PushTarget(C, battles[index].enemies[enemyIndex]);
-				C.AP -= 3;
 			}
 			else {
 				msg = AllyAttack(battles[index], C, enemyIndex, weaponIndex);
@@ -524,11 +516,11 @@ function CommandTravel(words, C, index) {
 	let newRoom;
 	C.TRADING = "";
 	if (index > -1) {
-		if (C.ENDED) {
+		if (battles[index].started && C.ENDED) {
 			return "*RED*You can't act while your turn is ended!\n";
 		}
 		if (battles[index].started && hasEffect(C, "rooted")) {
-			return "*RED*You're rooted and can't move!";
+			return "*RED*You're rooted and can't move!\n";
 		}
 		let direction = 1;
 		if (words[0] == "left") {
@@ -848,9 +840,6 @@ function CommandCharacter(words, C, authorId) {
 }
 
 function CommandDrink(words, C) {
-	if (C.ENDED) {
-		return "*RED*You can't act while your turn is ended!\n";
-	}
 	let msg = "";
 	let args = words.slice(1, words.length).join(" ");
 	let invIndex = findItem(C.INVENTORY, args);
@@ -862,18 +851,17 @@ function CommandDrink(words, C) {
 	}
 	let name = C.INVENTORY[invIndex].name.toLowerCase();
 	if (name == "health potion") {
-		let amount = 30;
-		if (hasRune(C, "vine")) {
-			amount = 20;
-		}
+		let amount = 10;
 		msg += Heal(C, amount);
+		msg += AddEffect(C, "health potion", 2);
 	}
 	if (name == "Panacea") {
-		for (let j = allies[i].EFFECTS.length - 1; j >= 0; j--) {
-			if (allies[i].EFFECTS[j].type == "debuff") {
-				allies[i].EFFECTS.splice(j, 1);				
-			}
+		let debuffs = numDebuffs(C);
+		if (debuffs == 0) {
+			return "*RED*You don't have any debuffs!\n";
 		}
+		removeDebuffs(C);
+		msg = "*GREEN*You're cleansed of your afflictions.\n";
 	}
 	if (name == "skill potion") {
 		C.SP++;
@@ -1029,6 +1017,7 @@ function CommandSell(words, C) {
 	}
 	gold = Math.ceil(gold/2);
 	C.GOLD += gold;
+	C.REPORT.gold += gold;
 	let itemName = C.INVENTORY[invIndex].name;
 	RemoveItem(C, invIndex);
 	return "*GREEN*You sell the " + itemName + " for *YELLOW*" + gold + " gold*GREEN*. You have *YELLOW*" + C.GOLD + " gold*GREEN*.\n";

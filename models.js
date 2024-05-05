@@ -1,3 +1,11 @@
+function Report() {
+	this.kills = 0;
+	this.gold = 0;
+	this.damage = 0;
+	this.taken = 0;
+	this.mitigated = 0;
+}
+
 function Character() {
 	this.TYPE = "player";
 	this.DESCRIPTION = "";
@@ -34,15 +42,20 @@ function Character() {
 	this.CASTS = 0;
 	this.TRADING = "";
 	
+	this.REPORT = new Report();
+	
 	this.HITS = [1, 1];
 	this.ATTEMPTS = [1, 1];
 }
 
-function Effect(name, description, duration, type = "debuff") {
+function Effect(name, type, description, stackable = false) {
 	this.name = name;
 	this.type = type;
 	this.description = description;
-	this.duration = duration;
+	this.stackable = stackable;
+	this.target = "";
+	this.duration = 1;
+	this.stacks = 1;
 }
 
 function Battle(parent) {
@@ -135,11 +148,10 @@ function createQuest(){
 		difficulty += enemies[ran].DIFFICULTY;
 	}
 	
-	quest.value += enemies[ran].GOLD * num;
+	quest.value = (1 + Math.ceil(difficulty/4));
 	quest.numRequired = num;
 	quest.enemy = enemies[ran].NAME;
 	
-	//quest.description = "*YELLOW*Find and Kill *RED*" + enemies[ran].NAME + " *YELLOW*(x" + num + ")!\n*BLUE*Reward *YELLOW*" + quest.goldValue + "g";
 	return quest;
 }
 
@@ -151,16 +163,17 @@ function Quest() {
 	this.value = 0;
 }
 
-function DeathReport(name, cl, lvl, desc = "") {
+function DeathReport(name, cl, lvl, report, desc = "") {
 	this.NAME = name;
 	this.DESCRIPTION = desc;
 	this.CLASS = cl;
 	this.LEVEL = lvl;
+	this.REPORT = report;
 }
 
 function Town() {
 	this.prosperity = 0;
-	this.quest = createQuest();
+	this.quests = [];
 	this.graves = [];
 	this.retired = [];
 }
@@ -256,6 +269,7 @@ function Enemy(Name, HP, physical, magical, Difficulty, Zones, Moves, type, desc
 	this.ROW = 4;
 	this.MOVES = Moves;
 	this.DESCRIPTION = description;
+	this.REPORT = new Report();
 }
 
 function Connection(id, direction) {

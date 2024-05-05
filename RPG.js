@@ -30,6 +30,7 @@ const TRUE_DAMAGE = 2;
 var classes = ["peasant", "rogue", "noble", "mage", "warrior", "ranger"];
 var stats = ["VIT", "MAG", "END", "WEP", "DEX", "AVD"];
 
+var effects = [];
 var locations = [];
 var battles = [];
 var people = [];
@@ -67,6 +68,9 @@ function an(word) {
 }
 
 function isEquipped(C, item) {
+	if (C.TYPE != "player") {
+		return false;
+	}
 	for (let i = 0; i < C.INVENTORY.length; i++) {
 		if (C.INVENTORY[i].equipped && C.INVENTORY[i].name.toLowerCase() == item.toLowerCase()) {
 			return true;
@@ -231,28 +235,23 @@ function deathCry(C, allies, enemies) {
 		if (C.TYPE != "player" && C.ZONES.indexOf(3) > 0 && C.TYPE != "construction") {
 			numWorms = 2 * (Math.max(0, rand(15) - 11));
 		}
-		for (const effect of C.EFFECTS) {
-			if (effect.name.toLowerCase() == "infested") {
-				numWorms++;
-			}
-		}
+		numWorms += countEffect(C, "infested")
 		if (numWorms > 0) {
 			msg += "*RED*Anchorite Worms*GREY* flee their dying host!\n";
 			for (let i = 0; i < numWorms; i++) {
 				allies.push(summon("Anchorite Worm", C.ROW));
 			}
 		}
-		msg = "\n" + msg + "\n";
 		for (let i = 0; i < allies.length; i++) {
 			if (hasEffect(allies[i], "compensation")) {
 				msg += Heal(allies[i], 8);
 			}				
 		}
 	}
-	return msg;
+	return msg + "\n";
 }
 
-function DealDamage(attack, attackers, attacker, targets, target) {
+function DealDamage(attack, attackers, attacker, targets, target, canReflect = true) {
 	let msg = "";
 	if (target.HP <= 0) {
 		target.HP = 0;
@@ -260,8 +259,8 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 	}
 	let damage = attack.damage;
 	let isPlayer = (target.TYPE == "player");
-	let aName = Name(attacker);
-	let tName = Name(target);
+	let aName = Prettify(Name(attacker));
+	let tName = Prettify(Name(target));
 	
 	if (hasRune(attacker, "cascade")) {
 		damage++;
@@ -282,27 +281,16 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 			damage += 3;
 		}
 		if (hasEffect(attacker, "destructive synergy")) {
-			for (let i = 0; i < attacker.EFFECTS.length; i++) {
-				if (attacker.EFFECTS[i].type == "buff") {
-					damage++;
-				}
-			}
+			damage += numBuffs(attacker);
 		}
 	}
 	else if (attack.type == MAGICAL) {
 		if (hasRune(attacker, "focus")) {
-			msg += "*PINK*Focus takes effect!\n";
 			damage *= 1.75;
 		}
 		if (hasEffect(attacker, "forthwith")) {
-			msg += "*PINK*Forthwith takes effect!\n";
 			damage *= 2;
-			for (let i = 0; i < attacker.EFFECTS.length; i++) {
-				if (attacker.EFFECTS[i].name.toLowerCase() == "forthwith") {
-					attacker.EFFECTS.splice(i, 1);
-					break;
-				}
-			}
+			removeEffect(attacker, "forthwith");
 		}
 	}
 	
@@ -337,10 +325,11 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 				damage = 10;
 			}
 		}
-		if (damage > 10 && hasRune(target, "jade")) {
-			msg = "*GREEN*The damage to " + tName + " is reduced from " + damage + " to 10.\n";
-			damage = 10;
-		}
+		//Reporting
+		attacker.REPORT.damage += damage;
+		target.REPORT.taken += damage;
+		target.REPORT.mitigated += (attack.damage - damage);
+		
 		target.HP -= damage;
 		if (target.HP > 0 && target.NAME == "Ephemeral Warrior") {
 			msg += "*RED*The Ephemeral Warrior grows stronger!\n";
@@ -352,7 +341,7 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 				target.ARMOR[1] = Math.max(0, target.ARMOR[1] - 1);
 			}
 			if (hasRune(attacker, "tar")) {
-				AddOrRefreshEffect(target, new Effect("Weakened", "Damage is reduced by 25%.", 1));
+				msg += AddEffect(target, "Weakened", 1);
 			}
 		}
 		if (damage >= 5 && hasRune(target, "honeycomb")) {
@@ -362,42 +351,29 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 		if (hasRune(target, "amber")) {
 			target.STAMINA += 6;
 			target.HP = Math.min(target.HP + 1, MaxHP(target));
-			msg = "*GREY*" + Prettify(tName) + " gains *GREEN*6 Stamina*GREY* and heals for *RED*1 HP*GREY*.\n";
+			msg = "*GREY*" + tName + " gains *GREEN*6 Stamina*GREY* and heals for *RED*1 HP*GREY*.\n";
 		}
-		msg += "*RED*" + Prettify(tName) + " takes " + damage + " damage!\n";
-		let rDamage = -10;
-		if (hasRune(target, "reflect")) {
-			rDamage = Mitigate(attacker, 5, 0, 1);
-		}
-		if (target.NAME == "Briar Beast" || hasEffect(target, "minor reflect")) {
-			rDamage = Mitigate(attacker, 3, 0, 1);
-		}
-		if (target.NAME == "Briar Monster" || hasEffect(target, "greater reflect")) {
-			rDamage = Math.max(Mitigate(attacker, 5, 0, 1), Mitigate(attacker, Math.floor(damage/2), 0, 1));
-		}
-		if (target.NAME == "Fumous Fiend") {
-			if (Math.abs(attacker.ROW - target.ROW) < 2) {
-				msg += "*RED*Toxic fumes rush out of " + tName + "'s wound!\n";
-				AddOrRefreshEffect(attacker, new Effect("Poison", "Take 1 dmg per turn. All healing is reduced by half.", 3));
+		msg += "*RED*" + tName + " takes " + damage + " damage!\n";
+		if (canReflect) {
+			let rDamage = 0;
+			if (hasRune(target, "reflect")) {
+				rDamage = 5;
 			}
-		}
-		if (rDamage > -10) {
-			msg += "*RED*" + Prettify(tName) + " *GREY*reflects *RED*" + rDamage + " damage*GREY*!\n";	
-			attacker.HP -= rDamage;
-			if (hasRune(attacker, "amber")) {
-				attacker.HP = Math.min(MaxHP(attacker), attacker.HP + 1);
-				attacker.STAMINA = Math.min(MaxStamina(attacker), attacker.STAMINA + 6);
-				msg = "*GREY*" + Prettify(aName) + " gains *GREEN*6 Stamina*GREY* and heals for *RED*1 HP*GREY*.\n";
+			if (target.NAME == "Briar Beast" || hasEffect(target, "minor reflect")) {
+				rDamage = 3;
 			}
-		}
-		if (attacker.HP <= 0) {
-			if (hasEffect(attacker, "deliverance") && target.HP <= 0) {
-				msg += "*YELLOW*" + Prettify(aName) + " is delivered from harm!\n";
-				attacker.HP = 1;
+			if (target.NAME == "Briar Monster" || hasEffect(target, "greater reflect")) {
+				rDamage = Math.max(Math.floor(damage/2), 5);
 			}
-			else {
-				attacker.HP = 0;
-				msg += "*RED*" + Prettify(aName) + " has wrought their own destruction!\n";
+			if (target.NAME == "Fumous Fiend") {
+				if (Math.abs(attacker.ROW - target.ROW) < 2) {
+					msg += "*RED*Toxic fumes rush out of " + tName + "'s wound!\n";
+					msg += AddEffect(target, "Poison", 3);
+				}
+			}
+			if (rDamage > 0) {
+				msg += "*BLUE*" + tName + " reflects damage!\n";	
+				msg += DealDamage(new M_Attack(rDamage), targets, target, attackers, attacker, false)[0];
 			}
 		}
 	}
@@ -414,7 +390,7 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 		msg += "*RED*" + tName + " blocks the damage!\n";	
 	}
 	if (hasEffect(target, "deliverance") && target.HP <= 0) {
-		msg += "*YELLOW*" + Prettify(tName) + " is delivered from harm!\n";
+		msg += "*YELLOW*" + tName + " is delivered from harm!\n";
 		target.HP = 1;
 	}
 	if (target.HP <= 0) { //Death
@@ -422,6 +398,7 @@ function DealDamage(attack, attackers, attacker, targets, target) {
 			attacker.STAMINA = Math.min(MaxStamina(attacker), attacker.STAMINA + 20);
 		}
 		msg += deathCry(target, targets, attackers);
+		attacker.REPORT.kills++;
 	}
 	return [msg, damage];
 }
@@ -432,7 +409,7 @@ function PushTarget(C, target) {
 		msg += "*GREEN*The " + target.NAME + " is pushed back!\n";
 		target.ROW--;
 	}
-	else if (C.ROW < target.ROW && target.ROW < 4) {
+	else if (C.ROW <= target.ROW && target.ROW < 4) {
 		msg += "*GREEN*The " + target.NAME + " is pushed back!\n";
 		target.ROW++;
 	}
@@ -492,6 +469,7 @@ function Cast(C, spell, allies, enemyList, targets) {
 		msg += "*CYAN*The spell costs no AP!\n";
 	}
 	C.HP -= spell.HP;
+	C.REPORT.taken += spell.HP;
 	
 	
 	let spellName = spell.name.toLowerCase();
@@ -512,7 +490,7 @@ function Cast(C, spell, allies, enemyList, targets) {
 		if (spellName == "swamp strike") {
 			msg += CastMessage("A toxic blast assaults your foe!", t);
 			msg += DealDamage(new M_Attack(4 + bonusDmg + rand(5)), allies, C, enemyList, enemyList[index])[0];
-			msg += AddOrRefreshEffect(enemyList[index], new Effect("Poison", "Take 1 dmg per turn. All healing is reduced by half.", 3));
+			msg += AddEffect(enemyList[index], "Poison", 3);
 		}
 		if (spellName == "spear") { // Deal 12-20 Damage to an enemy on your row.
 			msg += CastMessage("A crude spear of jagged stone bursts out from the ground!", t);
@@ -533,13 +511,9 @@ function Cast(C, spell, allies, enemyList, targets) {
 		}
 		if (spellName == "lightning") { //Deal 4 damage to a target. Deals +1 damage this turn
 			msg += CastMessage("A shifting bolt of lightning arcs out from your hand towards your foe!", t);
-			for (let i = 0; i < C.EFFECTS.length; i++) {
-				if (C.EFFECTS[i].name.toLowerCase() == "lightning") {
-					bonusDmg++;
-				}
-			}
+			bonusDmg += countEffect(C, "lightning");
 			msg += DealDamage(new M_Attack(4 + bonusDmg), allies, C, enemyList, enemyList[index])[0];
-			C.EFFECTS.push(new Effect("Lightning", "Lightning gains +1 Damage this turn.", 0, "buff"));
+			AddEffect(C, "Lightning", 0);
 		}
 		if (spellName == "meditation") { //Gain 8 Stamina
 			msg += CastMessage("You rest for a moment, and feel at peace.", t);
@@ -554,38 +528,29 @@ function Cast(C, spell, allies, enemyList, targets) {
 		}
 		if (spellName == "stoneskin") { //+8 Physical Armor +4 Magical Armor for 3 turns
 			msg += CastMessage("Your skin numbs slightly as it becomes as sturdy as stone.", t);
-			msg += AddOrRefreshEffect(C, new Effect("Stoneskin", "+8 Physical Armor. +4 Magical Armor", 3, "buff"));
+			msg += AddEffect(C, "Stoneskin", 3);
 		}
 		if (spellName == "preparation") { //Gain 4 AP a turn. Lasts 3 turns
 			msg += CastMessage("A moment of sheer lucidity washes over you, and time seems to slow.", t);
-			msg += AddOrRefreshEffect(C, new Effect("Preparation", "+4 AP per turn.", 3, "buff"));
+			msg += AddEffect(C, "Preparation", 3);
 		}
 		if (spellName == "ferocity") { //Your damaging spells do +2 DMG per instance this turn
 			msg += CastMessage("Your thoughts are dulled by a lust for blood, and your senses seem to sharpen.", t);
-			msg += AddOrRefreshEffect(C, new Effect("Ferocity", "Your spells deal +2 DMG", 0, "buff"));
+			msg += AddEffect(C, "Ferocity", 3);
 		}
 		if (spellName == "roots") { //Root yourself for 3 turns. Heal 5 HP per turn for 3 turns
 			msg += CastMessage("Roots extend from your flesh into the ground, and precious life flows begins to flow into you.", t);
-			msg += AddOrRefreshEffect(C, new Effect("Regenerative", "Regenerate 5 HP per turn.", 3, "buff"));
-			msg += AddOrRefreshEffect(C, new Effect("Rooted", "Unable to Move.", 3));
+			msg += AddEffect(C, "Regenerative", 3);
+			msg += AddEffect(C, "Rooted", 3);
 		}
 		if (spellName == "feed flame") { //Gain 1 embers buff. Deal damage equal to the amount of embers you have. embers reduces your HP by 1 per turn
 			msg += CastMessage("*YELLOW*A warm ember begins to burns in your soul.", t);
-			C.EFFECTS.push(new Effect("Ember", "Lose 1 HP per turn.", 999, "buff"));
-			for (let i = 0; i < C.EFFECTS.length; i++) {
-				if (C.EFFECTS[i].name.toLowerCase() == "ember") {
-					bonusDmg++;
-				}
-			}
+			AddEffect(C, "Ember", 999);
+			bonusDmg += countEffect(C, "ember");
 			msg += DealDamage(new M_Attack(bonusDmg), allies, C, enemyList, enemyList[index])[0];
 		}
 		if (spellName == "ignite") { //For each Ember buff you have, lose 2 HP and deal damage equal to half your total number of Ember buffs
-			let embers = 0;
-			for (let i = 0; i < C.EFFECTS.length; i++) {
-				if (C.EFFECTS[i].name.toLowerCase() == "ember") {
-					embers++;
-				}
-			}
+			let embers = countEffect(C, "ember");
 			if (embers == 0) {
 				return "*RED*You need embers to ignite. . .\n";
 			}
@@ -594,16 +559,13 @@ function Cast(C, spell, allies, enemyList, targets) {
 			}
 			msg += CastMessage("*YELLOW*You ignite the potential within your soul into a burst of pure power.", t);
 			C.HP -= embers * 2;
+			C.REPORT.taken += embers * 2;
 			for (let i = 0; i < embers; i++) {
 				if (enemyList[index].HP > 0) {
 					msg += DealDamage(new M_Attack(bonusDmg + Math.floor(embers/2)), allies, C, enemyList, enemyList[index])[0];
 				}
 			}
-			for (let i = C.EFFECTS.length - 1; i >= 0; i--) {
-				if (C.EFFECTS[i].name.toLowerCase() == "ember") {
-					C.EFFECTS.splice(i, 1);
-				}
-			}
+			removeEffect(C, "ember");
 		}
 		if (spellName == "summon beast") { //Lose 15 HP. Summon a random animal
 			let animals = [];
@@ -624,7 +586,7 @@ function Cast(C, spell, allies, enemyList, targets) {
 		else if (spellName == "maintain") {
 			msg += CastMessage("You focus your energy into maintaining your creation.", t);
 			if (allies[index].SUMMONED) {
-				msg += AddOrRefreshEffect(allies[index], new Effect("Fading", "This creature will vanish.", 4, "buff"));
+				msg += AddEffect(allies[index], "Fading", 4);
 			}
 			else {
 				return "*RED*You must select a target that has been summoned!\n";
@@ -667,7 +629,7 @@ function Cast(C, spell, allies, enemyList, targets) {
 			msg += CastMessage("Your allies grow stronger!", t);
 			for (let i = 0; i < allies.length; i++) {
 				if (allies[i].SUMMONED) {
-					msg += AddOrRefreshEffect(allies[i], new Effect("Stronger", "Deal +3 Damage per Attack", 3, "buff"));
+					msg += AddEffect(allies[i], "Stronger", 3);
 				}
 			}
 		}
@@ -683,16 +645,20 @@ function Cast(C, spell, allies, enemyList, targets) {
 		}
 		if (spellName == "compensation") { //Heal 8 HP when an ally is killed. 999 Turns
 			msg += CastMessage("A bond of blood forms between you and your allies.", t);
-			msg += AddOrRefreshEffect(C, new Effect("Compensation", "Heal 8 HP when an ally is killed.", 999, "buff"));
+			msg += AddEffect(allies[i], "Compensation", 999);
 		}
 		if (spellName == "redirection") { //Transfer your debuffs to a target
 			msg += CastMessage("You redirect your afflictions onto your foe!", t);
-			for (let i = C.EFFECTS.length - 1; i >= 0; i--) {
-				if (C.EFFECTS[i].type == "debuff") {
-					msg += AddOrRefreshEffect(enemyList[index], COPY(C.EFFECTS[i]));
-					C.EFFECTS.splice(i, 1);
+			let newEffects = [];
+			for (const effect of C.EFFECTS) {
+				if (effect.type == "debuff") {
+					msg += AddEffect(enemyList[index], effect.name, 3, effect.target);
+				}
+				else {
+					newEffects.push(effect);
 				}
 			}
+			C.EFFECTS = newEffects;
 		}
 		if (spellName == "peel") { //Reduce a target's Physical & Magical Armor by 1
 			msg += CastMessage("You peel away the defenses of the " + enemyList[index].NAME + "!", t);
@@ -701,15 +667,15 @@ function Cast(C, spell, allies, enemyList, targets) {
 		}
 		if (spellName == "expose") { //Increase the damage taken by a target by 20% for 1 turn
 			msg += CastMessage("Light shines upon your foe, revealing their inadequacies.", t);
-			msg += AddOrRefreshEffect(enemyList[index], new Effect("Exposed", "Damage taken is increased by 20%", 1));
+			msg += AddEffect(enemyList[index], "Exposed", 1);
 		}
 		if (spellName == "bind") { //Root a target for 3 turns
 			msg += CastMessage("You bind " + Name(enemyList[index]) + " where they stand.", t);
-			msg += AddOrRefreshEffect(enemyList[index], new Effect("Rooted", "Unable to Move.", 3));
+			msg += AddEffect(enemyList[index], "Rooted", 3);
 		}
 		if (spellName == "envenom") { //Inflict 3 turns of venom onto a target
 			msg += CastMessage("You envenom the " + enemyList[index].NAME + "!", t);
-			msg += AddOrRefreshEffect(enemyList[index], new Effect("Venom", "Take 4 dmg per turn.", 3));
+			msg += AddEffect(enemyList[index], "Venom", 3);
 		}
 		if (spellName == "gale") { //Push a row of enemyList back one row
 			msg += CastMessage("The wind picks up and howls!", t);
@@ -732,14 +698,9 @@ function Cast(C, spell, allies, enemyList, targets) {
 		}
 		if (spellName == "freeze") { //Deal 2-4 damage to a target. Has an 80% chance to stun
 			let chance = rand(100);
-			msg += CastMessage("*BLUE*" + Prettify(Name(enemyList[index])) + " is encased in a thin layer of ice!", t);
+			msg += CastMessage("*BLUE*" + Prettify(Name(enemyList[index])) + " is encased in a layer of ice!", t);
 			msg += DealDamage(new M_Attack(2 + rand(3) + bonusDmg), allies, C, enemyList, enemyList[index])[0];
-			if (chance <= 80) {
-				msg += AddOrRefreshEffect(enemyList[index], new Effect("Stunned", "Lose your next turn.", 1));
-			}
-			else {
-				msg += "*BLUE*The " + Name(enemyList[index]) + " isn't stunned. . .\n";
-			}
+			msg += AddEffect(enemyList[index], "Stunned", 1);
 		}
 		if (spellName == "wall of fire") { //Deal 3-6 Damage to every enemy in a row and Burn them
 			msg += CastMessage("*YELLOW*A wall of shimmering flame ignites before you!", t);
@@ -770,7 +731,7 @@ function Cast(C, spell, allies, enemyList, targets) {
 			msg += CastMessage("*BLUE*A frigid mist envelops your foes.", t);
 			for (let i = 0; i < enemyList.length; i++) {
 				msg += DealDamage(new M_Attack(2 + rand(3) + bonusDmg), allies, C, enemyList, enemyList[i])[0];
-				msg += AddOrRefreshEffect(enemyList[i], new Effect("Slowed", "Movement costs are increased.", 1));
+				msg += AddEffect(enemyList[i], "Slowed", 1);
 			}
 		}
 		if (spellName == "gamble") { //Deal 2-12 damage to a random enemy in each row
@@ -789,19 +750,14 @@ function Cast(C, spell, allies, enemyList, targets) {
 		if (spellName == "exploit") { //Deal 2 damage to every enemy per debuff they have
 			msg += CastMessage("You prey upon the weaknesses of your enemies.", t);
 			for (let i = 0; i < enemyList.length; i++) {
-				let numDebuffs = 0;
-				for (let j = 0; j < enemyList[i].EFFECTS.length; j++) {
-					if (enemyList[i].EFFECTS[j].type == "debuff") {
-						numDebuffs++;
-					}
-				}
+				let debuffs = numDebuffs(enemyList[i]);
 				msg += DealDamage(new M_Attack(2 * numDebuffs + bonusDmg), allies, C, enemyList, enemyList[i])[0];
 			}
 		}
 		if (spellName == "protection") { //+2 Physical Armor +2 Magical Armor for your allies 3 turns
 			msg += CastMessage("An aura of defense extends out of you onto your allies", t);
 			for (let i = 0; i < allies.length; i++) {
-				msg += AddOrRefreshEffect("Protection", "+2 Physical and Magical Armor", 3, "buff");
+				msg += AddEffect(allies[i], "Protection", 3);
 			}
 		}
 		if (spellName == "heal") { //Heal an ally 4-8 HP
@@ -829,16 +785,7 @@ function Cast(C, spell, allies, enemyList, targets) {
 			msg += SpellHeal(allies, C, allies[index], 8 + rand(5));
 		}
 		if (spellName == "purify") { //Remove all debuffs from an ally
-			for (let j = allies[index].EFFECTS.length - 1; j >= 0; j--) {
-				if (allies[index].EFFECTS[j].type == "debuff") {
-					allies[index].EFFECTS.splice(j, 1);
-					if (allies[index].EFFECTS[j].name.toLowerCase() == "stunned") {
-						if (allies[index].ENDED) {
-							allies[index].ENDED = false;
-						}
-					}
-				}
-			}
+			removeDebuffs(allies[index]);
 			msg += CastMessage(allies[index].NAME + "'s afflictions are washed away.", t);
 		}
 		if (spellName == "deliverance") { //Target an ally, making them unable to die for 1 turn
@@ -846,7 +793,7 @@ function Cast(C, spell, allies, enemyList, targets) {
 				msg += "*RED*You can't cast deliverance on yourself!\n";
 			}
 			msg += CastMessage("A slight aura of golden light surrounds " + Name(allies[index]) + "!", t);
-			msg += AddOrRefreshEffect(allies[index], new Effect("Deliverance", "You can't be reduced below 1 HP.", 1, "buff"));
+			msg += AddEffect(allies[index], "Deliverance", 1);
 		}
 	}
 	return msg;
@@ -861,7 +808,7 @@ function summon(name, row, summoned = true, fading = false) {
 	}
 	let copy = COPY(enemies[index]);
 	if (fading) {
-		copy.EFFECTS.push(new Effect("Fading", "This creature will vanish.", 4, "buff"));
+		AddEffect(copy, "Fading", 4);
 	}
 	copy.ROW = row;
 	copy.SUMMONED = summoned;
@@ -885,12 +832,12 @@ function Prettify(string) {
 	return val;
 }
 
-function shitSort(list) {
+function shitSort(list, property) {
 	let sorted = [];
 	while (list.length > 0) {
 		let max = 0;
 		for (let i = 1; i < list.length; i++) {
-			if (list[i].wins > list[max].wins) {
+			if (list[i][property] > list[max][property]) {
 				max = i;
 			}
 		}
@@ -955,6 +902,12 @@ function clearLastLine() {
 client.on('ready', () => {
 	if (!data["town"]) {
 		data["town"] = new Town();
+		SaveState();
+	}
+	if (data["town"].quests.length < 3) {
+		while (data["town"].quests.length < 3) {
+			data["town"].quests.push(createQuest());
+		}
 		SaveState();
 	}
 	
@@ -1180,7 +1133,11 @@ function ItemDescription(C, item) {
 		msg += "*RED*" + item.name + "*BLACK* | *CYAN*⛊*GREY*" + item.armor[0] + " *CYAN*✱*GREY*" + item.armor[1] + "*BLACK* | *YELLOW*" + item.value + "G*GREY*\n";
 		msg += item.description+"\n";
 		if (item.AP > 0) {
-			msg += "*RED*Reduces*GREY* your *GREEN*AP*GREY* by *RED*" + item.AP + "*GREY* and your *GREEN*Stamina*GREY* by *RED*" + item.AP * 5 + "*GREY*!\n";
+			msg += "*RED*Reduces*GREY* your *GREEN*AP*GREY* by *RED*" + item.AP
+			if (C.CLASS != "warrior") {
+				msg += " *GREY*and your *GREEN*Stamina*GREY* by *RED*" + item.AP * 5;
+			}
+			msg += "*GREY*!\n";
 		}
 	}
 	else {
@@ -1314,18 +1271,48 @@ function WriteEffects(C) {
 	if (C.EFFECTS.length == 0) {
 		return "*PINK*No active effects. . .\n";
 	}
-	let msg = "*PINK*Effects*GREY*\n";
-	for (const effect of C.EFFECTS) {
-		if (effect.type == "buff") {
-			msg += "*GREEN*" + effect.name + " *BLACK*| *YELLOW*" + effect.duration + "*GREY* - " + effect.description + "\n";
+	let msg = "";
+	let maxLength = 0;
+	let nameStr = "";
+	let numbStr = "";
+	let timeStr = "";
+	let descStr = "";
+	
+	for (let i = 0; i < 2; i++) {
+		for (const effect of C.EFFECTS) {
+			if ((i == 0 && effect.type == "buff") || (i == 1 && effect.type == "debuff")) {
+				let name = "*GREEN*" + effect.name;
+				if (i == 1) {
+					name = "*RED*" + effect.name;
+				}
+				if (effect.target != "") {
+					name += " " + effect.target;
+				}
+				nameStr += name + "\n";
+				numbStr += "*PINK*" + effect.stacks + "\n";
+				timeStr += "*YELLOW*" + effect.duration + "\n";
+				descStr += "*GREY*" + effect.description + "\n";
+				let len = measureText(name);
+				if (len > maxLength) {
+					maxLength = len;
+				}
+			}
 		}
 	}
-	for (const effect of C.EFFECTS) {
-		if (effect.type == "debuff") {
-			msg += "*RED*" + effect.name + " *BLACK*| *YELLOW*" + effect.duration + "*GREY* - " + effect.description + "\n";
-		}
-	}
-	return msg;
+	
+	maxLength += 4;
+	
+	let titleStr = "*CYAN*Effect";
+	titleStr = StackStrings(titleStr, "*PINK*#", maxLength);
+	titleStr = StackStrings(titleStr, "*YELLOW*⧗", maxLength + 4);
+	titleStr = StackStrings(titleStr, "*WHITE*Description", maxLength + 8);
+	titleStr += "\n";
+	
+	msg = StackStrings(nameStr, numbStr, maxLength);
+	msg = StackStrings(msg, timeStr, maxLength + 4);
+	msg = StackStrings(msg, descStr, maxLength + 8);
+	
+	return titleStr + msg;
 }
 
 function EnemyDescription(enemy, showEffects = true) {
@@ -1352,12 +1339,7 @@ function EnemyDescription(enemy, showEffects = true) {
 	}
 	if (showEffects) {
 		msg += "\n\n";
-		if (enemy.EFFECTS.length > 0) {
-			msg += WriteEffects(enemy);
-		}
-		else {
-			msg += "*BLACK*This creature has no active effects. . .\n";
-		}
+		msg += WriteEffects(enemy);
 	}
 	return msg;
 }
@@ -1384,17 +1366,22 @@ function DrawGraveyard() {
 	let graves = data["town"].graves;
 	let msg = "\nThere are " + graves.length + " graves in the graveyard.\n\n";
 	let unmarked = 0;
+	let worthy = [];
 	for (const death of graves) {
 		if (death.LEVEL <= 2) {
 			unmarked++;
 		}
 		else {
-			msg += "*GREEN*" + death.NAME + "*GREY* the *BLUE*" + Prettify(death.CLASS) + "*GREY*, *YELLOW*Level " + death.LEVEL + "\n";
-			if (death.DESCRIPTION) {
-				msg += "*GREY*" + death.DESCRIPTION + "\n";
-			}
-			msg += "\n";
+			worthy.push(death);
 		}
+	}
+	worthy = shitSort(worthy, "LEVEL");
+	for (const death of worthy) {
+		msg += "*GREEN*" + death.NAME + "*GREY* the *BLUE*" + Prettify(death.CLASS) + "*GREY*, *YELLOW*Level " + death.LEVEL + "\n";
+		if (death.DESCRIPTION) {
+			msg += "*GREY*" + death.DESCRIPTION + "\n";
+		}
+		msg += "\n";
 	}
 	msg += "\n*GREY*";
 	msg += unmarked + " of the graves are unmarked, having been left by adventurers who were too insignificant to be remembered. . .\n";
@@ -1901,8 +1888,8 @@ function Command(message) {
 	let index = -1;
 	let numRepeat = 1;
 	
-	let requireCharacter = ["heal", "cheat", "fish", "reel", "haircut", "inventory", "enchant", "level", "stop", "move", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "read", "learn", "order", "buy", "sell", "spells"];
-	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "push"];
+	let requireCharacter = ["report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "enchant", "level", "stop", "move", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "read", "learn", "order", "buy", "sell", "spells"];
+	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop"];
 	
 	for (let i = 0; i < requireBattle.length; i++) {
 		requireCharacter.push(requireBattle[i]);
@@ -1941,17 +1928,18 @@ function Command(message) {
 							break;
 						}
 					}
-					data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.DESCRIPTION));
+					data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.REPORT, C.DESCRIPTION));
 					data[message.author.id].CHARACTER = null;
 					C = null;
 				}
 			}
 			else {
+				if (!(C.REPORT)) {
+					C.REPORT = new Report();
+				}
 				if (index == -1) {
 					C.STAMINA = MaxStamina(C);
-					for (let i = C.EFFECTS.length - 1; i >= 0; i--) {
-						C.EFFECTS.splice(i, 1);
-					}
+					C.EFFECTS = [];
 				}
 				let found = false;
 				for (let i = 0; i < location.players; i++) {
@@ -1968,7 +1956,7 @@ function Command(message) {
 		}
 		
 		if (C == null && requireCharacter.indexOf(keyword) > -1) {
-			return "*RED*You need to make a character first with !character";
+			return msg + "*RED*You need to make a character first with !character";
 		}
 		if (index == -1 && requireBattle.indexOf(keyword) > -1) {
 			return "*RED*You must be in combat to do this action!\n";
@@ -1978,6 +1966,9 @@ function Command(message) {
 		}
 		else if (keyword == "cheat") {
 			C.SPELLS = [];
+			for (let i = 0; i < spells.length; i++) {
+				C.SPELLS.push(spells[i].name);
+			}
 			C.SP = 100;
 			C.GOLD = 1000;
 		}
@@ -2014,7 +2005,7 @@ function Command(message) {
 			msg += "*CYAN*Blunt - Blunt Weapons offer high penetration and damage. Each attack deals some damage to all enemies in a row.\n";
 			msg += "*BLUE*Whips - Whips offer good damage and range, but have poor penetration. Hits have a 50% chance to cause enemies to bleed.\n";
 			msg += "*CYAN*Axes - Axes offer decent damage and penetration, and have a 10% chance to land a wild hit that doubles damage.\n";
-			msg += "*BLUE*Polearms - Polearms offer good damage and range, with decent penetration. They grant the user the ability to push enemies back.\n";
+			msg += "*BLUE*Polearms - Polearms offer good damage and range. Enemies on the same row are pushed back when attacked.\n";
 			msg += "*CYAN*Shields - Shields offer low damage with good penetration, and provide the user a chance to block incoming physical damage.\n";
 			msg += "*BLUE*Ranged - Ranged weapons have good damage, low AP costs, and very high range, allowing the user to attack from safety.\n";
 		}
@@ -2068,15 +2059,19 @@ function Command(message) {
 			msg += "\n\n";
 			msg += "*YELLOW*Prosperity*GREY* is accumulated over time as *YELLOW*gold *GREY*is spent in town; tavern drinks earn prosperity at 3x the normal rate. It can also be earned by completing quests. Earning prosperity unlocks new *BLUE*buildings *GREY*and *GREEN*areas*GREY*."
 		}
-		else if (keyword == "quest") {
-			let quest = data["town"].quest;
-			let index = findTarget(enemies, quest.enemy);
-			
-			if (index > -1 && index < enemies.length) {
-				msg += EnemyDescription(enemies[index], false);
+		else if (keyword == "quest" || keyword == "quests") {
+			let quests = data["town"].quests;
+			let i = 1;
+			for (const quest of quests) {
+				let index = findTarget(enemies, quest.enemy);
+				if (index > -1 && index < enemies.length) {
+					msg += "*YELLOW*Quest " + i++ + " - " + quest.value + "g\n";
+					msg += EnemyDescription(enemies[index], false);
+					msg += "\n\n";
+					let num = quest.numRequired - quest.numKilled;
+					msg += "*RED*Kill " + num + " more of this enemy to collect the reward!\n";
+				}
 				msg += "\n\n";
-				let num = quest.numRequired - quest.numKilled;
-				msg += "Kill *RED*" + num + "*GREY* more of this enemy to collect the *YELLOW*" + quest.value + "g *GREY*reward!\n";
 			}
 		}
 		else if (keyword == "equip" || keyword == "dequip" || keyword == "remove" || keyword == "unequip") {
@@ -2096,13 +2091,7 @@ function Command(message) {
 			msg += CommandEnchant(COPY(words), C);
 		}
 		else if (keyword == "attack") {
-			msg += CommandAttack(COPY(words), C, index, );
-			if (i == numRepeat - 1) {
-				msg += RoomDescription(C);
-			}
-		}
-		else if (keyword == "push") {
-			msg += CommandAttack(COPY(words), C, index, true);
+			msg += CommandAttack(COPY(words), C, index);
 			if (i == numRepeat - 1) {
 				msg += RoomDescription(C);
 			}
@@ -2160,7 +2149,7 @@ function Command(message) {
 					break;
 				}
 			}
-			data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.DESCRIPTION));
+			data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.REPORT, C.DESCRIPTION));
 			C = null;
 		}
 		else if (keyword == "inventory") {
@@ -2193,6 +2182,13 @@ function Command(message) {
 			}
 			msg += "*GREEN*You level up your " + stats[index] + " stat to " + C.STATS[index] + "!\n";
 		}
+		else if (keyword == "report") {
+			msg += "*YELLOW*Gold Earned: " + C.REPORT.gold + "\n";
+			msg += "*CYAN*Damage Taken: " + C.REPORT.taken + "\n";
+			msg += "*GREEN*Damage Mitigated: " + C.REPORT.mitigated + "\n";
+			msg += "*PINK*Damage Dealt: " + C.REPORT.damage + "\n";
+			msg += "*RED*Kills: " + C.REPORT.kills + "\n";
+		}
 		else if (keyword == "read") {
 			msg += CommandRead(COPY(words), C);
 		}
@@ -2213,7 +2209,7 @@ function Command(message) {
 			msg += "*BLUE*Mage*GREY* - *CYAN*+2 MAG*GREY*. Starts with a wand and a simple spell. Mages are able to read spellbooks to choose powerful spells to unlock.\n\n";
 			msg += "*PINK*Noble*GREY* - Starts with *YELLOW*150 gold*GREY*, a stylish shirt, and a scimitar. A *GREEN*loyal servant*GREY* follows you into battle.\n\n";
 			msg += "*BLUE*Rogue*GREY* - *CYAN*+2 AVD*GREY*. Starts with *YELLOW*40 gold*GREY*, a cloak, and two daggers. Whenever you dodge an attack, deal 6 damage to your attacker.\n\n";
-			msg += "*PINK*Warrior*GREY* - *CYAN*+1 VIT +1 DEX +2 Armor*GREY*. Starts with *YELLOW*25 gold*GREY*, a Leather Cuirass, a Hatchet, and a Buckler.\n\n";
+			msg += "*PINK*Warrior*GREY* - *CYAN*+1 VIT +1 DEX +2 Armor*GREY*. Starts with *YELLOW*25 gold*GREY*, a Leather Cuirass, a Hatchet, and a Buckler. Armor doesn't reduce your Stamina.\n\n";
 			msg += "*BLUE*Ranger*GREY* - *CYAN*+1 WEP +1 AVD*GREY*. Start with *YELLOW*25 gold*GREY* and a ranged weapon. Your attacks *CYAN*mark enemies*GREY*, increasing damage you deal to them.\n\n";
 		}
 		else if (keyword == "effects") {
@@ -2361,3 +2357,4 @@ initSpells();
 initItems();
 initEnemies();
 initLocations();
+initEffects();

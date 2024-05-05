@@ -63,9 +63,8 @@ function Equip(C, invIndex) {
 			}
 		}
 		if (index > -1 && battles[index].started) {
-			if (C.INVENTORY[invIndex].type == "weapon") {
+			if (C.INVENTORY[invIndex].type == "weapon" || C.INVENTORY[invIndex].type == "staff") {
 				C.ENDED = true;
-				msg += HandleCombat(battles[index]);
 			}
 		}
 		C.INVENTORY[invIndex].equipped = true;
@@ -114,24 +113,62 @@ function LootItem(C, battle, index) {
 	}
 }
 
+function removeDebuffs(C) {
+	let newEffects = [];
+	for (const effect of C.EFFECTS) {
+		if (effect.name.toLowerCase() == "stunned") {
+			C.ENDED = false;
+		}
+		if (effect.type == "buff") {
+			newEffects.push(effect);
+		}
+	}
+	C.EFFECTS = newEffects;
+}
 
-function countEffect(C, name) {
+function numDebuffs(C) {
 	let num = 0;
-	for (let i = 0; i < C.EFFECTS.length; i++) {
-		if (C.EFFECTS[i].name.toLowerCase() == name.toLowerCase()) {
+	for (const effect of C.EFFECTS) {
+		if (effect.type == "debuff") {
 			num++;
 		}
 	}
 	return num;
 }
 
-function hasEffect(C, name) {
-	for (let i = 0; i < C.EFFECTS.length; i++) {
-		if (C.EFFECTS[i].name.toLowerCase() == name.toLowerCase()) {
-			return true;
+function numBuffs(C) {
+	let num = 0;
+	for (const effect of C.EFFECTS) {
+		if (effect.type == "buff") {
+			num++;
 		}
 	}
-	return false;
+	return num;
+}
+
+function removeEffect(C, name) {
+	for (let i = C.EFFECTS.length - 1; i >= 0; i--) {
+		if (C.EFFECTS[i].name.toLowerCase() == name.toLowerCase()) {
+			C.EFFECTS.splice(i, 1);
+		}
+	}
+}
+
+function countEffect(C, name) {
+	let effect = hasEffect(C, name);
+	if (effect) {
+		return effect.stacks;
+	}
+	return 0;
+}
+
+function hasEffect(C, name) {
+	for (const effect of C.EFFECTS) {
+		if (effect.name.toLowerCase() == name.toLowerCase()) {
+			return effect;
+		}
+	}
+	return null;
 }
 
 function hasWeaponRune(weapon, name) {
@@ -174,34 +211,55 @@ function resetPercent(C, hand) {
 	C.ATTEMPTS[hand] = 1;
 }
 
-function AddOrRefreshEffect(C, effect) {
-	let found = false;
+function AddEffect(C, eName, duration, target = "") {
 	let msg = "";
-	let name = effect.name.toLowerCase();
+	let effect = null
+	eName = eName.toLowerCase();
+	for (let i = 0; i < effects.length; i++) {
+		if (effects[i].name.toLowerCase() == eName) {
+			effect = COPY(effects[i]);
+			break;
+		}
+	}
+	effect.target = target;
 	for (let i = 0; i < C.EFFECTS.length; i++) {
-		let eName = C.EFFECTS[i].name.toLowerCase();
-		if (eName == name) {
-			if (C.EFFECTS[i].duration < effect.duration) {
-				C.EFFECTS[i].duration = effect.duration;
+		if (C.EFFECTS[i].name.toLowerCase() == eName) {
+			if (eName == "stunned") {
+				return "*RED*" + Prettify(Name(C)) + " is immune to the effect '" + effect.name + "'!\n";
 			}
-			found = true;
-			msg += "*CYAN*" + Prettify(name) + " is refreshed on " + Name(C) + ".\n";
+			if (C.EFFECTS[i].target == target) {
+				C.EFFECTS[i].duration = Math.max(C.EFFECTS[i].duration, duration);
+				if (effect.stackable) {
+					C.EFFECTS[i].stacks++;
+					if (effect.type == "buff") {
+						msg = "*CYAN*" + Prettify(Name(C)) + " is buffed with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
+					}
+					else {
+						msg = "*CYAN*" + Prettify(Name(C)) + " is afflicted with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
+					}
+				}
+				return msg;
+			}
 		}
 	}
-	if (!found) {
-		if (C.TYPE == "construction") {
-			if (name == "bleed" || name == "venom" || name == "poison") {
-				return "*RED*" + Prettify(Name(C)) + " is immune!\n";
-			}
+	effect.duration = duration;
+	if (C.TYPE == "construction") {
+		if (eName == "whipped" || eName == "bleed" || eName == "venom" || eName == "poison") {
+			return "*RED*" + Prettify(Name(C)) + " is immune to the effect '" + effect.name + "'!\n";
 		}
-		if (effect.type == "buff") {
-			msg = "*CYAN*" + Prettify(Name(C)) + " is buffed with the effect " + effect.name + "!\n";
-		}
-		else {
-			msg = "*CYAN*" + Prettify(Name(C)) + " is afflicted with the effect " + effect.name + "!\n";
-		}
-		C.EFFECTS.push(effect);
 	}
+	if (C.TYPE == "evil") {
+		if (eName == "whipped" || eName == "bleed") {
+			return "*RED*" + Prettify(Name(C)) + " is immune to the effect '" + effect.name + "'!\n";
+		}
+	}
+	if (effect.type == "buff") {
+		msg = "*CYAN*" + Prettify(Name(C)) + " is buffed with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
+	}
+	else {
+		msg = "*CYAN*" + Prettify(Name(C)) + " is afflicted with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
+	}
+	C.EFFECTS.push(effect);
 	return msg;
 }
 
@@ -245,7 +303,7 @@ function maxRunes(item) {
 	}
 	else if (item.type == "staff") {
 		max = 3;
-		if (item.name == "wand") {
+		if (item.name.toLowerCase() == "wand") {
 			max = 0;
 		}
 	}
@@ -294,6 +352,9 @@ function Heal(C, health, overheal = false) {
 	let startHP = C.HP;
 	let amount = health;
 	let multiplier = 1;
+	if (isEquipped(C, "crook")) {
+		amount++;
+	}
 	if (hasRune(C, "vine")) {
 		multiplier *= 1.5;
 	}
@@ -401,10 +462,13 @@ function findPerson(people, target) {
 	return -1;
 }
 
-function findItem(itemList, target, hesitate = false) {
-	let invIndex = parseInt(target);
+function findItem(itemList, target, hesitate = false, useNumber = true) {
+	let invIndex = -1;
+	if (useNumber) {
+		invIndex = parseInt(target);
+	}
 	let potential = -1;
-	if (isNaN(invIndex)) {
+	if (isNaN(invIndex) || invIndex == -1) {
 		for (let i = 0; i < itemList.length; i++) {
 			if (itemList[i].name.toLowerCase() == target.toLowerCase()) {
 				if (hesitate && itemList[i].equipped) {
@@ -521,7 +585,7 @@ function MaxStamina(C) {
 	if (hasRune(C, "endurant")) {
 		bonus = 30;
 	}
-	if (C.TYPE == "player") {
+	if (C.TYPE == "player" && C.CLASS != "warrior") {
 		for (let i = 0; i < C.INVENTORY.length; i++) {
 			if (C.INVENTORY[i].type == "armor" && C.INVENTORY[i].equipped) {
 				bonus -= C.INVENTORY[i].AP * 5;
