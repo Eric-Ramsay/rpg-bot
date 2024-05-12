@@ -25,6 +25,7 @@ function ListCommands(index) {
 		msg += "*CYAN*!fish *GREY*- You must be at a location with fish, with a fishing pole equipped.\n";
 		msg += "*GREEN*!retire *GREY*- Retire your character to the guild hall. They can be played later.\n";
 		msg += "*CYAN*!play as NAME*GREY* - Play as any retired character.\n";
+		msg += "*GREEN*!order [Item Name or Index] *GREY*- Moves an item to the bottom of your inventory.\n";
 	}
 	else {
 		msg += "*GREEN*!cast SPELL on TARGET *GREY*- Casts a spell.\n";
@@ -58,6 +59,20 @@ function CommandDescribe(words, C, battleIndex) {
 		return ItemDescription(C, C.INVENTORY[index]);
 	}
 	if (battleIndex > -1) {
+		if (C.TRADING != "") {
+			let NPC = null;
+			for (let i = 0; i < people.length; i++) {
+				if (people[i].NAME.toLowerCase() == C.TRADING.toLowerCase()) {
+					NPC = people[i];
+				}
+			}
+			if (NPC) {
+				index = findItem(NPC.ITEMS, args);
+				if (index > -1) {
+					return ItemDescription(C, NPC.ITEMS[index]);
+				}
+			}
+		}
 		let battle = battles[battleIndex];
 		let index = -1;
 		if (args[0] == "e" || args[0] == "p") {
@@ -164,7 +179,7 @@ function CommandDelve(C) {
 function CommandEquip(words, C) {
 	let msg = "";
 	let args = words.slice(1, words.length).join(" ");
-	let invIndex = findItem(C.INVENTORY, args);
+	let invIndex = findItem(C.INVENTORY, args, true);
 	if (!isNaN(invIndex) && invIndex < C.INVENTORY.length && invIndex >= 0) {
 		if (words[0] == "equip") {
 			msg = Equip(C, invIndex);
@@ -172,6 +187,7 @@ function CommandEquip(words, C) {
 		else {
 			msg = Dequip(C, invIndex);
 		}
+		msg += Inventory(C);
 	}
 	else {
 		return "*RED*Unable to find item in inventory to equip.";
@@ -342,114 +358,91 @@ function CommandCast(words, C, index) {
 }
 
 
-function CommandAttack(words, C, index) {
+function CommandAttack(words, C, battleIndex) {
+	let battle = battles[battleIndex];
+	let msg = "";
 	if (C.ENDED) {
 		return "*RED*You can't act while your turn is ended!\n";
 	}
-	let msg = "";
-	let weaponIndex = -1;
-	let args = words.slice(1, words.length);
-	let split = args.join(" ").split(" with ");
-	let weapon = "";
-	let target = "";
-	let isDead = false;
-	if (split.length > 0) {
-		target = split[0];
-		weapon = split[1];
+	if (words.length == 1) {
+		return "*RED*You must specify an enemy to attack.\n";
+	}
+	if (!battle.started) {
+		return "*RED*The battle must be started before you can attack!\n";
+	}
+	let weapons = [null, null];
+	let indices = [C.LEFT, C.RIGHT];
+	if (C.LEFT > -1 && C.LEFT < C.INVENTORY.length) {
+		weapons[0] = C.INVENTORY[C.LEFT];
+	}
+	if (C.RIGHT > -1 && C.RIGHT < C.INVENTORY.length) {
+		weapons[1] = C.INVENTORY[C.RIGHT];
+	}
+	if (weapons[0] == null && weapons[1] == null) {
+		return "*RED*You must equip a weapon to be able to attack!\n";
+	}
+	if (C.AP < weapons[0].AP && C.AP < weapons[1].AP) {
+		return "*RED*You don't have enough AP to attack with this weapon!\n";
+	}
+	
+	//Find Target
+	let index = parseInt(words[1].slice(1, words.length));
+	if (isNaN(index)) {
+		let checkStr = "";
+		let count = 0;
+		do {
+			words = words.slice(1, words.length);
+			if (count > 0) {
+				checkStr += " ";
+			}
+			checkStr += words[0];
+			index = findTarget(battle.enemies, checkStr);
+		} while (index == -1 && ++count < words.length);
 	}
 	else {
-		target = args.slice(0, args.length - 1).join(" ");
+		index--;
+		words = words.slice(2, words.length);
 	}
-	let enemyIndex = parseInt(target.substring(1));
-	if (isNaN(enemyIndex)) {
-		enemyIndex = -1;
-		for (let i = 0; i < battles[index].enemies.length; i++) {
-			if (battles[index].enemies[i].NAME.toLowerCase() == target) {
-				if (battles[index].enemies[i].HP > 0) {
-					enemyIndex = i;
-				}
-				else {
-					isDead = true;
-				}
+	if (index <= -1 || index >= battle.enemies.length) {
+		return "*RED*Couldn't find that enemy!\n";
+	}
+	
+	if (words[0] == "with" || words[0] == "using") {
+		words = words.slice(1, words.length);
+	}
+	
+	let weapon = 1;
+	//Weapon is specified
+	if (words.length > 0) {
+		let weaponName = words.join(" ");
+		if (weapons[0]) {
+			if (weaponName == "left" || weaponName == "l" || weapons[0].name.toLowerCase() == weaponName) {
+				weapon = 0;
+			}
+		}
+		if (weapons[1]) {
+			if (weaponName == "right" || weaponName == "r" || weapons[1].name.toLowerCase() == weaponName) {
+				weapon = 1;
 			}
 		}
 	}
-	else {
-		enemyIndex -= 1;
+	let range = Math.abs(battle.enemies[index].ROW - C.ROW);
+	if (C.AP < weapons[weapon].AP || weapons[weapon].attacks[0] <= 0 || range > weapons[weapon].range) {
+		weapon = 1 - weapon;
 	}
-	if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < battles[index].enemies.length) {
-		let range = Math.abs(battles[index].enemies[enemyIndex].ROW - C.ROW);
-		if (battles[index].enemies[enemyIndex].HP > 0) {
-			//Manually Select Weapon
-			if (C.LEFT > -1 && C.LEFT < C.INVENTORY.length && (weapon == C.INVENTORY[C.LEFT].name.toLowerCase() || weapon == "left" || weapon == "l")) {
-				weaponIndex = C.LEFT;
-			}
-			if (C.RIGHT > -1 && C.LEFT < C.INVENTORY.length && (weapon == C.INVENTORY[C.RIGHT].name.toLowerCase() || weapon == "right" || weapon == "r")) {
-				let ran = rand(2);
-				if (ran == 0) {
-					weaponIndex = C.RIGHT;
-				}
-			}
-			//Auto Select Weapon
-			if (weaponIndex == -1) {
-				if (C.LEFT > -1 && C.RIGHT == -1) {
-					weaponIndex = C.LEFT;
-				}
-				if (C.RIGHT > -1 && C.LEFT == -1) {
-					weaponIndex = C.RIGHT;
-				}
-				if (C.LEFT > -1 && C.RIGHT > -1) {
-					if (CanUseWeapon(C, C.LEFT, range)) {
-						weaponIndex = C.LEFT;
-					}
-					if (CanUseWeapon(C, C.RIGHT, range)) {
-						let ran = rand(2);
-						if (ran == 0 || weaponIndex == -1) {
-							weaponIndex = C.RIGHT;
-						}
-					}
-				}
-			}
-			if (weaponIndex == -1) {
-				let atks = 0;
-				for (const item of C.INVENTORY) {
-					if (item.type == "weapon") {
-						if (item.equipped) {
-							atks += item.attacks[0];
-						}
-					}
-				}
-				if (atks == 0) {
-					return "*RED*Your weapons don't have any attacks left!\n";
-				}
-				return "*RED*You don't have a valid weapon to attack with!\n";
-			}
-			if (range > C.INVENTORY[weaponIndex].range) {
-				return "*RED*The enemy is too far away to attack with this weapon.\n";
-			}
-			if (!CanUseWeapon(C, weaponIndex)) {
-				if (C.INVENTORY[weaponIndex].attacks[0] == 0) {
-					return "*RED*This weapon can't attack again this turn.\n";
-				}
-				return "*RED*You don't have enough ammunition to use this weapon.\n";
-			}
-			else {
-				msg = AllyAttack(battles[index], C, enemyIndex, weaponIndex);
-				msg += HandleCombat(battles[index]);
-			}
-		}
-		else {
-			isDead = true;
-		}
+	if (C.AP < weapons[weapon].AP) {
+		return "*RED*You don't have enough AP to use your weapon.\n";
 	}
-	else {
-		if (isDead) {
-			return "*RED*This enemy is already dead.\n";
-		}
-		else {
-			return "*RED*Unable to find enemy '" + target + "'\n";
-		}
+	if (weapons[weapon].attacks[0] <= 0) {
+		return "*RED*Your weapon is out of attacks.\n";
 	}
+	if (range > weapons[weapon].range) {
+		return "*RED*That enemy is too far away to attack.\n";
+	}
+	
+	msg = AllyAttack(battle, C, index, indices[weapon]);
+	msg += HandleCombat(battle);
+	
 	return msg;
 }
 
@@ -686,7 +679,7 @@ function CommandFlee(C, index) {
 		if (hasEffect(C, "rooted")) {
 			return "*RED*You're rooted and can't move!";
 		}
-		if (C.ROW != 0) {
+		if (C.ROW != 0 && !hasRune(C, "huntsman")) {
 			return "*RED*You have to move to R1 before you can flee!\n";
 		}
 		if (C.AP < (3 + APCost(C))) {
@@ -802,17 +795,21 @@ function CommandCharacter(words, C, authorId) {
 			}
 		}
 		if (C.CLASS == "ranger") {
+			C.GOLD = 10;
 			C.STATS[AVD] += 1;
 			C.STATS[WEP] += 1;
-			let ran = rand(3);
+			let ran = rand(4);
 			if (ran == 0) {
-				C.INVENTORY.push(startItem("sling"));
+				C.INVENTORY.push(startItem("staff sling"));
 			}
 			else if (ran == 1) {
 				C.INVENTORY.push(startItem("crossbow"));
 			}
+			else if (ran == 2) {
+				C.INVENTORY.push(startItem("longbow"));
+			}
 			else {
-				C.INVENTORY.push(startItem("hunting bow"));
+				C.INVENTORY.push(startItem("repeating crossbow"));
 			}
 			for (let i = 0; i < C.INVENTORY.length; i++) {
 				Equip(C, i);
@@ -1116,14 +1113,32 @@ function CommandLearn(words, C) {
 
 function CommandOrder(words, C) {
 	let args = words.slice(1, words.length).join(" ");
-	for (let i = 0; i < C.SPELLS.length; i++) {
+	/*for (let i = 0; i < C.SPELLS.length; i++) {
 		if (C.SPELLS[i].toLowerCase() == args) {
 			C.SPELLS.push(C.SPELLS[i]);
 			C.SPELLS.splice(i, 1);
 			return DrawSpells(C, C.SPELLS);
 		}
+	}*/
+	let index = findItem(C.INVENTORY, args);
+	if (index > -1) {
+		C.INVENTORY.push(C.INVENTORY[index]);
+		C.INVENTORY.splice(index, 1);
+		if (C.LEFT > index) {
+			C.LEFT--;
+		}
+		else if (C.LEFT == index) {
+			C.LEFT = C.INVENTORY.length - 1;
+		}
+		if (C.RIGHT > index) {
+			C.RIGHT--;
+		}
+		else if (C.RIGHT == index) {
+			C.RIGHT = C.INVENTORY.length - 1;
+		}
+		return "";
 	}
-	return "*RED*A spell named '" + args + "' wasn't in your known spells!\n";
+	return "*RED*Couldn't find item '" + args + "'!\n";
 }
 
 function CommandRead(words, C) {
@@ -1229,26 +1244,27 @@ function CommandEnchant(words, C) {
 		if (rune.name.toLowerCase() == "invigorant") {
 			C.INVENTORY[i].attacks[1]++;
 		}
+		if (rune.name.toLowerCase() == "orisha") {
+			C.INVENTORY[i].pen = Math.min(100, C.INVENTORY[i].pen + 30);
+		}
 		if (rune.name.toLowerCase() == "reach") {
 			if (C.INVENTORY[i].range >= 5) {
 				return "*RED*This item's range can not be increased further!\n";
 			}
-			C.INVENTORY[i].range++;
+			C.INVENTORY[i].range += 2;
+		}
+		if (rune.name.toLowerCase() == "density") {
+			C.INVENTORY[i].min += 8;
+			C.INVENTORY[i].max += 8;
+			C.INVENTORY[i].AP += 3;
 		}
 		if (rune.name.toLowerCase() == "precise") {
-			C.INVENTORY[i].min += 2;
-			C.INVENTORY[i].max += 2;
+			C.INVENTORY[i].min += 3;
+			C.INVENTORY[i].max += 3;
 		}
-		if (rune.name.toLowerCase() == "gamble") {
-			C.INVENTORY[i].min--;
-			C.INVENTORY[i].max += 4;
-		}
-		if (rune.name.toLowerCase() == "orisha") {
-			C.INVENTORY[i].pen += 20;
-		}
-		if (rune.name.toLowerCase() == "tempered") {
-			C.INVENTORY[i].armor[0] += 2;
-			C.INVENTORY[i].armor[1] += 2;
+		if (rune.name.toLowerCase() == "impervious") {
+			C.INVENTORY[i].armor[0] += 3;
+			C.INVENTORY[i].armor[1] += 3;
 		}
 		C.INVENTORY[i].runes.push(rune);
 		RemoveItem(C, r);

@@ -1,5 +1,3 @@
-
-
 Feature Ideas
 =============
 - Premade Boss Fights
@@ -23,7 +21,6 @@ Enemy Ideas
 Rune Ideas
 ==========
 - Instakill Rune
-- Higher AP, but Higher Damage
 
 
 
@@ -31,15 +28,24 @@ Other Ideas
 ===========
 - Confused Effect -> Enemy attacks other enemies
 
-TO DO
-=====
-- Polearm rework
 
 
-DONE
-----
-- Effects Rework
-- Magic Rework
-- UI Rework
-- Multiple Quests Active at a Time
-- Stunned things can't be stunned
+
+
+Patch Notes
+===========
+Quality of Life
+	- Enemies are now sorted by difficulty on Combat Page
+	- I have done all I can for the UI not going over screen length on smaller monitors
+	- Melee Attack Code has been refactored to give more clarity when you can't attack, also selecting weapons to attack with always works.
+	- Melee Attacking defaults to using the weapon in your right hand first always.
+	- You can move an item to the bottom of your inventory with the !order command
+	
+Enemies
+	- Previous: HP: 5200 Average HP: 57.14
+	- Previous: Difficulty: 5054 Average Difficulty: 55.54 
+	- New HP: 6429 Average: 70.65
+	- New Difficulty: 
+
+Other
+	- Poison can stack, increasing its damage.

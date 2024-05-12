@@ -10,17 +10,19 @@ function findVictim(row, targets, range, type = "random") {
 		type = "random";
 	}
 	let inRange = [];
-	let strongest = 0;
+	let strongest = -1;
 	if (targets.length == 0) {
 		return -1;
 	}
+	let numTargets = 0;
 	for (let i = 0; i < targets.length; i++) {
 		if (targets[i].HP > 0) {
-			if (MaxHP(targets[i].HP) > MaxHP(targets[strongest])) {
+			if (type == "strongest" && (strongest == -1 || MaxHP(targets[i]) > MaxHP(targets[strongest]))) {
 				strongest = i;
 			}
 			if (Math.abs(targets[i].ROW - row) < range) {
 				inRange.push(i);
+				numTargets++;
 			}
 		}
 	}
@@ -28,7 +30,7 @@ function findVictim(row, targets, range, type = "random") {
 		if (inRange.indexOf(strongest) == -1) {
 			return -1;
 		}
-		return inRange[inRange.indexOf(strongest)];
+		return strongest;
 	}
 	if (inRange.length > 0) {
 		if (type == "random") {
@@ -229,7 +231,11 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 		}
 		else if (enemy.NAME == "Scoundrel") {
-			msg += moveAttack(allies, enemy, targets, new Attack("stabs", 2 + rand(3), 90, 0, 4, 1))[0];
+			let result = moveAttack(allies, enemy, targets, new Attack("stabs", 2 + rand(3), 90, 0, 4, 1));
+			msg += result[0];
+			if (result[1]) {
+				msg += AddEffect(result[1], "Bleed", 1);
+			}
 		}
 		else if (enemy.NAME == "Zombie" || enemy.NAME.substring(0, "Zombified".length).toLowerCase() == "zombified") {
 			msg += moveInRange(enemy, targets, 1);
@@ -333,23 +339,58 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			let result = moveAttack(allies, enemy, targets, new Attack("grabs", 14 + rand(7), 75, 1, 1, 2));
 			msg += result[0];
 			if (result[1] != null) {
-				msg += "*PINK*" + result[1].NAME + " is rooted in place by " + Prettify(Name(enemy)) + "'s stinging tentacles and is envenomed!\n";
-				AddEffect(result[1], "Rooted", 1);
-				AddEffect(result[1], "Venom", 3);
+				msg += AddEffect(result[1], "Rooted", 1);
+				msg += AddEffect(result[1], "Venom", 3);
 			}
 			if (rand(3) == 0) {
 				msg += "*PINK*The Swamp Stalker hisses. . .\n";
 			}
 		}
 		else if (enemy.NAME == "Ephemeral Warrior") {
-			msg += moveAttack(allies, enemy, targets, new Attack("slashes", enemy.MaxHP/10 + rand(9), 85, 0, Math.floor(enemy.MaxHP/10), 2, 100), "strongest")[0];
-			msg += "*CYAN*" + Prettify(Name(enemy)) + " begins to fade. . .\n";
-			enemy.HP = Math.max(0, enemy.HP - 5);
+			let index = -1; 
+			let ran = rand(2);
+			if (ran == 0) {
+				index = findVictim(enemy.ROW, targets, 6, "strongest");
+			}
+			else {
+				findVictim(enemy.ROW, targets, 2, "strong");
+			}
+			if (index > -1 && Math.abs(targets[index].ROW - enemy.ROW) <= 1) {
+				ran = rand(2);
+				if (ran == 0) {
+					msg += "*CYAN*" + Prettify(Name(enemy)) + " stabs " + Name(targets[index]) + "!\n";
+					msg += DealDamage(new M_Attack(14 + rand(11), 50), allies, enemy, targets, targets[index])[0];
+				}
+				else {
+					msg += "*CYAN*" + Prettify(Name(enemy)) + " slashes " + Name(targets[index]) + "!\n";
+					for (let i = 0; i < 2; i++) {
+						msg += DealDamage(new M_Attack(8 + rand(7), 50), allies, enemy, targets, targets[index])[0];
+					}
+				}
+			}
+			else {
+				ran = rand(3);
+				if (ran == 0) {
+					let name = "";
+					if (index > 0) {
+						name = " at " + Name(targets[index]);
+					}
+					let dialogue = [
+						"The Ephemeral Warrior takes a defensive stance.",
+						"The Ephemeral Warrior points their blade at " + name + ".",
+						"The Ephemeral Warrior stares" + name + "."
+					];
+					msg += "*CYAN*" + dialogue[rand(dialogue.length)] + "\n";
+				}
+				else if (index > -1) {
+					msg += moveToRow(enemy, targets[index].ROW);
+				}
+			}
 		}
 		else if (enemy.NAME == "Wisp Knight") {
 			let ran = rand(5); 
 			if (ran == 0) {
-				msg += "*CYAN*" + Prettify(Name(enemy)) + " begins to burn brighter. . .\n"
+				msg += "*CYAN*" + Prettify(Name(enemy)) + " begins to burn brighter. . .\n";
 				enemy.MaxHP = Math.min(150, enemy.MaxHP + 10);
 				msg += Heal(enemy, 20);
 			}
@@ -376,7 +417,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			msg += moveAttack(allies, enemy, targets, new Attack("spooks", 4 + rand(5), 100, 1))[0];
 		}
 		else if (enemy.NAME == "Raging Boar") {
-			let ran = rand(2);
+			let ran = rand(3);
 			if (ran == 0) {
 				msg += "*PINK*" + Prettify(Name(enemy)) + " postures and huffs!\n";
 				let row = rand(5);
@@ -385,7 +426,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				}
 				msg += moveToRow(enemy, row);
 			}
-			if (ran == 1) {
+			else {
 				let index = rand(targets.length);
 				msg += "*PINK*" + Prettify(Name(enemy)) + " charges!\n";
 				let startRow = enemy.ROW;
@@ -470,12 +511,12 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					let result = DealDamage(new P_Attack(12 + rand(11), 85), allies, enemy, targets, targets[index]);
 					msg += result[0];
 					if (result[1] > 0) {
-						AddEffect(targets[index], "Venom", 3);
+						msg += AddEffect(targets[index], "venom", 3);
 					}
 				}
 				if (ran == 2) {
 					msg += "*PINK*" + Prettify(Name(enemy)) + " wraps " + Name(targets[index]) + " in their web, stunning them!\n";
-					AddEffect(targets[index], "Stunned", 1);
+					AddEffect(targets[index], "stunned", 1);
 				}
 			}
 		}
@@ -484,7 +525,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			let index = findVictim(enemy.ROW, targets, 4);
 			if (ran == 0) {
 				if (index > -1) {
-					msg += "*PINK*" + Prettify(Name(enemy)) + " spits venom at " + Name(targets[index]) + "!\n";
+					msg += "*PINK*" + Prettify(Name(enemy)) + " spits a glob of venom at " + Name(targets[index]) + "!\n";
 					let result = DealDamage(new P_Attack(4 + rand(5), 85), allies, enemy, targets, targets[index]);
 					msg += result[0];
 					if (result[1] > 0) {
@@ -538,7 +579,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				msg += "*PINK*" + Prettify(Name(enemy)) + " conjures a cloud of toxins!\n";
 				for (let i = 0; i < targets.length; i++) {
 					msg += DealDamage(new M_Attack(4 + rand(7)), allies, enemy, targets, targets[i])[0];
-					AddEffect(targets[i], "Poison", 3);
+					msg += AddEffect(targets[i], "Poison", 3);
 				}
 			}
 			else if (ran == 1) {
@@ -553,7 +594,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				allies.push(summon("Toxic Mushroom", rand(5)));
 			}
 			else {
-				msg += "*PINK*" + Prettify(Name(enemy)) + " inahles spores and heals!\n";
+				msg += "*PINK*" + Prettify(Name(enemy)) + " inhales spores and heals!\n";
 				msg += Heal(enemy, 6 + rand(7));
 			}
 		}
@@ -567,7 +608,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				msg += "*PINK*" + Prettify(Name(enemy)) + " unleashes a cloud of toxins!\n";
 				for (let i = 0; i < targets.length; i++) {
 					msg += DealDamage(new P_Attack(2 + rand(3), 100), allies, enemy, targets, targets[i])[0];
-					AddEffect(targets[i], "Poison", 3);
+					msg += AddEffect(targets[i], "Poison", 3);
 				}
 			}
 			else if (ran == 1) {
@@ -758,8 +799,8 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 		}
 		else if (enemy.NAME == "Imp") {
-			let ran = rand(6);
-			if (ran >= 3) {
+			let ran = rand(5);
+			if (ran >= 2) {
 				msg += moveAttack(allies, enemy, targets, new Attack("gnaws at", 4 + rand(5), 80, PHYSICAL, 2))[0];
 			}
 			else if (ran == 0) {
@@ -767,17 +808,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 			else if (ran == 1) {
 				msg += "*PINK*The imp runs around wildly!\n";
-				ran = rand(2);
-				for (let i = 0; i < 2; i++) {
-					if (enemy.ROW == 4 || (ran == 0 && enemy.ROW > 0)) {
-						enemy.ROW--;
-						//msg += "*PINK*The imp runs back!\n";
-					}
-					else {
-						enemy.ROW++;
-						//msg += "*PINK*The imp runs forward!\n";
-					}
-				}
+				moveToRow(enemy, rand(5));
 			}
 		}
 		else if (enemy.NAME == "Warrior") {
@@ -948,10 +979,6 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 		}
 		else if (enemy.NAME == "Cultist") {
 			msg += moveAttack(allies, enemy, targets, new Attack("shanks", 4 + rand(5), 85, 0, 4))[0];
-		}
-		else if (enemy.NAME == "Servant") {
-			let bonusDmg = Math.floor(enemy.MaxHP/10);
-			msg += moveAttack(allies, enemy, targets, new Attack("strikes", 5 + bonusDmg + rand(4 + bonusDmg), 100))[0];
 		}
 		else if (enemy.NAME == "Warded Totem") {
 			let ran = rand(3);
@@ -1205,8 +1232,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				let result = DealDamage(new P_Attack(8 + rand(9)), allies, enemy, targets, targets[index]);
 				msg += result[0];
 				if (result[1] && ran == 0) {
-					msg += "*PINK*" + Name(targets[index]) + " is tangled in the vines and can't move!\n";
-					AddEffect(targets[index], "Rooted", 1);
+					msg += AddEffect(targets[index], "Rooted", 1);
 				}
 			}
 			else {
@@ -1316,36 +1342,37 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					numPlayers++;
 				}
 			}
-			let ran = rand(3);
+			let ran = rand(4);
 			if (numPlayers == 0) {
 				ran = rand(2);
 			}
 			if (ran == 0) {
-				msg += moveAttack(allies, enemy, targets, new Attack("pranks", 6 + rand(5), 100, 1))[0];
+				msg += moveAttack(allies, enemy, targets, new Attack("zaps", 8 + rand(7), 100, 1))[0];
 			}
-			else if (ran == 1) {
+			else if (ran == 1 || ran == 2) {
+				let debuffs = [];
+				for (const effect of effects) {
+					if (effect.type == "debuff") {
+						debuffs.push(effect.name);
+					}
+				}
 				msg += "*PINK*The Fae Trickster pranks all of its foes!\n";
 				for (let i = 0; i < targets.length; i++) {
-					msg += DealDamage(new M_Attack(4 + rand(5)), allies, enemy, targets, targets[i])[0]; 
+					msg += AddEffect(targets[i], debuffs[rand(debuffs.length)], 1);
 				}
 			}
 			else {
-				msg += "*PINK*The Fae Trickster exhausts its foes!\n";
-				for (let i = 0; i < targets.length; i++) {
-					if (targets[i].TYPE == "player") {
-						targets[i].STAMINA -= 15;
-						if (targets[i].STAMINA < 0) {
-							targets[i].STAMINA = 0;
-						}
-					}
-				}
+				let verbs = ["snickers", "chortles", "chuckles", "laughs", "cackles", "giggles", "guffaws"];
+				msg += "*PINK*The Fae Trickster " + verbs[rand(verbs.length)] + "!\n";
 			}
 		}
 		else if (enemy.NAME == "Caustic Snail") {
+			if (hasEffect(enemy, "healing in shell")) {
+				return "";
+			}
 			let ran = rand(2);
-			if (ran == 0 && enemy.HP < enemy.MaxHP/2) {	
-				msg += "*PINK*" + Prettify(Name(enemy)) + " heals in its shell. . .\n";
-				msg += Heal(enemy, 8 + rand(16));
+			if (ran == 0 && enemy.HP < enemy.MaxHP/2.5) {
+				msg += AddEffect(enemy, "Healing in Shell", 3);
 			}
 			else {
 				let index = findVictim(enemy.ROW, targets, 1);
@@ -1409,7 +1436,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				msg += "*PINK*The brigand steals 10 gold from each member of the party!\n";
 				for (let i = 0; i < targets.length; i++) {
 					if (targets[i].TYPE == "player") {
-						targets[i].GOLD -= 10;
+						targets[i].GOLD -= 5;
 						if (targets[i].GOLD < 0) {
 							targets[i].GOLD = 0;
 						}
@@ -1424,7 +1451,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			msg += moveAttack(allies, enemy, targets, new Attack("chomps", 36 + rand(21), 6, 1))[0];
 		}
 		else if (enemy.NAME == "Foul Sluglord") {
-			msg += moveAttack(allies, enemy, targets, new Attack("chomps", 88 + rand(41), 6, 1), "strongest")[0];
+			msg += moveAttack(allies, enemy, targets, new Attack("chomps", 88 + rand(41), 6, 1), "strong")[0];
 		}
 		else if (enemy.NAME == "Anchorite Worm") {
 			msg = moveInRange(enemy, targets, 1);
@@ -1641,18 +1668,22 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 		}
 		else if (enemy.NAME == "Squallbird") {
+			let ran = rand(3);
 			msg += "*PINK*" + Prettify(Name(enemy)) + " dives fiendishly at its foe!\n";
-			msg += moveInRange(enemy, targets, 1);
-			let index = findVictim(enemy.ROW, targets, 1);
-			if (index > -1) {
-				msg += "*PINK*" + Prettify(Name(enemy)) + " pecks " + Name(targets[index]) + "!\n";
-				for (let i = 0; i < 4; i++) {
-					msg += DealDamage(new P_Attack(2 + rand(5), 90, 50), allies, enemy, targets, targets[index])[0];
+			if (ran == 0) {
+				msg += moveInRange(enemy, targets, 1);
+				let index = findVictim(enemy.ROW, targets, 1);
+				if (index > -1) {
+					msg += "*PINK*" + Prettify(Name(enemy)) + " pecks " + Name(targets[index]) + "!\n";
+					msg += DealDamage(new P_Attack(12 + rand(9), 90, 25), allies, enemy, targets, targets[index])[0];
 				}
 			}
-			if (min != enemy.ROW && rand(2) == 0) {
+			else if (min != enemy.ROW && ran == 1) {
 				msg += "*PINK*" + Prettify(Name(enemy)) + " flies away from the commotion!\n";
 				msg += moveToRow(enemy, min);
+			}
+			else {
+				msg += "*PINK*" + Prettify(Name(enemy)) + " squawks loudly!\n";
 			}
 		}
 		else if (enemy.NAME == "Reef Crab") {
@@ -2018,8 +2049,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				let result = moveAttack(allies, enemy, targets, new Attack("tears into", 4 + rand(7), 80, 0, 3));
 				msg += result[0];
 				if (result[1]) {
-					msg += "*PINK*" + Prettify(Name(result[1])) + " begins to bleed!\n";
-					AddEffect(result[1], "Bleed", 3);
+					msg += AddEffect(result[1], "Bleed", 3);
 				}
 			}
 			if (ran == 1) {
@@ -2030,13 +2060,15 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				msg += result[0];
 				if (result[1]) {
 					if (result[1].TYPE == "player") {
-						msg += "*PINK*" + Prettify(Name(result[1])) + " is winded by the blow!\n";
+						msg += AddEffect(result[1], "winded", 3);
 						result[1].STAMINA = Math.max(0, result[1].STAMINA - 20);
 					}
 				}
 			}
 		}
 		else {
+			let bonusDmg = Math.floor(enemy.MaxHP/10);
+			msg += moveAttack(allies, enemy, targets, new Attack("strikes", 5 + bonusDmg + rand(4 + bonusDmg), 100))[0];
 		}
 	}
 	return msg;

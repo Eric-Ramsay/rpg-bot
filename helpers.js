@@ -7,12 +7,15 @@ function Dequip(C, invIndex) {
 		if (C.RIGHT == invIndex) {
 			C.RIGHT = -1;
 		}
-		return "You unequip the *BLUE*" + C.INVENTORY[invIndex].name;
+		return "You unequip the *BLUE*" + C.INVENTORY[invIndex].name + "\n";
 	}
 	return "*RED*That item is not equipped!\n";
 }
 
 function Equip(C, invIndex) {
+	if (C.INVENTORY[invIndex].EQUIPPED) {
+		return "*RED*This item is already equipped!\n";
+	}
 	if (C.INVENTORY[invIndex].type == "weapon" || C.INVENTORY[invIndex].type == "armor" || C.INVENTORY[invIndex].type == "staff" || C.INVENTORY[invIndex].type == "pole") {
 		let index = BattleIndex(C.ID);
 		if (C.INVENTORY[invIndex].type == "armor") {
@@ -149,7 +152,9 @@ function numBuffs(C) {
 function removeEffect(C, name) {
 	for (let i = C.EFFECTS.length - 1; i >= 0; i--) {
 		if (C.EFFECTS[i].name.toLowerCase() == name.toLowerCase()) {
-			C.EFFECTS.splice(i, 1);
+			if (--C.EFFECTS[i].stacks <= 0) {
+				C.EFFECTS.splice(i, 1);
+			}
 		}
 	}
 }
@@ -163,7 +168,8 @@ function countEffect(C, name) {
 }
 
 function hasEffect(C, name) {
-	for (const effect of C.EFFECTS) {
+	for (let i = 0; i < C.EFFECTS.length; i++) {
+		let effect = C.EFFECTS[i];
 		if (effect.name.toLowerCase() == name.toLowerCase()) {
 			return effect;
 		}
@@ -172,8 +178,7 @@ function hasEffect(C, name) {
 }
 
 function hasWeaponRune(weapon, name) {
-	if (weapon.type != "weapon") {
-		console.log("ERROR! Wrong type passed to hasWeaponRune!");
+	if (weapon == null || weapon.type != "weapon") {
 		return false;
 	}
 	for (const rune of weapon.runes) {
@@ -293,13 +298,13 @@ function findSpell(list, target) {
 function maxRunes(item) {
 	let max = 0;
 	if (item.type == "weapon") {
-		max = 2*item.hands;
+		max = 1 + (2*item.hands);
 		if (item.subclass == "blade") {
 			max++;
 		}
 	}
 	else if (item.type == "armor") {
-		max = 3;
+		max = 4;
 	}
 	else if (item.type == "staff") {
 		max = 3;
@@ -310,13 +315,24 @@ function maxRunes(item) {
 	return max;
 }
 
-function spellAPCost(C, spell) {
+function spellHPCost(C, spell) {
+	let cost = 0;
+	if (hasRune(C, "sanguine")) {
+		cost += 3 + spellAPCost(C, spell, true);
+	}
+	return cost + spell.HP;
+}
+
+function spellAPCost(C, spell, checking = false) {
 	let cost = 0;
 	if (hasRune(C, "hollow")) {
 		cost--;
 	}
 	if (hasRune(C, "heavy")) {
 		cost += 2;
+	}
+	if (!checking && hasRune(C, "sanguine")) {
+		return 0;
 	}
 	return cost + spell.AP;
 }
@@ -406,7 +422,7 @@ function startItem(item) {
 	}
 }
 
-function findTarget(list, target, row = 0) {
+function findTarget(list, target) {
 	let index = -1;
 	if (target[0] == "e" || target[0] == "p") {
 		index = parseInt(target.substring(1));
@@ -526,6 +542,9 @@ function P_Armor(C) {
 			}
 		}
 	}
+	if (hasEffect(C, "healing in shell")) {
+		armor += 12;
+	}
 	if (hasEffect(C, "stoneskin")) {
 		armor += 8;
 	}
@@ -547,6 +566,9 @@ function M_Armor(C) {
 			}
 		}
 	}
+	if (hasEffect(C, "healing in shell")) {
+		armor += 6;
+	}
 	if (hasEffect(C, "stoneskin")) {
 		armor += 4;
 	}
@@ -561,8 +583,8 @@ function MaxHP(C) {
 		return C.MaxHP;
 	}
 	let bonus = 0;
-	if (hasRune(C, "longevity")) {
-		bonus = 20;
+	if (hasRune(C, "stout")) {
+		bonus = 15;
 	}
 	return bonus + 30 + C.STATS[VIT] * 10;
 }
@@ -582,8 +604,8 @@ function MaxAP(C) {
 
 function MaxStamina(C) {
 	let bonus = 0;
-	if (hasRune(C, "endurant")) {
-		bonus = 30;
+	if (hasRune(C, "stout")) {
+		bonus = 25;
 	}
 	if (C.TYPE == "player" && C.CLASS != "warrior") {
 		for (let i = 0; i < C.INVENTORY.length; i++) {

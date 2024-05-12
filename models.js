@@ -63,7 +63,9 @@ function Battle(parent) {
 	this.zone = 0;
 	this.difficulty = 0;
 	this.allies = [];
+	this.aHazards = [];
 	this.enemies = [];
+	this.eHazards = [];
 	this.deadEnemies = [];
 	this.deadAllies = [];
 	this.loot = [];
@@ -184,6 +186,16 @@ function P_Attack(damage, hitChance, pen) {
 	this.damage = damage;
 	this.pen = pen;
 	this.hitChance = hitChance;
+}
+
+function WeaponReport(name, cost, dmg, AP, pen, efficiency, scaling) {
+	this.name = name;
+	this.cost = cost;
+	this.dmg = dmg;
+	this.ap = AP;
+	this.pen = pen;
+	this.eff = efficiency;
+	this.scaling = scaling;
 }
 
 function T_Attack(damage) {

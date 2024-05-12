@@ -7,13 +7,31 @@ function StartTurn(allies, enemies, deadAllies, deadEnemies) {
 			let startHP = C.HP;
 			let aName = Prettify(Name(C));
 			let healing = 0;
+			if (hasRune(C, "static")) {
+				for (let i = 0; i < 3; i++) {
+					AddEffect(C, "static", 999);
+				}
+			}
+			let shock = hasEffect(C, "static");
+			if (shock) {
+				msg += DealDamage(new M_Attack(shock.stacks), allies, C, enemies, enemies[rand(enemies.length)])[0];
+			}
+			
 			//Runic Effects
 			if (hasRune(C, "cultivation") && C.HP < MaxHP(C)) {
 				healing += 4;
 			}
 			if (hasRune(C, "sunset")) {
+				msg += "*YELLOW*Your enemies are burned by Sunset!\n";
+				let string = "";
 				for (let j = 0; j < enemies.length; j++) {
-					msg += DealDamage(new T_Attack(2), allies, C, enemies, enemies[j])[0];
+					string += DealDamage(new T_Attack(3), allies, C, enemies, enemies[j])[0];
+				}
+				let arr = string.split("\n");
+				for (const line of arr) {
+					if (line.includes("*YELLOW*")) {
+						msg += line + "\n";
+					}
 				}
 			}
 			if (hasRune(C, "preservation")) {
@@ -26,7 +44,7 @@ function StartTurn(allies, enemies, deadAllies, deadEnemies) {
 				}
 			}
 			if (hasEffect(C, "regenerative")) {
-				healing += 5
+				healing += 6
 			}
 			if (hasEffect(C, "health potion")) {
 				healing += 10
@@ -34,9 +52,8 @@ function StartTurn(allies, enemies, deadAllies, deadEnemies) {
 			if (hasEffect(C, "restorative synergy")) {
 				healing += numBuffs(C);
 			}
-			if (hasEffect(C, "poison")) {
-				C.HP = Math.max(1, C.HP - 1);
-			}
+			let poison = countEffect(C, "poison");
+			C.HP = Math.max(1, C.HP - poison);
 			if (hasEffect(C, "venom")) {
 				C.HP = Math.max(1, C.HP - 5);
 			}
@@ -69,8 +86,8 @@ function StartTurn(allies, enemies, deadAllies, deadEnemies) {
 				if (hasEffect(C, "preparation")) {
 					C.AP += 4;
 				}
-				if (hasRune(C, "dextrous")) {
-					C.AP += 4;
+				if (hasRune(C, "cultivation")) {
+					C.AP += 3;
 				}
 			}
 			//Print Results of starting the turn
@@ -113,9 +130,12 @@ function StartTurn(allies, enemies, deadAllies, deadEnemies) {
 			}
 		}
 		if (C.HP <= 0) {
-			msg += deathCry(C, allies, enemies);
-			deadAllies.push(COPY(C));
-			allies.splice(i, 1);
+			msg += Deliver(C);
+			if (C.HP <= 0) {
+				msg += deathCry(C, allies, enemies);
+				deadAllies.push(COPY(C));
+				allies.splice(i, 1);
+			}
 		}
 	}
 	return msg;
@@ -126,13 +146,16 @@ function StartBattle(battle) {
 	let avgLevel = 0;
 	let numPlayers = 0;
 	for (let i = 0; i < battle.allies.length; i++) {
-		numPlayers++;
 		if (battle.allies[i].TYPE == "player") {
+			numPlayers++;
 			AddEffect(battle.allies[i], "Coward's Haste", 1);
 			avgLevel += battle.allies[i].LEVEL;
 			battle.allies[i].STAMINA = MaxStamina(battle.allies[i]);
 			if (battle.allies[i].CLASS == "noble") {
 				let servant = summon("servant", battle.allies[i].ROW);
+				if (battle.allies[i].SERVANT) {
+					servant.NAME = battle.allies[i].SERVANT;
+				}
 				servant.MaxHP = 30 + 10 * battle.allies[i].LEVEL;
 				servant.HP = servant.MaxHP;
 				battle.allies.push(servant);
@@ -141,8 +164,8 @@ function StartBattle(battle) {
 	}
 	avgLevel /= numPlayers;
 	
-	let rating = 40 * (battle.allies.length);
-	rating = Math.pow(rating, 1 + (battle.allies.length/100));
+	let rating = 45 * (numPlayers);
+	rating = Math.pow(rating, 1 + (numPlayers/100));
 	rating *= (1 + .1 * (battle.level - 1));
 	rating *= Math.pow((1 + .25 * (avgLevel - 1)), 1.5);
 	if (avgLevel > 3) {
@@ -187,6 +210,9 @@ function StartBattle(battle) {
 		let index = min + rand((validTeams.length - min));
 		for (const enemy of validTeams[index]) {
 			let temp = COPY(enemy);
+			if (temp.NAME == "Ephemeral Warrior") {
+				AddEffect(temp, "fading", 8);
+			}
 			if (temp.NAME == "Swamp Stalker") {
 				temp.ROW = 0;
 			}
@@ -205,6 +231,7 @@ function StartBattle(battle) {
 		}
 		validTeams = newTeams;
 	}
+	battle.enemies = shitSort(battle.enemies, "DIFFICULTY");
 	return msg;
 }
 
@@ -255,17 +282,23 @@ function WinBattle(battle) {
 			}
 		}
 	}
-	let goldReward = 0;
+	let goldReward = 10;
 	let expReward = 0;
 	for (const enemy of battle.deadEnemies) {
 		let lootValue = 0;
 		let mimicSpawned = false;
 		if (!enemy.SUMMONED) {
+			if (enemy.NAME == "Brigand") {
+				goldReward += 15;
+			}
+			if (enemy.NAME == "Brigand Lord") {
+				goldReward += 30;
+			}
 			if (enemy.NAME == "Treasure Chest") {
-				goldReward += 50;
+				goldReward += 40;
 			}
 			else {
-				goldReward += (1 + Math.ceil(enemy.DIFFICULTY/4));
+				goldReward += (1 + Math.ceil(enemy.DIFFICULTY/8));
 			}
 			expReward += enemy.DIFFICULTY;
 			for (const drop of enemy.LOOT) {
@@ -277,7 +310,7 @@ function WinBattle(battle) {
 							battle.loot.push(COPY(items[index]));
 							lootValue += items[index].value;
 							if (!mimicSpawned && rand(16) == 0) {
-								mimicSpawned = true;
+								//mimicSpawned = true;
 								let mimics = [
 									new Item("Stanima Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
 									new Item("Heolth Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
@@ -292,8 +325,8 @@ function WinBattle(battle) {
 			}
 		}
 	}
+	msg += "*GREEN*Each player gains " + goldReward + " gold and " + expReward + " experience!\n";
 	for (const player of battle.allies) {
-		msg += "*GREEN*Each player gains " + goldReward + " gold and " + expReward + " experience!\n";
 		player.EFFECTS = [];
 		player.GOLD += goldReward;
 		player.REPORT.gold += goldReward;
@@ -304,6 +337,9 @@ function WinBattle(battle) {
 			player.XP -= xpRequired;
 			player.LEVEL++;
 			player.SP++;
+		}
+		if (hasRune(player, "huntsman")) {
+			player.HP = MaxHP(player);
 		}
 	}
 	battle.enemies = [];
@@ -420,13 +456,18 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	}
 	let dmg = weapon.min + rand(1 + ((weapon.max + C.STATS[WEP]) - weapon.min));
 	if (hasWeaponRune(weapon, "powerful")) {
-		dmg *= 1.2;
+		dmg *= 1.25;
+	}
+	if (C.CLASS == "ranger") {
+		let mult = 1 + (1 + Math.abs(C.ROW - enemy.ROW)) * .05;
+		console.log(mult);
+		dmg *= mult;
 	}
 	dmg = Math.floor(dmg * (1 + .05 * C.STATS[WEP]));
 	if (hasEffect(C, "cascade")) {
 		dmg += 2;
 	}
-	msg = "*GREEN*" + C.NAME + "*GREY*" + " attacks the *RED*" + enemy.NAME + "*GREY* with their " + weapon.name + ". ";	
+	msg = "*GREEN*" + C.NAME + "*GREY*" + " attacks the *RED*" + enemy.NAME + "*GREY* with their " + weapon.name + ".\n";	
 	if (hasWeaponRune(weapon, "maladious")) {
 		let debuffs = numDebuffs(enemy);
 		if (debuffs > 0) {
@@ -439,9 +480,6 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 			dmg *= 2;
 			msg += "*GREEN*It's a wild blow!\n";
 		}
-	}
-	if (C.CLASS == "ranger" && hasEffect(enemy, "hunter's mark")) {
-		dmg *= 1.2;
 	}
 	
 	//RNG BALANCING -----------------
@@ -460,16 +498,12 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		hand = RIGHT;
 	}
 	//-------------------------------
-	
+	if (hasRune(C, "pacifist")) {
+		dmg = 0;
+	}
 	let result = DealDamage(new P_Attack(Math.round(dmg), weaponChance, weapon.pen), Battle.allies, C, Battle.enemies, enemy);
 	msg += result[0];
 	if (result[1] == -2) {
-		if (hasWeaponRune(weapon, "pacifist")) {
-			msg += "*CYAN*The Pacifist Rune takes effect!\n";
-			for (let i = 0; i < Battle.enemies.length; i++) {
-				msg += DealDamage(new T_Attack(2), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
-			}
-		}
 		if (depth == 0 && hasWeaponRune(weapon, "accurate")) {
 			msg += "*CYAN*The Accurate Rune takes effect!\n";
 			msg += AllyAttack(Battle, C, enemyIndex, weaponIndex, 1);
@@ -491,37 +525,22 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 				msg += PushTarget(C, enemy);
 			}
 		}
-		if (C.CLASS == "ranger") {
-			msg += "*GREEN*You mark your target!\n";
-			AddEffect(enemy, "Hunter's Mark", 1);
-		}
-		if (hasWeaponRune(weapon, "leeching", true)) {
-			msg += "*GREEN*You gain 2 HP.\n";
+		if (hasWeaponRune(weapon, "leeching")) {
+			msg += Heal(C, 2);
+			C.STAMINA = Math.min(C.STAMINA + 4, MaxStamina(C));
 			C.HP = Math.min(C.HP + 2, MaxHP(C));
 		}
 		if (weapon.name == "Vampire Fang") {
-			msg += "*GREEN*You gain 2 HP.\n";
-			C.HP = Math.min(C.HP + 2, MaxHP(C));
+			msg += Heal(C, Math.ceil(result[1]/2));
 		}
-		if (hasWeaponRune(weapon, "siphoning")) {
-			msg += "*GREEN*You gain 4 Stamina.\n";
-			C.STAMINA = Math.min(C.STAMINA + 4, MaxStamina(C));
+		if (hasWeaponRune(weapon, "peel")) {
+			msg += "You peel away the armor of the " + enemyList[index].NAME + "!\n"
+			enemy.ARMOR[0]--;
 		}
 		if (enemy.HP > 0) {
-			if (hasWeaponRune(weapon, "poisoned")) {
-				msg += AddEffect(enemy, "Poison", 3);
-			}
-			if (hasWeaponRune(weapon, "envenomed")) {
-				let chance = rand(101);
-				if (chance <= 50) {
-					msg += AddEffect(enemy, "Venom", 3);
-				}
-			}
-			if (hasWeaponRune(weapon, "jagged")) {
-				let chance = rand(101);
-				if (chance <= 50) {
-					msg += AddEffect(enemy, "Bleed", 3);
-				}
+			if (hasWeaponRune(weapon, "affliction")) {
+				let effects = ["poisoned", "venom", "bleed"];
+				msg += AddEffect(enemy, effects[rand(3)]);
 			}
 			if (weapon.subclass == "whip") {
 				let chance = rand(101);
@@ -536,11 +555,17 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		}
 	}
 	//---------------------------------------------
-	
+	let sweepDmg = 0;
 	if (weapon.subclass == "blunt") {
+		sweepDmg += 2;
+	}
+	if (hasWeaponRune(weapon, "sweeping") && result[1] > 0) {
+		sweepDmg += Math.max(1, Math.round(dmg * .2));
+	}
+	if (sweepDmg > 0) {
 		for (let i = 0; i < Battle.enemies.length; i++) {
 			if (i != enemyIndex && Battle.enemies[i].ROW == targetRow) {
-				msg += DealDamage(new P_Attack(2), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
+				msg += DealDamage(new P_Attack(sweepDmg), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
 			}
 		}
 	}
