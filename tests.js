@@ -1,6 +1,6 @@
 function testMonsters() {
 	let wins = [];
-	let numRounds = 3;
+	let numRounds = 2;
 	console.log(enemies.length);
 	let zoneNames = ["Crypts", "Swamp", "Forest", "Island"];
 	let zones = [[], [], [], []];
@@ -21,7 +21,7 @@ function testMonsters() {
 		for (const enemy of team) {
 			teamNames.push(enemy.NAME);
 		}
-		wins.push({index: i, wins: 0, battles: 0, name: "", cost: 0, team: teamNames});
+		wins.push({index: i, wins: 0, battles: 0, name: "", cost: 0, team: teamNames, turns: 0});
 		i++;
 	}
 	for (let i = 0; i < wins.length; i++ ){
@@ -75,6 +75,8 @@ function testMonsters() {
 				wins[i].wins += results[0];
 				wins[j].wins += results[1];
 				wins[j].battles++;
+				wins[i].turns += results[2];
+				wins[j].turns += results[2];
 				winsOne += results[0];
 				winsTwo += results[1];
 			}
@@ -104,7 +106,7 @@ function testMonsters() {
 		value += Math.floor(100 * sorted[i].wins/sorted[i].cost)/100;
 		let indivScore = Math.floor(Math.floor(150 * sorted[i].wins/max));
 		let percent = Math.floor(1000 * sorted[i].wins/sorted[i].battles)/10;
-		let strOne = StackStrings("*GREEN*"+sorted[i].cost, "*CYAN*" + Math.floor(100 * sorted[i].wins/sorted[i].cost)/100+"*GREY*", 5, false);
+		let strOne = StackStrings("*GREEN*"+sorted[i].cost, "*CYAN*" + sorted[i].turns+"*GREY*", 5, false);
 		let strTwo = StackStrings(strOne, "*YELLOW*" + percent+"*GREY*%", 13, false);
 		msg += StackStrings(strTwo, "*RED*"+sorted[i].name, 25)+"*GREY*" + "\n";
 	}
@@ -114,7 +116,7 @@ function testMonsters() {
 }
 
 function runBattle(teamOne, teamTwo, index, channel = null) {
-	let results = [0, 0];
+	let results = [0, 0, 0];
 	let battle = new Battle("blah");
 	for (const enemy of teamOne) {
 		let en = summon(enemy, 4);
@@ -144,18 +146,35 @@ function runBattle(teamOne, teamTwo, index, channel = null) {
 		battle.allyTurn = false;
 	}
 	let msg = "";
-	while (battle.started && turns++ < 50 && (battle.allies.length + battle.enemies.length < 100)) {
+	while (battle.started && turns++ < 10000 && (battle.allies.length + battle.enemies.length < 100)) {
 		msg += HandleCombat(battle, false, true) + "\n";
-		if (channel && battle.started && turns++ < 50 && (battle.allies.length + battle.enemies.length < 100)) {
-			msg += DrawCombat("Testing", battle) + "\n";
+		if (channel && battle.started && (battle.allies.length + battle.enemies.length < 100)) {
+			msg += DrawCombat(battle) + "\n";
 		}
 	}
 	if (battle.allies.length > 0) {
 		results[0] = 1;
 	}
-	else if (battle.enemies.length > 0) {
+	if (battle.enemies.length > 0) {
 		results[1] = 1;
 	}
+	if (results[0] + results[1] == 2) {
+		let allyHP = 0;
+		let enemyHP = 0;
+		for (const ally of battle.allies) {
+			allyHP += ally.HP;
+		}
+		for (const enemy of battle.enemies) {
+			enemyHP += enemy.HP;
+		}
+		if (allyHP > enemyHP) {
+			results[1] = 0;
+		}
+		else {
+			results[0] = 0;
+		}
+	}
+	results[2] = turns;
 	if (channel) {
 		PrintMessage(parseText(msg), channel);
 	}
@@ -204,11 +223,7 @@ function testSpells() {
 		for (let i = 0; i < len; i++) {
 			targets = [i];
 			try {
-				//console.log(C.HP);
 				let msg = Cast(C, spell, battle.allies, battle.enemies, targets);
-				if (spell.name == "Summon Warrior") {
-					//console.log(msg);
-				}
 			}
 			catch (error) {
 				console.log("Error in spell '" + spell.name + "'!");

@@ -13,8 +13,13 @@ function Dequip(C, invIndex) {
 }
 
 function Equip(C, invIndex) {
-	if (C.INVENTORY[invIndex].EQUIPPED) {
+	if (C.INVENTORY[invIndex].equipped) {
 		return "*RED*This item is already equipped!\n";
+	}
+	if (C.INVENTORY[invIndex].type == "staff") {
+		if (C.INVENTORY[invIndex].name != "Wand" && C.CLASS != "mage") {
+			return "*RED*Only mages can equip staves!\n";
+		}
 	}
 	if (C.INVENTORY[invIndex].type == "weapon" || C.INVENTORY[invIndex].type == "armor" || C.INVENTORY[invIndex].type == "staff" || C.INVENTORY[invIndex].type == "pole") {
 		let index = BattleIndex(C.ID);
@@ -149,11 +154,17 @@ function numBuffs(C) {
 	return num;
 }
 
-function removeEffect(C, name) {
+function RemoveEffect(C, name, clear = false) {
+	let cursed = hasEffect(C, "cursed");
 	for (let i = C.EFFECTS.length - 1; i >= 0; i--) {
 		if (C.EFFECTS[i].name.toLowerCase() == name.toLowerCase()) {
-			if (--C.EFFECTS[i].stacks <= 0) {
-				C.EFFECTS.splice(i, 1);
+			if (!cursed || C.EFFECTS[i].name == "Cursed" || C.EFFECTS[i].type == "buff") {
+				if (clear) {
+					C.EFFECTS[i].stacks = 0;
+				}
+				if (--C.EFFECTS[i].stacks <= 0) {
+					C.EFFECTS.splice(i, 1);
+				}
 			}
 		}
 	}
@@ -216,8 +227,9 @@ function resetPercent(C, hand) {
 	C.ATTEMPTS[hand] = 1;
 }
 
-function AddEffect(C, eName, duration, target = "") {
+function AddEffect(C, eName, duration, attacker = null, target = null, stacks = 1) {
 	let msg = "";
+	let name = Prettify(Name(C));
 	let effect = null
 	eName = eName.toLowerCase();
 	for (let i = 0; i < effects.length; i++) {
@@ -226,44 +238,70 @@ function AddEffect(C, eName, duration, target = "") {
 			break;
 		}
 	}
+	
+	if (attacker != null && effect.type == "debuff" && hasRune(C, "equality")) {
+		msg += AddEffect(attacker, eName, duration, null, target, stacks) + "\n";
+	}
+	
+	let immune = false;
+	if (C.TYPE == "boss") {
+		if (eName == "stunned") {
+			immune = true;
+		}
+	}
+	if (eName == "poison" && isEquipped(C, "blood staff")) {
+		immune = true;
+	}
+	if (C.TYPE == "construction") {
+		if (eName == "whipped" || eName == "bleed" || eName == "venom" || eName == "poison" || eName == "blinded") {
+			immune = true;
+		}
+	}
+	if (C.TYPE == "evil") {
+		if (eName == "whipped" || eName == "bleed") {
+			immune = true;
+		}
+	}
+	if (C.TYPE == "plant" && eName == "blinded") {
+		immune = true;
+	}
+	if (immune) {
+		return "*RED*" + name + " is immune to the effect '" + effect.name + "'!\n";
+	}
+	
 	effect.target = target;
+	let printName = effect.name;
+	if (effect.target) {
+		printName += " " + effect.target.NAME;
+	}
 	for (let i = 0; i < C.EFFECTS.length; i++) {
 		if (C.EFFECTS[i].name.toLowerCase() == eName) {
 			if (eName == "stunned") {
-				return "*RED*" + Prettify(Name(C)) + " is immune to the effect '" + effect.name + "'!\n";
+				return "*RED*" + name + " is immune to the effect '" + printName + "'!\n";
 			}
-			if (C.EFFECTS[i].target == target) {
+			if ((!C.EFFECTS[i].target && !target) || C.EFFECTS[i].target.ID == target.ID) {
 				C.EFFECTS[i].duration = Math.max(C.EFFECTS[i].duration, duration);
 				if (effect.stackable) {
-					C.EFFECTS[i].stacks++;
+					C.EFFECTS[i].stacks += stacks;
 					if (effect.type == "buff") {
-						msg = "*CYAN*" + Prettify(Name(C)) + " is buffed with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
+						msg = "*CYAN*" + name + " gains the effect '*GREY*" + printName + "*CYAN*'!\n";
 					}
 					else {
-						msg = "*CYAN*" + Prettify(Name(C)) + " is afflicted with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
+						msg = "*CYAN*" + name + " is afflicted with the effect '*GREY*" + printName + "*CYAN*'!\n";
 					}
 				}
 				return msg;
 			}
 		}
 	}
-	effect.duration = duration;
-	if (C.TYPE == "construction") {
-		if (eName == "whipped" || eName == "bleed" || eName == "venom" || eName == "poison") {
-			return "*RED*" + Prettify(Name(C)) + " is immune to the effect '" + effect.name + "'!\n";
-		}
-	}
-	if (C.TYPE == "evil") {
-		if (eName == "whipped" || eName == "bleed") {
-			return "*RED*" + Prettify(Name(C)) + " is immune to the effect '" + effect.name + "'!\n";
-		}
-	}
 	if (effect.type == "buff") {
-		msg = "*CYAN*" + Prettify(Name(C)) + " is buffed with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
+		msg = "*CYAN*" + name + " is buffed with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
 	}
 	else {
-		msg = "*CYAN*" + Prettify(Name(C)) + " is afflicted with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
+		msg = "*CYAN*" + name + " is afflicted with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
 	}
+	effect.stacks = stacks;
+	effect.duration = duration;
 	C.EFFECTS.push(effect);
 	return msg;
 }
@@ -307,9 +345,9 @@ function maxRunes(item) {
 		max = 4;
 	}
 	else if (item.type == "staff") {
-		max = 3;
+		max = 4;
 		if (item.name.toLowerCase() == "wand") {
-			max = 0;
+			max = 1;
 		}
 	}
 	return max;
@@ -317,6 +355,10 @@ function maxRunes(item) {
 
 function spellHPCost(C, spell) {
 	let cost = 0;
+	
+	if (hasRune(C, "pearl")) {
+		cost += spellAPCost(C, spell, true);
+	}
 	if (hasRune(C, "sanguine")) {
 		cost += 3 + spellAPCost(C, spell, true);
 	}
@@ -330,6 +372,9 @@ function spellAPCost(C, spell, checking = false) {
 	}
 	if (hasRune(C, "heavy")) {
 		cost += 2;
+	}
+	if (spell.name == "Holy Flame") {
+		cost = C.AP;
 	}
 	if (!checking && hasRune(C, "sanguine")) {
 		return 0;
@@ -346,8 +391,17 @@ function SpellHeal(allies, healer, target, amount, autumn = true) {
 	msg = Heal(target, amount + bonus);
 	if (autumn) {
 		if (hasRune(healer, "autumn")) {
-			let ran = rand(allies.length);
-			msg += "*GREEN*" + Heal(allies[ran], 3 + bonus);
+			let weak = [];
+			for (let i = 0; i < allies.length; i++) {
+				if (allies[i].HP < MaxHP(allies[i])) {
+					weak.push(i);
+				}
+			}
+			if (weak.length > 0) {
+				let ran = weak[rand(weak.length)];
+				msg += "*GREEN*" + Heal(allies[ran], 3 + bonus);
+			}
+			
 		}
 	}
 	return msg;
@@ -368,9 +422,6 @@ function Heal(C, health, overheal = false) {
 	let startHP = C.HP;
 	let amount = health;
 	let multiplier = 1;
-	if (isEquipped(C, "crook")) {
-		amount++;
-	}
 	if (hasRune(C, "vine")) {
 		multiplier *= 1.5;
 	}
@@ -380,6 +431,9 @@ function Heal(C, health, overheal = false) {
 	//Beware of floating point fuckery
 	if (multiplier != 1) {
 		amount = Math.ceil(amount * multiplier);
+	}
+	if (isEquipped(C, "crook")) {
+		amount++;
 	}
 	C.HP += amount;
 	if (C.HP > MaxHP(C)) {
@@ -542,6 +596,12 @@ function P_Armor(C) {
 			}
 		}
 	}
+	if (isEquipped(C, "coral staff")) {
+		armor += 3;
+	}
+	if (hasEffect(C, "buried")) {
+		armor += 4;
+	}
 	if (hasEffect(C, "healing in shell")) {
 		armor += 12;
 	}
@@ -565,6 +625,12 @@ function M_Armor(C) {
 				break;
 			}
 		}
+	}
+	if (isEquipped(C, "coral staff")) {
+		armor += 3;
+	}
+	if (hasEffect(C, "buried")) {
+		armor += 4;
 	}
 	if (hasEffect(C, "healing in shell")) {
 		armor += 6;
@@ -646,7 +712,6 @@ function Travel(C, newLocation, index = -1) {
 
 function BattleIndex(ID) {
 	let index = 0;
-	//console.log(battles);
 	for (const battle of battles) {
 		if (!battle.ended) {
 			for (const ally of battle.allies) {

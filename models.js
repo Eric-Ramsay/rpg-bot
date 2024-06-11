@@ -42,10 +42,14 @@ function Character() {
 	this.CASTS = 0;
 	this.TRADING = "";
 	
+	this.FLED = false;
 	this.REPORT = new Report();
 	
 	this.HITS = [1, 1];
 	this.ATTEMPTS = [1, 1];
+	this.CURSED = false;
+	
+	this.RETIRED = false;
 }
 
 function Effect(name, type, description, stackable = false) {
@@ -53,19 +57,18 @@ function Effect(name, type, description, stackable = false) {
 	this.type = type;
 	this.description = description;
 	this.stackable = stackable;
-	this.target = "";
+	this.target = null;
 	this.duration = 1;
 	this.stacks = 1;
 }
 
 function Battle(parent) {
+	this.location = "";
 	this.level = 1;
 	this.zone = 0;
 	this.difficulty = 0;
 	this.allies = [];
-	this.aHazards = [];
 	this.enemies = [];
-	this.eHazards = [];
 	this.deadEnemies = [];
 	this.deadAllies = [];
 	this.loot = [];
@@ -165,11 +168,12 @@ function Quest() {
 	this.value = 0;
 }
 
-function DeathReport(name, cl, lvl, report, desc = "") {
+function DeathReport(name, cl, lvl, report, desc = "", death = "") {
 	this.NAME = name;
 	this.DESCRIPTION = desc;
 	this.CLASS = cl;
 	this.LEVEL = lvl;
+	this.DEATH = death
 	this.REPORT = report;
 }
 
@@ -177,6 +181,7 @@ function Town() {
 	this.prosperity = 0;
 	this.quests = [];
 	this.graves = [];
+	this.statues = [];
 	this.retired = [];
 }
 
@@ -282,6 +287,7 @@ function Enemy(Name, HP, physical, magical, Difficulty, Zones, Moves, type, desc
 	this.MOVES = Moves;
 	this.DESCRIPTION = description;
 	this.REPORT = new Report();
+	this.PHASE = 0;
 }
 
 function Connection(id, direction) {

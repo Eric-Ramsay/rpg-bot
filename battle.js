@@ -1,19 +1,32 @@
 
-function StartTurn(allies, enemies, deadAllies, deadEnemies) {
+function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E") {
 	let msg = "";
 	for (let i = allies.length - 1; i >= 0; i--) {
+		let color = "*YELLOW*";
+		if (symbol == "P") {
+			color = "*GREEN*";
+			if (allies[i].SUMMONED) {
+				color = "*BLUE*";
+			}
+		}
+		let tag = color + symbol + (i + 1) + "*GREY* - ";
 		let C = allies[i];
 		if (C.HP > 0) {
 			let startHP = C.HP;
 			let aName = Prettify(Name(C));
 			let healing = 0;
+			if (hasRune(C, "jade")) {
+				AddEffect(C, "jade", 999);
+			}
 			if (hasRune(C, "static")) {
 				for (let i = 0; i < 3; i++) {
 					AddEffect(C, "static", 999);
 				}
 			}
+			let invincible = hasEffect(C, "invincible");
 			let shock = hasEffect(C, "static");
 			if (shock) {
+				msg += tag + "*CYAN*Static takes effect!\n";
 				msg += DealDamage(new M_Attack(shock.stacks), allies, C, enemies, enemies[rand(enemies.length)])[0];
 			}
 			
@@ -22,7 +35,7 @@ function StartTurn(allies, enemies, deadAllies, deadEnemies) {
 				healing += 4;
 			}
 			if (hasRune(C, "sunset")) {
-				msg += "*YELLOW*Your enemies are burned by Sunset!\n";
+				msg += tag + "*YELLOW*Your enemies are burned by Sunset!\n";
 				let string = "";
 				for (let j = 0; j < enemies.length; j++) {
 					string += DealDamage(new T_Attack(3), allies, C, enemies, enemies[j])[0];
@@ -43,6 +56,12 @@ function StartTurn(allies, enemies, deadAllies, deadEnemies) {
 					msg += DealDamage(new T_Attack(2), allies, C, enemies, enemies[j])[0];
 				}
 			}
+			if (hasEffect(C, "healing in shell")) {
+				healing += 6 + rand(5);
+			}
+			if (hasEffect(C, "buried")) {
+				healing += 4 + rand(3);
+			}
 			if (hasEffect(C, "regenerative")) {
 				healing += 6
 			}
@@ -52,25 +71,33 @@ function StartTurn(allies, enemies, deadAllies, deadEnemies) {
 			if (hasEffect(C, "restorative synergy")) {
 				healing += numBuffs(C);
 			}
-			let poison = countEffect(C, "poison");
-			C.HP = Math.max(1, C.HP - poison);
-			if (hasEffect(C, "venom")) {
-				C.HP = Math.max(1, C.HP - 5);
-			}
-			let embers = countEffect(C, "ember");
-			let worms = countEffect(C, "infested");
-			if (worms > 0 && C.TYPE == "player") {
-				C.STAMINA = Math.max(C.STAMINA - worms * 3, 0);
-				msg += "*GREEN*" + aName + "'s Stamina is drained by Anchorite Worms!\n";
-			}
-			C.HP -= (worms + embers);
-			if (hasEffect(C, "bleed")) {
-				C.HP -= 4;
-			}
-			if (hasEffect(C, "whipped")) {
-				C.HP -= 4;
+			if (!invincible) {
+				let poison = countEffect(C, "poison");
+				C.HP = Math.max(1, C.HP - poison);
+				if (hasEffect(C, "venom")) {
+					C.HP = Math.max(1, C.HP - 5);
+				}
+				if (hasEffect(C, "wilting")) {
+					C.HP = Math.max(1, C.HP - 4);
+					if (C.TYPE == "player") {
+						C.STAMINA = Math.max(0, C.STAMINA - 12);
+					}
+				}
+				let embers = countEffect(C, "ember");
+				let worms = countEffect(C, "infested");
+				if (worms > 0 && C.TYPE == "player") {
+					C.STAMINA = Math.max(C.STAMINA - worms * 3, 0);
+				}
+				C.HP -= (worms + embers);
+				if (hasEffect(C, "bleed")) {
+					C.HP -= 4;
+				}
+				if (hasEffect(C, "whipped")) {
+					C.HP -= 4;
+				}
 			}
 			if (C.TYPE == "player") {
+				C.FLED = false;	
 				C.CASTS = 0;
 				C.ENDED = false;
 				for (let j = 0; j < C.INVENTORY.length; j++) {
@@ -94,10 +121,10 @@ function StartTurn(allies, enemies, deadAllies, deadEnemies) {
 			let HPDiff = Math.min(startHP, startHP - C.HP);
 			if (HPDiff != 0) {
 				C.REPORT.taken += HPDiff;
-				msg += "*PINK*" + aName + " takes " + HPDiff + " damage from their active effects!\n";
+				msg += tag + "*PINK*" + aName + " takes " + HPDiff + " damage from their active effects!\n";
 			}
 			if (C.HP > 0 && healing > 0) {
-				msg += Heal(C, healing);
+				msg += tag + Heal(C, healing);
 			}
 			
 			let newEffects = [];
@@ -125,31 +152,84 @@ function StartTurn(allies, enemies, deadAllies, deadEnemies) {
 					C.ENDED = true;
 				}
 			}
-			else if (C.TYPE != "player" && C.HP > 0) {
-				msg += "*GREY*" + enemyAttack(i, allies, enemies, deadAllies, deadEnemies) + "\n";
+			else if (C.TYPE != "player") {
+				if (C.HP <= 0) {
+					msg += Deliver(C);
+				}
+				if (C.HP > 0) {
+					let text = enemyAttack(i, allies, enemies, deadAllies, deadEnemies);
+					if (text != "") {
+						if (C.TYPE == "boss" && i < allies.length - 1) {
+							msg += "\n";
+						}
+						msg += tag + text + "\n";
+					}
+				}
 			}
 		}
 		if (C.HP <= 0) {
 			msg += Deliver(C);
-			if (C.HP <= 0) {
-				msg += deathCry(C, allies, enemies);
-				deadAllies.push(COPY(C));
-				allies.splice(i, 1);
+			if (C.HP <= 0 && C.TYPE != "player") {
+				msg += tag + deathCry(C, allies, enemies);
+				if (C.HP <= 0) {
+					deadAllies.push(COPY(C));
+					allies.splice(i, 1);
+				}
 			}
 		}
+	}
+	for (let i = allies.length - 1; i >= 0; i--) {
+		let guarding = hasEffect(allies[i], "guarding");
+		if (guarding) {
+			let found = false;
+			for (let j = 0; j < allies.length; j++) {
+				if (allies[j].ID == guarding.target.ID) {
+					found = true;
+					if (allies[j].ROW != allies[i].ROW) {
+						msg += "*CYAN*" + Prettify(Name(allies[i])) + " is no longer guarding " + Name(guarding.target) + ".\n";
+						RemoveEffect(allies[i], "guarding");
+					}
+				}
+			}
+			if (!found) {
+				msg += "*CYAN*" + Prettify(Name(allies[i])) + " is no longer guarding " + Name(guarding.target) + ".\n";
+				RemoveEffect(allies[i], "guarding");
+			}
+		}
+		if (allies[i].TYPE == "player" && hasEffect(allies[i], "guarding")) {
+			allies[i].AP = Math.max(0, allies[i].AP - 6);
+		}
+	}
+	if (battle.allyTurn) {
+		msg += DrawCombat(battle) + "\n";
+	}
+	return msg;
+}
+
+function FinalBoss(battle) {
+	let msg = "";
+	if (battle.zone == 2) {
+		msg += "Deep in the woods you discover the remnants of an ancient hall now fallen to ruin and decay. The forest has claimed it, moss and lichen cling to the marble walls and crystal windows, and the floor, if ever there was one, has long since decayed into dirt and grass.\n\nAt the far end of the hall, pass the lines of broken marble statues is a throne, barely distinguishable beneath the gnarled mess of thorny vines that have buried it. On closer inspection you can see that runes are etched into the bark of the vines, and that they are rising and falling slowly. Something is sitting in the throne, breathing softly; sealed beneath the vines.\n\nSuddenly, Briar Monsters erupt from the dirt around you.\n\n";
+		for (let i = 0; i < 4; i++) {
+			battle.enemies.push(summon("mossy statue", i));
+		}
+		battle.enemies.push(summon("briar monster", 4));
+		battle.enemies.push(summon("briar monster", 4));
+		battle.enemies.push(summon("briar monster", 4));
+		battle.enemies.push(summon("seated figure", 4));
 	}
 	return msg;
 }
 
 function StartBattle(battle) {
 	let msg = "";
-	let avgLevel = 0;
-	let numPlayers = 0;
+	let lvl = 0;
+	let num = 0;
 	for (let i = 0; i < battle.allies.length; i++) {
 		if (battle.allies[i].TYPE == "player") {
-			numPlayers++;
+			num++;
 			AddEffect(battle.allies[i], "Coward's Haste", 1);
-			avgLevel += battle.allies[i].LEVEL;
+			lvl += battle.allies[i].LEVEL;
 			battle.allies[i].STAMINA = MaxStamina(battle.allies[i]);
 			if (battle.allies[i].CLASS == "noble") {
 				let servant = summon("servant", battle.allies[i].ROW);
@@ -162,54 +242,69 @@ function StartBattle(battle) {
 			}
 		}
 	}
-	avgLevel /= numPlayers;
 	
-	let rating = 45 * (numPlayers);
-	rating = Math.pow(rating, 1 + (numPlayers/100));
-	rating *= (1 + .1 * (battle.level - 1));
-	rating *= Math.pow((1 + .25 * (avgLevel - 1)), 1.5);
-	if (avgLevel > 3) {
-		rating = Math.pow(rating, 1 + (avgLevel/100));
+	if (battle.level == 4) {
+		msg += FinalBoss(battle);
 	}
-	
-	rating = Math.max(rating, 30 + 20 * battle.level - 1);
-	
-	ran = rand(6);
-	if (ran == 0) {
-		let locationNames = ["Haunted Crypts", "Acrid Swamp", "Wilted Woods", "Stony Island"];
-		msg += "*CYAN*You've enraged the " + locationNames[battle.zone] + "!\n\n";
-		rating *= 1.5;
-	}
-	
-	console.log("Combat Difficulty: " + rating);
-	let quests = data["town"].quests;
-	let validTeams = [];
-	for (const team of enemyLevels[battle.level - 1]) {
-		if (validZone(team, battle.zone) && CalcDifficulty(team) <= rating) {
-			validTeams.push(team);
+	else {
+		lvl /= num;
+		let rating = 45 * num * Math.pow(1.3, lvl);
+		
+		ran = rand(6);
+		if (ran == 0) {
+			let locationNames = ["Haunted Crypts", "Acrid Swamp", "Wilted Woods", "Stony Island"];
+			msg += "*CYAN*You've enraged the " + locationNames[battle.zone] + "!\n\n";
+			rating *= 1.5;
 		}
-	}
-	for (const quest of quests) {
+		
+		console.log("Combat Difficulty: " + rating);
+		let quests = data["town"].quests;
+		let validEnemies = [];
+		let minRating = 0;
+		if (rating > 300) {
+			minRating = 50;
+		}
+		if (rating > 400) {
+			minRating = 70;
+		}
 		for (const enemy of enemies) {
-			if (enemy.NAME.toLowerCase() == quest.enemy.toLowerCase()) {
-				let team = [enemy];
-				if (validZone(team, battle.zone) && CalcDifficulty(team) <= rating) {
-					validTeams.push(team);
-					validTeams.push(team);
-				}
-				break;
+			if (validZone(enemy, battle.zone) && enemy.DIFFICULTY >= minRating && enemy.DIFFICULTY <= rating) {
+				validEnemies.push(enemy);
 			}
 		}
-	}
-	while (validTeams.length > 0 && rating > 0) {
-		let method = rand(2);
-		let min = 0;
-		if (method == 0) {
-			min = rand(validTeams.length);
+		for (const quest of quests) {
+			for (const enemy of enemies) {
+				if (enemy.NAME.toLowerCase() == quest.enemy.toLowerCase()) {
+					if (validZone(enemy, battle.zone) && enemy.DIFFICULTY <= rating) {
+						validEnemies.push(enemy);
+						validEnemies.push(enemy);
+					}
+					break;
+				}
+			}
 		}
-		let index = min + rand((validTeams.length - min));
-		for (const enemy of validTeams[index]) {
-			let temp = COPY(enemy);
+		if (rating > 200 && rand(100) <= 10) {
+			if (battle.zone == 0 || battle.zone == 2) {
+				validEnemies = [];
+				for (const enemy of enemies) {
+					if (enemy.NAME.toLowerCase().includes("hiveling") && enemy.DIFFICULTY <= rating) {
+						if (enemy.NAME != "Hiveling Larva") {
+							validEnemies.push(enemy);
+						}
+						if (enemy.NAME == "Hiveling Warrior") {
+							let temp = COPY(enemy);
+							temp.ID = temp.NAME + rating + rand(99999999999); 
+							rating -= temp.DIFFICULTY;
+							msg += "*RED*The " + temp.NAME + " approaches. . .*GREY*\n";
+							battle.enemies.push(temp);
+						}
+					}
+				}
+			}
+		}
+		while (validEnemies.length > 0 && rating > 0) {
+			let index = rand((validEnemies.length));
+			let temp = COPY(validEnemies[index]);
 			if (temp.NAME == "Ephemeral Warrior") {
 				AddEffect(temp, "fading", 8);
 			}
@@ -219,17 +314,27 @@ function StartBattle(battle) {
 			else if (rand(8) == 0) {
 				temp.ROW = 3;
 			}
+			temp.ID = temp.NAME + rating + rand(99999999999); 
 			battle.enemies.push(temp);
-			msg += "*RED*The " + enemy.NAME + " approaches. . .*GREY*\n";
-			rating -= enemy.DIFFICULTY;
+			msg += "*RED*The " + temp.NAME + " approaches. . .*GREY*\n";
+			rating -= temp.DIFFICULTY;
+			var newTeams = [];
+			for (const enemy of validEnemies) {
+				if (enemy.DIFFICULTY <= rating) {
+					newTeams.push(enemy);
+				}
+			}
+			validEnemies = newTeams;
 		}
-		var newTeams = [];
-		for (let i = 0; i < validTeams.length; i++) {
-			if (CalcDifficulty(validTeams[i]) <= rating) {
-				newTeams.push(validTeams[i]);
+		for (let i = 0; i < battle.enemies.length; i++) {
+			if (battle.enemies[i].NAME == "Hiveling Guard") {
+				let tag = "*YELLOW*E" + (i + 1) + "*GREY* - ";
+				let text = enemyAttack(i, battle.enemies, battle.allies, battle.deadEnemies, battle.deadAllies);
+				if (text != "") {
+					msg += tag + text + "\n";
+				}
 			}
 		}
-		validTeams = newTeams;
 	}
 	battle.enemies = shitSort(battle.enemies, "DIFFICULTY");
 	return msg;
@@ -250,6 +355,26 @@ function PurgeBattles() {
 }
 
 function WinBattle(battle) {
+	if (battle.level >= 4) {
+		for (let i = 0; i < battle.allies.length; i++) {
+			if (battle.allies[i].TYPE == "player") {
+				let C = battle.allies[i];
+				let report = new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.REPORT, C.DESCRIPTION);
+				if (C.SERVANT && C.SERVANT != "") {
+					report.NAME = C.SERVANT + " *GREY*and*GREEN* " + C.NAME;
+				}
+				if (battle.zone == 2) {
+					report.DEATH = "Elder Succubus";
+				}
+				data["town"].statues.push(report);
+				C.RETIRED = true;
+				data["town"].retired.push(C);
+			}
+		}
+		battle.allies = [];
+		SaveState();
+		return "*CYAN*A statue is commissioned of you for your deeds, and you enter a permanent retirement in the hall of heroes!\n";
+	}
 	let msg = "";
 	battle.started = false;
 	msg += "*GREEN*The enemies are all slain!*GREY*\n";
@@ -263,7 +388,7 @@ function WinBattle(battle) {
 			for (let i = 0; i < INVENTORY.length; i++) {
 				INVENTORY[i].equipped = false;
 				let ran = rand(100);
-				if (ran < 20) {
+				if (ran < 30) {
 					battle.loot.push(INVENTORY[i]);
 				}
 			}
@@ -284,7 +409,9 @@ function WinBattle(battle) {
 	}
 	let goldReward = 10;
 	let expReward = 0;
+	let numMimics = 0;
 	for (const enemy of battle.deadEnemies) {
+		msg += CheckQuest(enemy, battle.allies);
 		let lootValue = 0;
 		let mimicSpawned = false;
 		if (!enemy.SUMMONED) {
@@ -300,29 +427,31 @@ function WinBattle(battle) {
 			else {
 				goldReward += (1 + Math.ceil(enemy.DIFFICULTY/8));
 			}
+			goldReward = Math.min(200, goldReward);
 			expReward += enemy.DIFFICULTY;
 			for (const drop of enemy.LOOT) {
 				let ran = rand(100);
-				if (lootValue < enemy.DIFFICULTY) {
+				if (lootValue <= enemy.DIFFICULTY/2) {
 					if (ran <= drop.chance) {
 						let index = findItem(items, drop.name);
 						if (index > -1) {
 							battle.loot.push(COPY(items[index]));
 							lootValue += items[index].value;
-							if (!mimicSpawned && rand(16) == 0) {
-								//mimicSpawned = true;
-								let mimics = [
-									new Item("Stanima Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
-									new Item("Heolth Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
-									new Item("Armor", 			"mimic", 0, "It looks like metal, but it's pulsing . . ."),
-									new Item("Weapon", 			"mimic", 0, "It kind of looks like a sword, maybe an axe. . .")
-								]
-								battle.loot.push(COPY(mimics[rand(mimics.length)]));
-							}
 						}
 					}
 				}
 			}
+		}
+		if (rand(5) == 0 && (numMimics < battle.loot.length/4)) {
+			numMimics++;
+			let mimics = [
+				new Item("Stanima Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
+				new Item("Heolth Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
+				new Item("Armor", 			"mimic", 0, "It looks like metal, but it's pulsing . . ."),
+				new Item("Weapon", 			"mimic", 0, "It kind of looks like a sword, maybe an axe. . ."),
+				new Item("Gold", 			"mimic", 0, "An amoprhous pile resembling coins.")
+			]
+			battle.loot.push(COPY(mimics[rand(mimics.length)]));
 		}
 	}
 	msg += "*GREEN*Each player gains " + goldReward + " gold and " + expReward + " experience!\n";
@@ -345,6 +474,7 @@ function WinBattle(battle) {
 	battle.enemies = [];
 	battle.deadEnemies = [];
 	battle.deadAllies = [];
+	msg += DrawCombat(battle) + "\n";
 	return msg;
 }
 
@@ -359,6 +489,7 @@ function CheckQuest(enemy, allies) {
 				msg += "*YELLOW*Quest Completed! Town gains " + quest.value * 3 + " prosperity! Players gain " + quest.value + " gold!\n";
 				data["town"].prosperity += 3 * quest.value;
 				for (const player of allies) {
+					console.log(player.NAME);
 					if (player.GOLD) {
 						player.REPORT.gold += quest.value;
 						player.GOLD += quest.value;
@@ -391,9 +522,6 @@ function CheckEnemies(battle, testing = false) {
 	}
 	for (let i = battle.enemies.length - 1; i >= 0; i--) {
 		if (battle.enemies[i].HP <= 0) {
-			if (!testing) {
-				msg += CheckQuest(battle.enemies[i], battle.allies);
-			}
 			battle.deadEnemies.push(COPY(battle.enemies[i]));
 			battle.enemies.splice(i, 1);
 		}
@@ -428,13 +556,13 @@ function HandleCombat(battle, purgeBattle = true, testing = false) {
 	if (battle.started && battle.allyTurn && TurnCompleted(battle.allies)) {
 		battle.allyTurn = false;
 		msg += "*RED*It is now the enemies' turn!\n\n";
-		msg += StartTurn(battle.enemies, battle.allies, battle.deadEnemies, battle.deadAllies);
+		msg += StartTurn(battle, battle.enemies, battle.allies, battle.deadEnemies, battle.deadAllies, "E");
 		msg += CheckEnemies(battle, testing);
 	}
 	if (battle.started && !battle.allyTurn && TurnCompleted(battle.enemies)) {
 		battle.allyTurn = true;
 		msg += "*GREEN*It is now the players' turn!\n\n";
-		msg += StartTurn(battle.allies, battle.enemies, battle.deadAllies, battle.deadEnemies);
+		msg += StartTurn(battle, battle.allies, battle.enemies, battle.deadAllies, battle.deadEnemies, "P");
 		msg += CheckEnemies(battle, testing);
 	}
 	
@@ -448,19 +576,21 @@ function HandleCombat(battle, purgeBattle = true, testing = false) {
 function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	let msg = "";
 	let enemy = Battle.enemies[enemyIndex];
+	let enemyHP = enemy.HP;
+	let eName = enemy.NAME;
 	let targetRow = enemy.ROW;
 	let weapon = C.INVENTORY[weaponIndex];
 	if (depth == 0) {
 		weapon.attacks[0]--;
-		C.AP -= (weapon.AP + APCost(C));
+		C.AP -= weapon.AP;
 	}
+	RemoveEffect(C, "Coward's Haste");
 	let dmg = weapon.min + rand(1 + ((weapon.max + C.STATS[WEP]) - weapon.min));
 	if (hasWeaponRune(weapon, "powerful")) {
 		dmg *= 1.25;
 	}
 	if (C.CLASS == "ranger") {
 		let mult = 1 + (1 + Math.abs(C.ROW - enemy.ROW)) * .05;
-		console.log(mult);
 		dmg *= mult;
 	}
 	dmg = Math.floor(dmg * (1 + .05 * C.STATS[WEP]));
@@ -539,13 +669,13 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		}
 		if (enemy.HP > 0) {
 			if (hasWeaponRune(weapon, "affliction")) {
-				let effects = ["poisoned", "venom", "bleed"];
-				msg += AddEffect(enemy, effects[rand(3)]);
+				let effects = ["poison", "venom", "bleed"];
+				msg += AddEffect(enemy, effects[rand(3)], 3, C);
 			}
 			if (weapon.subclass == "whip") {
 				let chance = rand(101);
 				if (chance <= 50) {
-					msg += AddEffect(enemy, "Whipped", 3);
+					msg += AddEffect(enemy, "Whipped", 3, C);
 				}
 			}
 		}
@@ -554,26 +684,29 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 			Battle.allies.push(summon("zombie", enemy.ROW));
 		}
 	}
-	//---------------------------------------------
-	let sweepDmg = 0;
-	if (weapon.subclass == "blunt") {
-		sweepDmg += 2;
-	}
-	if (hasWeaponRune(weapon, "sweeping") && result[1] > 0) {
-		sweepDmg += Math.max(1, Math.round(dmg * .2));
-	}
-	if (sweepDmg > 0) {
-		for (let i = 0; i < Battle.enemies.length; i++) {
-			if (i != enemyIndex && Battle.enemies[i].ROW == targetRow) {
-				msg += DealDamage(new P_Attack(sweepDmg), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
+	
+	let bossKill = (enemy.TYPE == "boss" && eName != enemy.NAME);
+	if (!bossKill) {
+		let sweepDmg = 0;
+		if (weapon.subclass == "blunt") {
+			sweepDmg += 2;
+		}
+		if (hasWeaponRune(weapon, "sweeping") && result[1] > 0) {
+			sweepDmg += Math.max(1, Math.round(dmg * .2));
+		}
+		if (sweepDmg > 0 && !bossKill) {
+			for (let i = 0; i < Battle.enemies.length; i++) {
+				if (i != enemyIndex && Battle.enemies[i].ROW == targetRow) {
+					msg += DealDamage(new P_Attack(sweepDmg), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
+				}
 			}
 		}
+		if (enemy.HP > 0) {
+			msg += "The *RED*" + enemy.NAME + "*GREY* has *RED*" + enemy.HP + "*GREY* HP remaining.\n"
+		}
+		msg += "*GREEN*" + C.NAME + "*GREY* has " + C.AP + " *GREEN*AP*GREY* left this turn.\n";
+		msg += "\n";
 	}
-	if (enemy.HP > 0) {
-		msg += "The *RED*" + enemy.NAME + "*GREY* has *RED*" + enemy.HP + "*GREY* HP remaining.\n"
-	}
-	msg += "*GREEN*" + C.NAME + "*GREY* has " + C.AP + " *GREEN*AP*GREY* left this turn.\n";
-	msg += "\n";
 	return msg;
 }
 

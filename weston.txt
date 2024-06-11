@@ -1,0 +1,275 @@
+{
+"TYPE": "player",
+"DESCRIPTION": "A *RED*short*GREY*, *RED*myopic*GREY* man with *YELLOW*hay-colored hair*GREY*. He wears extremely thick glass *BLUE*spectacles*GREY*, and appears quite *GREEN*stocky*GREY* and *CYAN*dim-witted*GREY*.",
+"LEFT": 0,
+"RIGHT": 0,
+"INVENTORY": [
+	{
+		"type": "weapon",
+		"subclass": "ranged",
+		"description": "",
+		"effect": "",
+		"runes": [
+			{
+				"value": 90,
+				"type": "rune",
+				"target": "weapon",
+				"name": "Invigorant",
+				"description": "Your weapon is able to attack +1 time",
+				"equipped": false
+			},
+			{
+				"value": 90,
+				"type": "rune",
+				"target": "weapon",
+				"name": "Density",
+				"description": "Attacks cost +3 AP, but gain +8 Damage",
+				"equipped": false
+			},
+			{
+				"value": 90,
+				"type": "rune",
+				"target": "weapon",
+				"name": "Accurate",
+				"description": "Any attacks that miss their target are re-tried one time",
+				"equipped": false
+			},
+			{
+				"value": 90,
+				"type": "rune",
+				"target": "weapon",
+				"name": "Powerful",
+				"description": "+25% Weapon Base Damage on Attacks",
+				"equipped": false
+			},
+			{
+				"value": 90,
+				"type": "rune",
+				"target": "weapon",
+				"name": "Sweeping",
+				"description": "When you hit an enemy, deal 20% of the damage to other enemies in the row",
+				"equipped": false
+			}
+		],
+		"name": "Repeating Crossbow",
+		"hands": 2,
+		"value": 50,
+		"attacks": [
+			0,
+			5
+		],
+		"chance": 70,
+		"min": 12,
+		"max": 16,
+		"pen": 0,
+		"AP": 6,
+		"range": 5,
+		"equipped": true,
+		"canDrop": true
+	},
+	{
+		"type": "armor",
+		"effect": "",
+		"name": "Jade Armor",
+		"armor": [
+			9,
+			9
+		],
+		"AP": 6,
+		"value": 100,
+		"runes": [
+			{
+				"value": 100,
+				"type": "rune",
+				"target": "armor",
+				"name": "Reflex",
+				"description": "Gain +25% Dodge Chance against all attacks. When you dodge an attack, deal 6 damage to your attacker",
+				"equipped": false
+			},
+			{
+				"value": 100,
+				"type": "rune",
+				"target": "armor",
+				"name": "Impervious",
+				"description": "Gain +3 Physical and +3 Magical Armor",
+				"equipped": false
+			},
+			{
+				"value": 100,
+				"type": "rune",
+				"target": "armor",
+				"name": "Jade",
+				"description": "You can't take more than 10 damage. Damage is reduced by 1.",
+				"equipped": false
+			},
+			{
+				"value": 100,
+				"type": "rune",
+				"target": "armor",
+				"name": "Cultivation",
+				"description": "Gain +3 AP and +4 HP each turn",
+				"equipped": false
+			}
+		],
+		"equipped": true,
+		"description": "An ancient armor wrought of shimmering Jade stone.",
+		"canDrop": true
+	},
+	{
+		"name": "Health Potion",
+		"type": "potion",
+		"value": 15,
+		"equipped": false,
+		"runes": [],
+		"description": "Restores 30 HP"
+	},
+	{
+		"name": "Health Potion",
+		"type": "potion",
+		"value": 15,
+		"equipped": false,
+		"runes": [],
+		"description": "Restores 30 HP"
+	},
+	{
+		"name": "Health Potion",
+		"type": "potion",
+		"value": 15,
+		"equipped": false,
+		"runes": [],
+		"description": "Restores 30 HP"
+	},
+	{
+		"name": "Health Potion",
+		"type": "potion",
+		"value": 15,
+		"equipped": false,
+		"runes": [],
+		"description": "Restores 30 HP"
+	},
+	{
+		"name": "Health Potion",
+		"type": "potion",
+		"value": 15,
+		"equipped": false,
+		"runes": [],
+		"description": "Restores 30 HP"
+	},
+	{
+		"name": "Panacea",
+		"type": "potion",
+		"value": 10,
+		"equipped": false,
+		"runes": [],
+		"description": "Cleanses all negative debuffs"
+	},
+	{
+		"name": "Panacea",
+		"type": "potion",
+		"value": 10,
+		"equipped": false,
+		"runes": [],
+		"description": "Cleanses all negative debuffs"
+	},
+	{
+		"name": "Panacea",
+		"type": "potion",
+		"value": 10,
+		"equipped": false,
+		"runes": [],
+		"description": "Cleanses all negative debuffs"
+	},
+	{
+		"name": "Panacea",
+		"type": "potion",
+		"value": 10,
+		"equipped": false,
+		"runes": [],
+		"description": "Cleanses all negative debuffs"
+	},
+	{
+		"name": "Panacea",
+		"type": "potion",
+		"value": 10,
+		"equipped": false,
+		"runes": [],
+		"description": "Cleanses all negative debuffs"
+	},
+	{
+		"name": "Haste Potion",
+		"type": "potion",
+		"value": 10,
+		"equipped": false,
+		"runes": [],
+		"description": "Restores 6 AP"
+	},
+	{
+		"name": "Haste Potion",
+		"type": "potion",
+		"value": 10,
+		"equipped": false,
+		"runes": [],
+		"description": "Restores 6 AP"
+	},
+	{
+		"name": "Haste Potion",
+		"type": "potion",
+		"value": 10,
+		"equipped": false,
+		"runes": [],
+		"description": "Restores 6 AP"
+	}
+],
+"SKILLS": [],
+"ABILITIES": [],
+"SPELLS": [],
+"NAME": "Weston",
+"ID": "462829989465948180Westonranger67737",
+"CLASS": "ranger",
+"STATS": [
+	17,
+	0,
+	9,
+	95,
+	11,
+	7
+],
+"SP": 3,
+"HP": 198,
+"MANA": 0,
+"GOLD": 206,
+"STAMINA": 135,
+"AP": 6,
+"ENDED": false,
+"LEVEL": 32,
+"XP": 2925,
+"ARMOR": [
+	0,
+	0
+],
+"LOCATION": "The Stony Island",
+"BUILDING": "guild hall",
+"BACKPACK": true,
+"EFFECTS": [],
+"ROW": 0,
+"ATTACKS": 0,
+"CASTS": 0,
+"TRADING": "",
+"HITS": [
+	838,
+	838
+],
+"ATTEMPTS": [
+	1184,
+	1184
+],
+"REPORT": {
+	"kills": 1329,
+	"gold": 12904,
+	"damage": 215920,
+	"taken": 3170,
+	"mitigated": 7399
+},
+"FLED": false,
+"RETIRED": true
+}

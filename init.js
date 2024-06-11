@@ -1,8 +1,5 @@
 function initRunes() {
-	//Good Armor Runes
-	//runes.push(new Rune("Revenge", 50, "armor", "If you are killed, kill the enemy that killed you."));
-	
-	//Good Armor Runes
+	//Armor Runes
 	runes.push(new Rune("Preservation", 100, 	"armor", 	"At the start of your turn gain HP equal to half your AP left over from the previous turn"));
 	runes.push(new Rune("Amber", 		100, 	"armor", 	"Whenever you take damage from an enemy attack, heal 2 HP"));
 	runes.push(new Rune("Vine", 		100, 	"armor", 	"Healing you receive is increased by 50%"));
@@ -12,16 +9,19 @@ function initRunes() {
 	runes.push(new Rune("Cascade", 		100,	"armor", 	"When you deal damage to an enemy, add 1 true damage"));
 	runes.push(new Rune("Reflex", 		100, 	"armor", 	"Gain +25% Dodge Chance against all attacks. When you dodge an attack, deal 6 damage to your attacker"));
 	runes.push(new Rune("Sunset", 		100, 	"armor", 	"Each turn deal 3 true damage to all enemies"));
-	runes.push(new Rune("Huntsman", 	100, 	"armor", 	"You can flee combat from any row. When you win a battle, heal to full HP."));
+	runes.push(new Rune("Huntsman", 	100, 	"armor", 	"Fleeing costs no AP and can be done from any row. When you win a battle, heal to full HP."));
 	runes.push(new Rune("Static", 		100, 	"armor", 	"Gain 3 stacks of static each turn. Static deals damage to a random enemy. Lose 1 stack when you take damage."));
 	runes.push(new Rune("Berserk", 		100, 	"armor", 	"For every 10% missing HP, gain 5% damage dealt"));
-	runes.push(new Rune("Pacifist", 	100, 	"armor", 	"Your damage dealt is increased by 100%. Your spell and attack damage is reduced to 0."));
+	runes.push(new Rune("Pacifist", 	100, 	"armor", 	"Your damage dealt is increased by 100%. Your spell and attack damage is reduced to nothing."));
+	runes.push(new Rune("Bold", 		100, 	"armor", 	"Gain +4 Physical and Magical Armor against enemies in your row."));
+	runes.push(new Rune("Equality",		100,	"armor",	"Whenever you receive a debuff, duplicate the debuff onto your attacker."));
 	
+	//Wild Armor Runes
 	runes.push(new Rune("Jade", 		125, 	"armor", 	"Incoming Damage is reduced by 1. You can't take more than 10 damage from a single attack"));
 	runes.push(new Rune("Honeycomb", 	125, 	"armor", 	"Whenever you are hit by an attack, summon a swarm of bees"));
 	runes.push(new Rune("Reflect", 		125, 	"armor", 	"Whenever you are hit, reflect 5 damage to your attacker"));
 
-	//Good Weapon Runes
+	//Weapon Runes
 	runes.push(new Rune("Affliction", 	80, 	"weapon", 	"Randomly inflict Venom, Bleed, or Poison onto your target"));
 	runes.push(new Rune("Maladious", 	90, 	"weapon", 	"Your weapon gains +1 damage if a target is debuffed, as well as +1 damage per debuff"));
 	runes.push(new Rune("Leeching", 	90, 	"weapon", 	"Restore +2 HP and +4 Stamina per Attack"));
@@ -34,18 +34,20 @@ function initRunes() {
 	runes.push(new Rune("Density",		90,		"weapon",	"Attacks cost +3 AP, but gain +8 Damage"));	
 	runes.push(new Rune("Peel", 		90, 	"weapon", 	"When you hit an enemy, reduce their physical protections by 2"));
 	runes.push(new Rune("Orisha", 		90, 	"weapon", 	"Gain +30% Penetration"));
+
+	//Wild Weapon Runes
 	runes.push(new Rune("Death Mark", 	125, 	"weapon", 	"Slain enemies are raised as allied zombies"));
-
-
+	
+	//Staff Runes
 	runes.push(new Rune("Tar", 			75, 	"staff", 	"Enemies damaged by your spells are weakened, reducing their damage by 25%"));
-	runes.push(new Rune("Focus", 		90, 	"staff", 	"You can't cast more than one spell a turn. Your spell damage is increased by 75%"));
+	runes.push(new Rune("Focus", 		90, 	"staff", 	"You can't cast more than one spell a turn. Your spell damage is increased by 100%"));
 	runes.push(new Rune("Heavy", 		90, 	"staff", 	"Your spells cost +2 AP but deal +4 Damage per target"));
 	runes.push(new Rune("Light", 		90, 	"staff", 	"You can cast +2 spells per turn"));
-	runes.push(new Rune("Pearl", 		90, 	"staff", 	"Killing an enemy with a spell restores 20 Stamina"));
+	runes.push(new Rune("Pearl", 		90, 	"staff", 	"Your spells' HP cost is increased by the AP cost of the spell, but your spells cast twice."));
 	runes.push(new Rune("Autumn", 		95, 	"staff", 	"When you cast a spell with healing, perform another 3 HP heal on a random ally"));
 	runes.push(new Rune("Ivory", 		110, 	"staff", 	"Each spell has a 20% Chance to have no AP cost"));
-	runes.push(new Rune("Sanguine", 	110,	"staff", 	"Your spells have no AP cost. Your spells HP cost is increased by the AP cost of the spell + 3"));
-	runes.push(new Rune("Forthwith", 	115, 	"staff", 	"Each turn, the first magical damage you deal is doubled"));
+	runes.push(new Rune("Sanguine", 	110,	"staff", 	"Your spells have no AP cost. Your spells' HP cost is increased by the AP cost of the spell + 3"));
+	runes.push(new Rune("Forthwith", 	115, 	"staff", 	"Each turn, the first spell damage you deal to a target is doubled."));
 	runes.push(new Rune("Spring", 		115, 	"staff", 	"Heal 2 HP whenever you cast a spell"));
 	runes.push(new Rune("Charcoal", 	115, 	"staff", 	"Your spells gain +1 Damage"));
 	runes.push(new Rune("Hollow", 		125, 	"staff", 	"Your spells have their AP costs reduced by 1"));
@@ -185,7 +187,7 @@ function initLocations() {
 	Gout.ITEMS = ["stick and string", "old fishing pole", "fishing pole", "masterwork pole"];
 	Minsiki.ITEMS = ["backpack", "jade armor", "rondel dagger", "spiked shield", "quarterstaff", "whip", "scourge", "urumi", "scimitar"];
 	Florence.ITEMS = ["Plain Cassock", "Acolyte Robes", "Warded Cloak", "Stylish Shirt", "Plain Cloak", "Leather Cuirass", "Quilted Gambeson", "Silk Armor", "Amethyst Tunic"];
-	Kobos.ITEMS = ["Longsword", "Claymore", "Morningstar", "War Hammer", "Mace", "Maul", "Flail", "Bearded Axe", "War Axe", "Great Axe", "Shield", "Scale Armor", "Chainmail", "Plate Armor"];
+	Kobos.ITEMS = ["Spear", "Halberd", "Longsword", "Claymore", "Morningstar", "War Hammer", "Mace", "Maul", "Flail", "Bearded Axe", "War Axe", "Great Axe", "Shield", "Scale Armor", "Chainmail", "Plate Armor"];
 	Clyde.ITEMS = ["Dagger", "Club", "Hatchet", "Buckler", "Throwing Axe", "Staff Sling", "Longbow", "Crossbow", "Repeating Crossbow"];
 	Qarana.ITEMS = ["Health Potion", "Haste Potion", "Stamina Potion", "Panacea", "Skill Potion", "Scroll: Envenom"];
 	Penelope.ITEMS = ["Penelope's Brew", "Mead", "Imperial Wine", "Northern Wine"]
@@ -349,7 +351,7 @@ function initItems() {
 	weapons.push(new Weapon("Morningstar", 					"blunt",	1, 		3,		25, 	70, 	6, 		8, 		50, 	3,		1));
 	weapons.push(new Weapon("War Hammer", 					"blunt",	1, 		1,		25, 	70, 	10, 	16,		70, 	6, 		1));
 	weapons.push(new Weapon("Mace", 						"blunt",	2, 		2,		50, 	70,		10,		16,		80,		6,		1));
-	weapons.push(new Weapon("Maul", 						"blunt",	2, 		1,		50, 	80, 	24, 	32, 	70, 	12, 	1));
+	weapons.push(new Weapon("Maul", 						"blunt",	2, 		1,		50, 	70, 	26, 	32, 	70, 	12, 	1));
 	
 	//Whips
 	weapons.push(new Weapon("Whip", 						"whip",		1, 		1,		25, 	90,		8,		12,		0,		6,		3));
@@ -386,6 +388,7 @@ function initItems() {
 	items.push(new Item("Stamina Potion", 		"potion", 	10, 	"Restores 50 Stamina"));
 	items.push(new Item("Haste Potion", 		"potion", 	10, 	"Restores 6 AP"));
 	items.push(new Item("Panacea", 				"potion", 	10, 	"Cleanses all negative debuffs"));
+	items.push(new Item("Bottle of Ash", 		"potion", 	0, 		"A bottle of oily black ash"));
 	items.push(new Item("Skill Potion", 		"potion", 	250, 	"Provides +1 Stat Point"));
 	items.push(new Item("Penelope's Brew", 		"drink", 	1, 		"A proprietary brew of Penelope. May or may not be any good."));
 	items.push(new Item("Mead", 				"drink", 	3, 		"The taste of honey is especially strong."));
@@ -414,16 +417,14 @@ function initItems() {
 	items.push(new Item("Tome of Affliction",	"spellbook",60,		"A book about spells relating to debuffing enemies."));
 	items.push(new Item("Tome of Destruction",	"spellbook",60,		"A book about spells relating to damaging groups of enemies."));
 	items.push(new Item("Tome of the Guardian",	"spellbook",60,		"A book about spells relating to healing and buffing allies."));
-	items.push(new Item("Blood Spellbook",		"",			50,		"Used to learn powerful spells which cost HP to use."));
-	items.push(new Item("Elemental Spellbook",	"",			50,		"Used to learn strong elemental spells."));
-	items.push(new Item("Witchcraft Spellbook", "",			50,		"Used to learn spells related to witchcraft."));
-	items.push(new Item("Divine Spellbook", 	"",			50,		"Used to learn strong spells which cost Gold to use."));
-	items.push(new Item("Imperial Spellbook", 	"",			50,		"Used to learn spells that buff your other spells."));
-	items.push(new Item("Backpack", 			"backpack",	60,		"Increases your carry capacity to 15 Item Slots."));
+	items.push(new Item("Backpack", 			"backpack",	50,		"Increases your carry capacity to 15 Item Slots."));
 	items.push(new Item("Wand",					"staff",	40,		"Used to cast spells."));
-	items.push(new Item("Crook", 				"staff",	100,	"Used to cast spells. Your healing spells heal +2 HP. Receive +1 HP per heal."));
-	items.push(new Item("Staff",				"staff",	100,	"Used to cast spells. Adds +1 Damage to your spells."));
-	items.push(new Item("Scepter",				"staff",	100,	"Used to cast spells. Spells have a 20% Chance to not use AP."));
+	items.push(new Item("Crook", 				"staff",	100,	"Your healing spells heal +2 HP. Heals you receive are increased by +1 HP"));
+	items.push(new Item("Coral Staff", 			"staff",	100,	"A colorful staff, sturdy and well-formed. Your damaging spells afflict bleeding. +3 Physical & +3 Magical Armor"));
+	items.push(new Item("Blood Staff", 			"staff",	100,	"A staff wrought of bone and inset with crystals of angelic blood. Heal +6 HP per turn. You're immune to Poison."));
+	items.push(new Item("Driftwood Staff",		"staff",	100,	"A double-ended staff of smooth wood, greyed by the swamp water that formed it. "));
+	items.push(new Item("Staff",				"staff",	100,	"Adds +1 Damage to your spells."));
+	items.push(new Item("Scepter",				"staff",	100,	"Spells have a 20% Chance to not use AP."));
 	
 	items.push(new Item("Stick and String",		"pole",		20,		"A length of twine wrapped around an old stick with a nail as a hook. It's a little unreliable."));
 	items.push(new Item("Old Fishing Pole",		"pole",		40,		"One of Gout's handmade fishing poles which have seen better days. The handle is cracked, but it still works."));
@@ -485,7 +486,7 @@ function initItems() {
 	//Both
 	armor.push(new Armor("Stylish Shirt", 			1,		1,		0,	15, "A rather stylish shirt."));
 	armor.push(new Armor("Quilted Gambeson", 		2, 		2, 		1, 	40, "A thickly padded armor that covers from head to toe."));
-	armor.push(new Armor("Silk Armor", 				3, 		3, 		2, 	75, "An exquisite piece of incredibly light armor."));
+	armor.push(new Armor("Silk Armor", 				4, 		4, 		3, 	75, "An exquisite piece of incredibly light armor."));
 	armor.push(new Armor("Jade Armor", 				6, 		6, 		6, 	100, "An ancient armor wrought of shimmering Jade stone."));
 	//Purely Magical
 	armor.push(new Armor("Plain Cassock", 			0,		2,		0,	15, "A monk's robes. They offer some protection against evil."));
@@ -527,7 +528,7 @@ function initSpells() {
 	addSpell("Pierce", 			"duelist",	"Deal 4 True Damage to an enemy.", 																				1, 4);
 	addSpell("Hemic Strike",	"duelist",	"Lose 5 HP. Deal 12-18 Damage to an enemy.",																	1, 9, 5);
 	addSpell("Lightning",		"duelist",	"Deal 3 damage to an enemy. Deals +1 damage this turn.",														1, 3);
-	addSpell("Swamp Strike",	"wild",		"Deal 4-8 damage to a target and poison them.",																	1, 6);
+	addSpell("Swamp Strike",	"wild",		"Deal 4-6 damage to a target and afflict 3 stacks of poison onto them.",										1, 6);
 	
 	// - Self-Buffs // Tome of Strength
 	//		 Name				School		Description																										#, AP, HP, Range
@@ -536,6 +537,7 @@ function initSpells() {
 	addSpell("Stoneskin",		"strength",	"+8 Physical Armor +4 Magical Armor for 3 turns.",																0, 6);
 	addSpell("Preparation",		"strength",	"Gain 4 AP a turn. Lasts 3 turns.",																				0, 6);
 	addSpell("Ferocity", 		"strength",	"Your damaging spells do +2 DMG per instance this turn.", 														0, 3);
+	addSpell("Endure", 			"strength",	"Increase the duration of your buffs by 1 turn.", 																0, 12);
 	addSpell("Roots", 			"wild",		"Root yourself for 3 turns. Heal 6 HP per turn for 3 turns.", 													0, 6);
 	addSpell("Feed Flame", 		"wild",		"Gain 1 Ember. Deal damage equal to the amount of Embers you have. Ember reduces your HP by 1 per turn.", 		1, 4);
 	addSpell("Ignite", 			"wild",		"For each Ember you have, lose 1 HP and deal damage equal to half your total number of Embers.",				1, 9);
@@ -553,9 +555,9 @@ function initSpells() {
 	rowSpell("Summon Warrior",	"summoning","Lose 10 HP. Summon a warrior.",																				1, 12, 10);
 	rowSpell("Summon Beast",	"summoning","Lose 20 HP. Summon a random animal.",																			1, 12, 20);
 	allSpell("Maintain",		"summoning","Refresh the Fading effect of a creature, keeping them around for 3 more turns.",								1, 6);
-	addSpell("Empower",			"summoning","Your currently summoned creatures deal +3 Damage per attack for 3 turns.",												0, 6);
+	addSpell("Empower",			"summoning","Your currently summoned creatures deal +3 Damage per attack for 3 turns.",										0, 6);
 	addSpell("Shepherd", 		"summoning","Heal your summoned creatures 4-8 HP.",																			0, 6);
-	addSpell("Compensation", 	"summoning","Heal 8 HP when an ally is struck down. Lasts until the end of combat",								0, 6);
+	addSpell("Compensation", 	"summoning","Heal 8 HP when an ally is struck down. Lasts until the end of combat",											0, 6);
 	
 	// - Debuffs // Tome of Affliction
 	//		 Name				School			Description																										#, AP, HP, Range
@@ -563,7 +565,7 @@ function initSpells() {
 	addSpell("Peel",			"affliction",	"Reduce an enemy's Physical & Magical Armor by 1.",																1, 3);
 	addSpell("Expose",			"affliction",	"Increase the damage an enemy takes by 20% this turn.",															1, 6);
 	addSpell("Bind",			"wild",			"Root an enemy for 3 turns.",																					1, 6);
-	addSpell("Envenom",			"wild",			"Afflict an enemy with venom for 3 turns.", 																	1, 4);
+	addSpell("Envenom",			"wild",			"Afflict an enemy with venom for 6 turns.", 																	1, 4);
 	rowSpell("Gale",			"affliction",	"Push a row of enemies back one row.",																			1, 5);
 	rowSpell("Disperse",		"affliction",	"Teleport every enemy on your row to a random row, at least 2 rows away from you.",								0, 4, 0, 1);
 	addSpell("Freeze",			"affliction",	"Deal 2-4 damage to an enemy and stun them.",																	1, 6);
@@ -575,124 +577,128 @@ function initSpells() {
 	addSpell("Reap",			"destruction",	"Lose 10 HP. Deal 4-6 Damage to all enemies, healing 1 HP per target.",											0, 9, 10);
 	addSpell("Blizzard",		"destruction",	"Deal 2-4 damage to every enemy and slow them.",																0, 6);
 	addSpell("Gamble",			"destruction",	"Deal 2-16 damage to a random enemy in each row.",																0, 6);
-	addSpell("Exploit",			"destruction",	"Deal 3 damage to every enemy per debuff they have.",															0, 6);
+	addSpell("Exploit",			"destruction",	"Deal 3 damage to every enemy per debuff they have.",															0, 9);
+	addSpell("Holy Flame",		"destruction",	"Deal 1 damage per 2 AP you have to each enemy, costs all of your AP.",											0, 0);
 	
 	// - Healing & Buffs // Tome of the Guardian
 	//		 Name				School			Description																							#, AP, HP, Range
 	addSpell("Protection",		"guardian",		"+2 Physical Armor +2 Magical Armor for your allies 3 turns.",													0, 9);
-	allSpell("Heal",			"guardian",		"Heal an ally 4-8 HP.",																							1, 4);
+	allSpell("Heal",			"guardian",		"Heal an ally 4-6 HP.",																							1, 4);
 	addSpell("Rally",			"guardian",		"All allies gain 6 Stamina.",																					0, 4);
 	addSpell("Guidance",		"wild",			"Heal all allies 3 HP.",																						0, 5);
-	allSpell("Transfer Life",	"guardian",		"Lose 5 HP. Heal an ally for 8-12 HP.",																			1, 6, 5);
+	allSpell("Transfer Life",	"guardian",		"Lose 5 HP. Heal an ally for 8-10 HP.",																			1, 6, 5);
 	allSpell("Purify",			"guardian",		"Remove all debuffs from an ally.",																				1, 5);
 	allSpell("Deliverance",		"guardian",		"Lose 2 HP. Give an ally a stack of deliverance, which will save them from death one time.",					1, 4, 2);
 	
-	//Have Spells that are taken from Enemies
-	
-	console.log(spells.length);
+	//Deal Damage = to your Armor, lose 2 of each armor for the 
+	//6 6 3 3 3 3 8 4 2 2
 	
 }
 
 function initEnemies() {
 	//0 - The Haunted Crypts
 	//						Name, 					HP, 	Phys, 	Magic, 	Diff	Zones		MOVES	TYPE			DESCRIPTION
-	enemies.push(new Enemy("Imp",					30,		0,		0,		10,		[0, 1],		2,		"evil", 		"A miniscule, grey-skinned creature. Its long, spindly limbs support a fat torso that's little more than a ravenous mouth and a single eye"));
-	enemies.push(new Enemy("Zombie",				40,		0,		3,		15,		[0], 		2,		"evil", 		"A shambling heap of cold, rotting flesh. It's grey-eyed, and lacking any intellect.")); //Phys
-	enemies.push(new Enemy("Apparition",			15,		50,		50,		20,		[0], 		0, 		"evil", 		"A pale, transient figure bearing closer resemblance to a shimmering fog than to the human it once was.")); //Magic
-	enemies.push(new Enemy("Cultist",				50,		2,		2,		30,		[0, 2], 	2,		"", 			"Dressed in dark robes. They seem elated when they cut into flesh. What honeyed words have led them here, beyond reason?")); //Phys
-	enemies.push(new Enemy("Cave Spider",			80,		1,		0,		35,		[0], 		3,		"animal", 		"A frail-seeming thing, pale in color and long of leg and body. Clear venom drips from its fangs.")); //Phys
-	enemies.push(new Enemy("Skeletal Swordsman",	25,		16,		12,		40,		[0], 		1,		"evil", 		"Bleached white bones, devoid of all flesh, held together by dark magic and rusted armor. It wields an ancient Longsword.")); //Phys
-	enemies.push(new Enemy("Skeletal Spearman",		25,		16,		12,		40,		[0], 		1,		"evil", 		"Bleached white bones, devoid of all flesh, held together by dark magic and rusted armor. It wields an ancient Spear.")); //Phys
-	enemies.push(new Enemy("Skeletal Archer",		20,		16,		12,		40,		[0], 		1,		"evil", 		"Bleached white bones, devoid of all flesh, held together by dark magic. It wields a Longbow.")); //Phys
-	enemies.push(new Enemy("Goblin Swordsman",		75,		3,		1,		40,		[0, 1], 	2,		"", 			"A fanged, snarling goblin. Its blade is crudely wrought of iron, and chipped by many battles.")); //Phys
-	enemies.push(new Enemy("Goblin Spearman",		75,		3,		1,		40,		[0, 1], 	2,		"", 			"A fanged, snarling goblin. It wears a leather cuirass and wields a spear.")); //Phys
-	enemies.push(new Enemy("Goblin Archer",			50,		2,		1,		40,		[0, 1], 	2,		"", 			"A fanged, snarling goblin. It's lightly armored and carrying a longbow with a quiver of stone arrows.")); //Phys
-	enemies.push(new Enemy("Hungry Ghoul",			90,		0,		3,		50,		[0], 		2, 		"evil", 		"A ravenous humanoid creature, crawling on all fours. Its mouth hangs open; blood and flesh sticks to its grey teeth.")); //Magic
-	enemies.push(new Enemy("Wandering Moon", 		45,		16,		8,		60,		[0, 1, 2],	2,		"construction", "A rough sphere of glowing marble that floats ominously above travellers, eclipsing the true moon as to remain undetected."));
-	enemies.push(new Enemy("Bronze Bellbeast", 		45, 	8,		8,		70, 	[0], 		1,		"construction", "An ancient church bell, floating ominously above the ground. It still hums from the resonation of its last tolling.")); //Magic
-	enemies.push(new Enemy("Flesh Golem",			150,	0,		0,		75,		[0], 		2,		"", 			"A hulking assembly of flesh, crudely sewn and heaped together and imbued with life.")); //Phys
-	enemies.push(new Enemy("Swarm of Bats", 		100,	6,		6,		100,	[0],		4,		"animal", 		"A swarm of dark vampire bats. They move in unison, as though they were of mind.")); //phys
-	enemies.push(new Enemy("Vampire", 				100,	6,		6,		100,	[0],		4,		"evil", 		"A slim pale-skinned figure, dressed in old yet sturdy attire. There is an animal hunger behind their intelligent eyes.")); //magic
-	enemies.push(new Enemy("Cult Leader", 			125, 	4,		8,		115, 	[0, 2], 	2,		"", 			"A towering, muscular figure. He's decked out in ornate robes and gem-encrusted rings, and carrying a jagged onyx blade.")); //Phys
-	enemies.push(new Enemy("Lost Angel", 			77, 	7,		7,		100, 	[0], 		3,		"", 			"It is a creature of sublime beauty, surrounded by a glowing white aura, but behind its pretty eyes is a twitchy, animal intent. It seems to have gone mad down here.")); //Magic
-	enemies.push(new Enemy("Lich", 					100, 	16,		12,		150, 	[0], 		1,		"evil", 		"The Harbringer of Death. Its face is hidden beneath a dark mask from which all eyes turn. The dead obeys.")); //Magic
-	enemies.push(new Enemy("Goblin Warlord", 		150, 	6,		6,		150, 	[0, 1, 2], 	1,		"", 			"A tall, muscular creature with fangs that portrude as tusks. There is a wicked intelligence clear upon its face. It seems proud in its work.")); //Phys
+	enemies.push(new Enemy("Imp",					35,		0,		0,		30,		[0, 1],		2,		"evil", 		"A miniscule, grey-skinned creature. Its long, spindly limbs support a fat torso that's little more than a ravenous mouth and a single eye"));
+	enemies.push(new Enemy("Zombie",				50,		0,		0,		30,		[0], 		2,		"evil", 		"A shambling heap of cold, rotting flesh. It's grey-eyed, and lacking any intellect.")); //Phys
+	enemies.push(new Enemy("Apparition",			20,		50,		50,		30,		[0], 		0, 		"evil", 		"A pale, transient figure bearing closer resemblance to a shimmering fog than to the human it once was.")); //Magic
+	enemies.push(new Enemy("Cultist",				50,		2,		2,		50,		[0, 2], 	2,		"", 			"Dressed in dark robes. They seem elated when they cut into flesh. What honeyed words have led them here, beyond reason?")); //Phys
+	enemies.push(new Enemy("Cave Spider",			80,		1,		0,		50,		[0], 		3,		"animal", 		"A frail-seeming thing, pale in color and long of leg and body. Clear venom drips from its fangs.")); //Phys
+	enemies.push(new Enemy("Skeletal Swordsman",	40,		16,		12,		50,		[0], 		1,		"evil", 		"Bleached white bones, devoid of all flesh, held together by dark magic and rusted armor. It wields an ancient Longsword.")); //Phys
+	enemies.push(new Enemy("Skeletal Spearman",		40,		16,		12,		50,		[0], 		1,		"evil", 		"Bleached white bones, devoid of all flesh, held together by dark magic and rusted armor. It wields an ancient Spear.")); //Phys
+	enemies.push(new Enemy("Skeletal Archer",		30,		16,		12,		50,		[0], 		1,		"evil", 		"Bleached white bones, devoid of all flesh, held together by dark magic. It wields a Longbow.")); //Phys
+	enemies.push(new Enemy("Goblin Swordsman",		85,		3,		1,		60,		[0, 1], 	2,		"", 			"A fanged, snarling goblin. Its blade is crudely wrought of iron, and chipped by many battles.")); //Phys
+	enemies.push(new Enemy("Goblin Spearman",		85,		3,		1,		60,		[0, 1], 	2,		"", 			"A fanged, snarling goblin. It wears a leather cuirass and wields a spear.")); //Phys
+	enemies.push(new Enemy("Goblin Archer",			70,		2,		1,		60,		[0, 1], 	2,		"", 			"A fanged, snarling goblin. It's lightly armored and carrying a longbow with a quiver of stone arrows.")); //Phys
+	enemies.push(new Enemy("Hungry Ghoul",			90,		0,		3,		60,		[0], 		2, 		"evil", 		"A ravenous humanoid creature, crawling on all fours. Its mouth hangs open; blood and flesh sticks to its grey teeth.")); //Magic
+	enemies.push(new Enemy("Wandering Moon", 		50,		16,		8,		70,		[0, 1, 2],	2,		"construction", "A rough sphere of glowing marble that floats ominously above travellers, eclipsing the true moon as to remain undetected."));
+	enemies.push(new Enemy("Bronze Bellbeast", 		60, 	8,		8,		75, 	[0], 		1,		"construction", "An ancient church bell, floating ominously above the ground. It still hums from the resonation of its last tolling.")); //Magic
+	enemies.push(new Enemy("Flesh Golem",			150,	0,		0,		100,	[0], 		2,		"", 			"A hulking assembly of flesh, crudely sewn and heaped together and imbued with life.")); //Phys
+	enemies.push(new Enemy("Swarm of Bats", 		200,	6,		6,		200,	[0],		4,		"animal", 		"A swarm of dark vampire bats. They move in unison, as though they were of mind.")); //phys
+	enemies.push(new Enemy("Vampire", 				200,	6,		6,		200,	[0],		4,		"evil", 		"A slim pale-skinned figure, dressed in old yet sturdy attire. There is an animal hunger behind their intelligent eyes.")); //magic
+	enemies.push(new Enemy("Cult Leader", 			400, 	4,		8,		300, 	[0, 2], 	2,		"", 			"A towering, muscular figure. He's decked out in ornate robes and gem-encrusted rings, and carrying a jagged onyx blade.")); //Phys
+	enemies.push(new Enemy("Lost Angel", 			777, 	7,		7,		600, 	[0], 		3,		"", 			"It is a creature of sublime beauty, surrounded by a glowing white aura, but behind its pretty eyes is a twitchy, animal intent. It seems to have gone mad down here.")); //Magic
+	enemies.push(new Enemy("Lich", 					600, 	16,		12,		500, 	[0], 		1,		"evil", 		"The Harbringer of Death. Its face is hidden beneath a dark mask from which all eyes turn. The dead obeys.")); //Magic
+	enemies.push(new Enemy("Goblin Warlord", 		600, 	6,		6,		500, 	[0, 1, 2], 	1,		"", 			"A tall, muscular creature with fangs that portrude as tusks. There is a wicked intelligence clear upon its face. It seems proud in its work.")); //Phys
 	
 	//1 - The Acrid Swamp
 	//						Name, 					HP, 	Phys, 	Magic, 	Diff	Zones		MOVES	TYPE		DESCRIPTION
-	enemies.push(new Enemy("Living Slime",			60,		0,		0,		15,		[1, 0], 	1,		"animal", 	"A slow-moving heap of acidic slime, that steams as it moves across living matter.")); //Phys
+	enemies.push(new Enemy("Acidic Slime",			60,		0,		0,		40,		[1, 0], 	1,		"animal", 	"A large, slow-moving heap of thick caustic goop, that steams as it moves over living matter.")); //Phys
 	enemies.push(new Enemy("Toxic Mushroom",		20,		2,		2,		20,		[1, 2], 	0,		"plant",  	"A giant black mushroom, crusted in flesh as solid as wood and covered with deadly spores."));
-	enemies.push(new Enemy("Giant Amoeba",			50,		0,		0,		25,		[1], 		1,		"animal", 	"A dim creature, slow, yet strong. It makes its way cautiously about the world.")); //Phys
-	enemies.push(new Enemy("Slugbeast",				100,	0,		0,		20,		[1, 2],		1,		"animal", 	"A giant muscled mass of dark brown-grey flesh. Its bulk is covered in a layer of slime.")); //Phys
-	enemies.push(new Enemy("Living Vine",			50,		0,		0,		25,		[1, 2], 	2,		"plant",  	"A heap of vines that coil and strike, likely animated by some wanton witch or mage.")); //Phys
-	enemies.push(new Enemy("Swamp Ape",				75,		1,		1,		30,		[1],  		2,		"animal", 	"A shaggy ape covered in damp, white fur. It stretches its sinewy arms and screeches, revealing its sturdy fangs.")); //Phys
-	enemies.push(new Enemy("Witch",					60,		0,		4,		35,		[1], 		2,		"", 	  	"A cunning being, well-learned in the brewing of potions and the casting of hexes. She wanders the swamp in search of rare alchemical ingredients.")); //Magic
+	enemies.push(new Enemy("Giant Amoeba",			50,		0,		0,		30,		[1], 		1,		"animal", 	"A dim creature, slow, yet strong. It makes its way cautiously about the world.")); //Phys
+	enemies.push(new Enemy("Slugbeast",				100,	0,		0,		40,		[1, 2],		1,		"animal", 	"A giant muscled mass of dark brown-grey flesh. Its bulk is covered in a layer of slime.")); //Phys
+	enemies.push(new Enemy("Living Vine",			50,		0,		0,		40,		[1, 2], 	2,		"plant",  	"A heap of vines that coil and strike, likely animated by some wanton witch or mage.")); //Phys
+	enemies.push(new Enemy("Swamp Ape",				75,		1,		1,		40,		[1],  		2,		"animal", 	"A shaggy ape covered in damp, white fur. It stretches its sinewy arms and screeches, revealing its sturdy fangs.")); //Phys
+	enemies.push(new Enemy("Witch",					60,		0,		4,		70,		[1], 		2,		"", 	  	"A cunning being, well-learned in the brewing of potions and the casting of hexes. She wanders the swamp in search of rare alchemical ingredients.")); //Magic
 	enemies.push(new Enemy("Flaming Wisp",			25,		5,		5,		40,		[1], 		3,		"", 	  	"A glowing blue flame that hovers above the swamp waters. It has no reflection.")); //Magic
-	enemies.push(new Enemy("Caustic Snail",			75,		12,		6,		50,		[1, 2], 	1,		"animal", 	"A giant snail. Algae grows upon its strong shell. Its ooze has incredible toxic and restorative properties.")); //Phys
+	enemies.push(new Enemy("Caustic Snail",			75,		12,		6,		60,		[1, 2], 	1,		"animal", 	"A giant snail. Algae grows upon its strong shell. Its ooze has incredible toxic and restorative properties.")); //Phys
 	enemies.push(new Enemy("Giant Frog",			80,		0,		0,		50,		[1, 2],		3,		"animal", 	"A giant frog that sits nearly submerged in the water, silently waiting to rise up, and with a flick of its tongue devour its prey.")); //Phys
-	enemies.push(new Enemy("Mushroom Mage", 		75,		0,		2,		70,		[1, 2],		1,		"",		  	"A myopic fellow, perpetually high off of spores. His magic may not be the most powerful, but many an adventurer has died underestimating the toxic spores."));
+	enemies.push(new Enemy("Mushroom Mage", 		75,		0,		2,		90,		[1, 2],		1,		"",		  	"A myopic fellow, perpetually high off of spores. His magic may not be the most powerful, but many an adventurer has died underestimating the toxic spores."));
 	enemies.push(new Enemy("Swamp Stalker", 		45,		0,		0,		70,		[1, 2],		1,		"animal", 	"An ambush predator with an elongated body like a salamander's and long barbed tentacles. Only its protruding eyes are visible through the thick lichens growing on its flesh. *YELLOW*Added by Morgan"));
 	enemies.push(new Enemy("Fumous Fiend",			100,	0,		0,		60,		[1], 		1,		"evil",   	"A hulking bipedal demon with gaseous blood. It inhales, and bloats at once to twice its regular size. On a whim its pores expand, and out pours a toxic mist.")); //Phys
-	enemies.push(new Enemy("Swamp Mage",			60,		0,		4,		70,		[1], 		2,		"",       	"A native of the swamp. She is attuned to the toxins and creatures of her environment, she views such incursions as these with the utmost contempt.")); //Magic
-	enemies.push(new Enemy("Foul Sluglord", 		250, 	0,		0,		75, 	[1, 2],		1,		"animal", 	"A heaping musculature, vast almost beyond fathoming. Its slow movements cause the ground about it to rumble, and it packs a fiercome bite.")); //Phys
-	enemies.push(new Enemy("Wisp Knight", 			75, 	8,		8,		100, 	[1, 0],		2,		"", 	  	"A suit of chivalric plate armor, imbued with life by a blue flame within.")); //Magic
-	enemies.push(new Enemy("Slimelord", 			120, 	0,		0,		110, 	[1, 0],		2,		"animal", 	"A tumultuous mass, oozing, shifting, steaming. It has grown beyond its ability to maintain cohesion.")); //Phys
-	enemies.push(new Enemy("Swamp Demon", 			150, 	4,		8,		100, 	[1],		3,		"evil",   	"An evil creature. It moves frantically and for all its power it seems to be quite a wretched thing.")); //Magic
+	enemies.push(new Enemy("Swamp Mage",			60,		0,		4,		75,		[1], 		2,		"",       	"A native of the swamp. She is attuned to the toxins and creatures of her environment, she views such incursions as these with the utmost contempt.")); //Magic
+	enemies.push(new Enemy("Foul Sluglord", 		300, 	0,		0,		150, 	[1, 2],		1,		"animal", 	"A heaping musculature, vast almost beyond fathoming. Its slow movements cause the ground about it to rumble, and it packs a fiercome bite.")); //Phys
+	enemies.push(new Enemy("Wisp Knight", 			100, 	8,		8,		150, 	[1, 0],		2,		"", 	  	"A suit of chivalric plate armor, imbued with life by a blue flame within.")); //Magic
+	enemies.push(new Enemy("Slimelord", 			200, 	0,		0,		175, 	[1, 0],		2,		"animal", 	"A tumultuous mass, oozing, shifting, steaming. It has grown beyond its ability to maintain cohesion.")); //Phys
+	enemies.push(new Enemy("Swamp Demon", 			200, 	4,		8,		225, 	[1],		3,		"evil",   	"An evil creature. It moves frantically and for all its power it seems to be quite a wretched thing.")); //Magic
 	
 	//2 - The Wilted Woods
 	//						Name, 					HP, 	Phys, 	Magic, 	Diff	Zones	MOVES	TYPE			DESCRIPTION
-	enemies.push(new Enemy("Scoundrel", 			30,		0,		0,		15,		[2],	2,		"", 			"A round and gnarlish figure, who swipes his knife upward at you from his slumped position. *YELLOW*Added By Christopher"));
-	enemies.push(new Enemy("Crazed Wolf", 			40, 	0,		0,		20, 	[2], 	3,		"animal", 		"A mangy wolf, foaming at its mouth and snapping viciously.")); //Phys
-	enemies.push(new Enemy("Briar Beast", 			60, 	2,		1,		20, 	[2, 1], 1,		"animal", 		"A squat, rotund creature with thorny wood-like skin and a shaggy coat of bright green leaves.")); //Phys + Magic Reflect
+	enemies.push(new Enemy("Scoundrel", 			40,		0,		0,		40,		[2],	2,		"", 			"A round and gnarlish figure, who swipes his knife upward at you from his slumped position. *YELLOW*Added By Christopher"));
+	enemies.push(new Enemy("Crazed Wolf", 			40, 	2,		0,		40, 	[2], 	3,		"animal", 		"A mangy wolf, foaming at its mouth and snapping viciously.")); //Phys
+	enemies.push(new Enemy("Briar Beast", 			60, 	4,		2,		40, 	[2, 1], 1,		"animal", 		"A squat, rotund creature with thorny wood-like skin and a shaggy coat of bright green leaves.")); //Phys + Magic Reflect
 	enemies.push(new Enemy("Fae Trickster",			10,		0,		0,		30,		[2], 	0,		"", 			"A small, humanoid figure flittering on thin wings, dressed in vibrant green. Its face is more like an animal's than a man's, and is permanently curled into a mischievous sneer.")); //Magic
 	enemies.push(new Enemy("Brigand",				50,		4,		2,		40,		[2], 	2,		"", 			"A human dressed in mismatched armor, carrying a pair of duel blades that seem to have seen their fair share of battles.")); //Phys
 	enemies.push(new Enemy("Giant Spider",			75,		4,		0,		40,		[2, 0], 3,		"animal", 		"A vast, fat-bodied insect roughly the size of a bull. Its body is covered in long thin hairs, and its eyes afix onto its prey.")); //Phys	
 	enemies.push(new Enemy("Mossy Statue",			75,		14,		14,		50,		[0,1,2],0,		"construction", "A Jade Statue of a beautiful woman, weathered by countless years in the forest. Its limbs and head have fallen into the dirt about its base. It hums quietly.")); //Magic
-	enemies.push(new Enemy("Wild Bear",				100,	6,		2,		55,		[2, 0], 2,		"animal", 		"A towering one-eyed bear with claws as long and sharp as daggers. Its hide is greying, and criss-crossed with the scars of its many triumphs.")); //Phys
-	enemies.push(new Enemy("Ogre",					75,		6,		2,		60,		[2, 1], 1,		"", 			"A giant naked creature, twice as tall as any man and dragging a great club at its side. Flies cling to the blood that stains its cheeks and chin.")); //Phys
-	enemies.push(new Enemy("Scaled Drake",			70,		5,		30,		70,		[2, 1], 2,		"animal", 		"A wide-eyed quadruped, famed for its thick, pinecone-like hide. It has a wide body and short tail, and is highly resistant to magic.")); //Phys
+	enemies.push(new Enemy("Wild Bear",				100,	6,		2,		70,		[2, 0], 2,		"animal", 		"A towering one-eyed bear with claws as long and sharp as daggers. Its hide is greying, and criss-crossed with the scars of its many triumphs.")); //Phys
+	enemies.push(new Enemy("Ogre",					75,		6,		2,		70,		[2, 1], 1,		"", 			"A giant naked creature, twice as tall as any man and dragging a great club at its side. Flies cling to the blood that stains its cheeks and chin.")); //Phys
+	enemies.push(new Enemy("Scaled Drake",			70,		5,		30,		75,		[2, 1], 2,		"animal", 		"A wide-eyed quadruped, famed for its thick, pinecone-like hide. It has a wide body and short tail, and is highly resistant to magic.")); //Phys
 	enemies.push(new Enemy("Raging Boar",			100,	0,		0,		80,		[2, 1],	5,		"animal",		"A towering mass of muscle covered in dark, matted fur. Four yellow tusks protrude from its snout as long as daggers. Despite its massive size, it still moves with incredible speed."));
-	enemies.push(new Enemy("Beekeeper", 			90, 	3,		3,		90, 	[2], 	1,		"", 			"A figure of medium height, dressed in clean white robes. Its face is hidden by a dome of tan wicker, and on its back is a wicker hive.")); //Phys
-	enemies.push(new Enemy("Briar Monster", 		120, 	2,		2,		100, 	[2, 1], 1,		"animal", 		"A Briar Beast grown to monstrous proportions. Its four limbs are as thick as tree trunks, and the thorns on its hide have grown so long they twist into loops.")); //Phys + Magic Reflect
-	enemies.push(new Enemy("Forest Demon", 			150, 	4,		8,		100, 	[2],	2,		"evil", 		"An evil creature. It blends itself into its surroundings, changing its skin to match the foliage, waiting to ambush travellers and beast alike.")); //Magic
-	enemies.push(new Enemy("Spider Queen", 			150, 	5,		0,		100, 	[2],	2,		"animal", 		"A monstrously large spider, with legs as long as pikes, and fangs as crushing as any war hammer.")); //Phys
-	enemies.push(new Enemy("Brigand Lord",			90,		6,		2,		115,	[2], 	3,		"", 			"A princely figure, adorned in silver plate mail and decked in gold jewelry, pilfered from passing aristocrats. He has done his share in turning travellers away from the roads, and now he is king of the desolation.")); //Phys
-	enemies.push(new Enemy("Houndlord", 			125, 	5,		5,		125, 	[2], 	2,		"", 			"It stands upright, cloaked in red, its face a shadow which light does not pierce. In each hand it holds a wide blade, and all around its knees wolves run to and fro. It knows no allegiance nor fear.")); //Phys
+	enemies.push(new Enemy("Beekeeper", 			90, 	3,		3,		110, 	[2], 	1,		"", 			"A figure of medium height, dressed in clean white robes. Its face is hidden by a dome of tan wicker, and on its back is a wicker hive.")); //Phys
+	enemies.push(new Enemy("Briar Monster", 		125, 	8,		4,		150, 	[2, 1], 1,		"animal", 		"A Briar Beast grown to monstrous proportions. Its four limbs are as thick as tree trunks, and the thorns on its hide have grown so long they twist into loops.")); //Phys + Magic Reflect
+	enemies.push(new Enemy("Forest Demon", 			150, 	4,		8,		125, 	[2],	2,		"evil", 		"An evil creature. It blends itself into its surroundings, changing its skin to match the foliage, waiting to ambush travellers and beast alike.")); //Magic
+	enemies.push(new Enemy("Spider Queen", 			150, 	5,		0,		125, 	[2],	2,		"animal", 		"A monstrously large spider, with legs as long as pikes, and fangs as crushing as any war hammer.")); //Phys
+	enemies.push(new Enemy("Brigand Lord",			150,	6,		2,		150,	[2], 	3,		"", 			"A princely figure, adorned in silver plate mail and decked in gold jewelry, pilfered from passing aristocrats. He has done his share in turning travellers away from the roads, and now he is king of the desolation.")); //Phys
+	enemies.push(new Enemy("Houndlord", 			250, 	5,		5,		300, 	[2], 	2,		"", 			"It stands upright, cloaked in red, its face a shadow which light does not pierce. In each hand it holds a wide blade, and all around its knees wolves run to and fro. It knows no allegiance nor fear.")); //Phys
+	
+	enemies.push(new Enemy("Hiveling Larva",		30,		0,		0,		5,		[], 	2,		"animal",		"A small, damp creature with a soft, translucent body. Its legs blur and click as it scurries, shying away from the light of day."));
+	enemies.push(new Enemy("Hiveling Healer",		90,		2,		2,		100,	[], 	2,		"animal",		"A weak insectoid creature, with a tall, flat head, bent inwards slightly as to be parabolic. Its eyes are black and wide-set. Of all the beasts of the world it is perhaps the most attuned with magic."));
+	enemies.push(new Enemy("Hiveling Guard",		200,	12,		10,		150,	[], 	3,		"animal",		"A muscular insectoid creature, with flat chitinous armor plates layered over its body. When threatened it spreads its limbs and seems to double in size; its armor plates lock together and form a shield as solid as steel."));
+	enemies.push(new Enemy("Hiveling Warrior",		150,	4,		4,		150,	[], 	2,		"animal",		"A long-limbed insectoid creature with huge spiked mandibles, dripping with acidic spit. When threatened, it can charge towards its foes with incredible haste."));
+	enemies.push(new Enemy("Hiveling Queen",		400,	4,		4,		500,	[], 	2,		"animal",		"A towering, large-eyed insectoid with a huge, sagging abdomen. Through her translucent chitin innumerable gestating larva can be seen."));
+	
 	
 	//3 - The Stony Island
 	//						Name, 					HP, 	Phys, 	Magic, 	Diff	Zones	MOVES	TYPE		DESCRIPTION
-	enemies.push(new Enemy("Anchorite Worm", 		5,		0,		0,		3,		[],		2,		"animal", 	"A disgusting parasite that spends its life cycle without ever emerging from its host. An old sailor’s tale warns of an adult anchorite worm crawling from a whale’s corpse into a sleeping crewman’s anus. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Giant Anemone",			15,		1,		1,		5,		[],		0,		"plant",	"A colorful invertebrate, bristling with static shock."));
-	enemies.push(new Enemy("Coral Shard",			15,		3,		2,		5,		[],		0,		"plant",	"A jagged shard of vibrant coral, jutting strangely out of the ground."));
-	enemies.push(new Enemy("Squallbird", 			40,		0,		0,		20,		[3],	5,		"animal", 	"With the disposition of a seagull and the wingspan of an albatross, a squallbird is a sailor’s nightmare. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Reef Crab", 			30,		16,		6,		20,		[3],	1,		"animal", 	"A crab the size of a large dog. This island hardly seems lush enough to support a population of such creatures. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Sunfish", 				45,		0,		0,		20,		[3],	3,		"animal", 	"A translucent filter feeder that stuns predators with a flash of bioluminescence as bright as its namesake. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Coral Crawler", 		35,		8,		6,		20,		[3],	1,		"animal", 	"It’s as if the seafloor itself is moving toward you. These creatures are docile unless provoked; their diet mostly consists of worms. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Swarmer Shark",			40,		0,		0,		20,		[3],	3,		"animal",	"A small with two black pinpoint eyes and antennae. It relies on its sense of smell and its coordination with the swarm to survive."));
-	enemies.push(new Enemy("Lost Mariner", 			40,		4,		2,		30,		[3],	2,		"", 		"An old sailor who has lost his mind to parasitic barnacles that cling to his flesh like armor. Is anything left of the man he once was? *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Squallbird", 			40,		0,		0,		25,		[3],	5,		"animal", 	"With the disposition of a seagull and the wingspan of an albatross, a squallbird is a sailor’s nightmare. *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Reef Crab", 			30,		16,		6,		25,		[3],	1,		"animal", 	"A crab the size of a large dog. This island hardly seems lush enough to support a population of such creatures. *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Sunfish", 				45,		0,		0,		30,		[3],	3,		"animal", 	"A translucent filter feeder that stuns predators with a flash of bioluminescence as bright as its namesake. *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Coral Crawler", 		35,		8,		6,		30,		[3],	1,		"animal", 	"It’s as if the seafloor itself is moving toward you. These creatures are docile unless provoked; their diet mostly consists of worms. *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Swarmer Shark",			40,		0,		0,		30,		[3],	3,		"animal",	"A small with two black pinpoint eyes and antennae. It relies on its sense of smell and its coordination with the swarm to survive."));
+	enemies.push(new Enemy("Lost Mariner", 			40,		4,		2,		35,		[3],	2,		"", 		"An old sailor who has lost his mind to parasitic barnacles that cling to his flesh like armor. Is anything left of the man he once was? *YELLOW*Added By Morgan"));
 	enemies.push(new Enemy("Squelcher",				60,		0,		0,		40,		[3],	3,		"animal",	"A hideous, jet-black beast like a manta ray with an elephant’s trunk. Squelchers often follow fishing vessels to steal their catch, and are typically heard before they’re seen. *YELLOW*Added By Morgan"));
 	enemies.push(new Enemy("Fishman Archer", 		50,		0,		0,		40,		[3],	2,		"", 		"A gilled humanoid of some intelligence, wielding a coral bow. No one knows whether the fishmen are a naturally occurring species or abominations born of the sea cult’s rituals. *YELLOW*Added By Morgan"));
 	enemies.push(new Enemy("Fishman Tridentier", 	75,		0,		0,		50,		[3],	2,		"", 		"A gilled humanoid of some intelligence, armed with a sharp fishing trident wrought of repurposed harpoons. No one knows whether the fishmen are a naturally occurring species or abominations born of the sea cult’s rituals. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Sea Sorceror",			75,		0,		6,		60,		[3],	2,		"",			"A masked humanoid, their body is clothed in vibrantly colored coral and anemones that have grown onto their scaled flesh. They wield a coral scepter."));
-	enemies.push(new Enemy("Tidliwincus",			80,		0,		0,		60,		[3],	3,		"animal",	"A long-necked bird with a large beak and short wings, island living has caused it to grow inordinately large. Its tongue is forked into four thick tentacles, capable of dragging grown men away. . . *YELLOW*Added by Chase"));
+	enemies.push(new Enemy("Sea Sorceror",			75,		0,		6,		70,		[3],	2,		"",			"A masked humanoid, their body is clothed in vibrantly colored coral and anemones that have grown onto their scaled flesh. They wield a coral scepter."));
+	enemies.push(new Enemy("Tidliwincus",			100,	0,		0,		70,		[3],	3,		"animal",	"A long-necked bird with a large beak and short wings, island living has caused it to grow inordinately large. Its tongue is forked into four thick tentacles, capable of dragging grown men away. . . *YELLOW*Added by Chase"));
 	enemies.push(new Enemy("Stone Crab", 			40,		60,		60,		60,		[3],	1,		"animal", 	"A horse-sized crustacean with a mineralized shell that hardens continously as the creature ages. Its succulent meat could feed a ship’s crew for a week. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Reefwalker", 			85,		0,		0,		60,		[3],	2,		"animal", 	"Reefwalkers stride along the coast on long, spindly legs, lowering their beaked maws into the water to catch unlucky crabs. *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Reefwalker", 			85,		0,		0,		70,		[3],	2,		"animal", 	"Reefwalkers stride along the coast on long, spindly legs, lowering their beaked maws into the water to catch unlucky crabs. *YELLOW*Added By Morgan"));
 	enemies.push(new Enemy("Sea Priest", 			60,		0,		0,		70,		[3],	2,		"", 		"The devotee of a cult that seeks salvation in the depths instead of the heavens. His clothes and hair are caked with salt. *YELLOW*Added By Morgan"));
 	enemies.push(new Enemy("Sea Priestess", 		60,		0,		0,		70,		[3],	2,		"", 		"The devotee of a cult that seeks salvation in the depths instead of the heavens. Her clothes and long hair are caked with salt. *YELLOW*Added By Morgan"));
 	enemies.push(new Enemy("Tube Snail", 			70,		6,		2,		70,		[3],	2,		"animal",	"A shelled sea snail, bristling with spines. It is unusually susceptible to Anchorite Worm infestation during an early stage of its lifecycle. As a result it has developed a strange relationship with the worms whereby it unloads the parasites onto other hosts.")); 
 	enemies.push(new Enemy("Living Tide", 			100,	4,		4,		90,		[3],	1,		"animal", 	"Frothing waves whipped into a vaguely humanoid form. A keen eye might spot the small cephalopod at its center. *YELLOW*Added By Morgan"));
 	enemies.push(new Enemy("Wadrin's Lizard", 		125,	2,		0,		70,		[3],	1,		"animal", 	"A semiaquatic reptile so large, it seems a relic of aeons past. Often seen peacefully sunbathing on warm rocks. *YELLOW*Added By Morgan"));
 	enemies.push(new Enemy("Carcinos", 				100,	10,		10,		95,		[3],	1,		"", 		"Its unremarkable crablike exterior belies a sinister intelligence. It spends the many years of its existence turning creatures into crabs, not out of malice, but out of a sense of duty. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Kurita", 				100,	8,		4,		85,		[3],	4,		"animal", 	"A reclusive, semi-aquatic creature with coated in incredibly thick fur that insulates its long, millipedic body from the icy depths. Jutting from its sides are dozens of twitching legs, that propel it to tremendous speeds. It knows only contempt for all other creatures. *YELLOW*Added By Andrew"));
-	enemies.push(new Enemy("Deep Horror", 			125,	2,		8,		95,		[3],	2,		"evil", 	"A magical being from the darkest depths of the sea; never meant to see the light of the surface. To avoid explosive decompression, it maintains a crushing pressure field around itself. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Siren", 				80,		4,		1,		110,	[3],	1,		"animal", 	"A blind, lethargic creature of the deep sea that walks along the sea floor on its short limbs. Its jaws unhinge and its gills flitter and sacs in its throat swell, pushing gas through the bubbling pores on its back. The resultant pitch is so hypnotic that it need only wait for its prey to swim into its mouth. *YELLOW*Added by Andrew"));
-	enemies.push(new Enemy("Risen Whale", 			250,	0,		0,		110,	[3],	1,		"evil", 	"A decomposing whale carcass reanimated by a cult’s foul magics. What was fallen will rise again. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Dirge", 				90,		4,		6,		120,	[3],	4,		"animal", 	"Its sleek form ripples with prismatic light and a long, sharp tail flows in its wake. Those who have seen a Dirge from a great distance speak of it gliding along the horizon, where the stars drown in the sea. Those who have seen one up close no longer speak. *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Kurita", 				100,	8,		4,		100,	[3],	4,		"animal", 	"A reclusive, semi-aquatic creature with coated in incredibly thick fur that insulates its long, millipedic body from the icy depths. Jutting from its sides are dozens of twitching legs, that propel it to tremendous speeds. It knows only contempt for all other creatures. *YELLOW*Added By Andrew"));
+	enemies.push(new Enemy("Deep Horror", 			150,	2,		8,		150,	[3],	2,		"evil", 	"A magical being from the darkest depths of the sea; never meant to see the light of the surface. To avoid explosive decompression, it maintains a crushing pressure field around itself. *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Siren", 				175,	4,		1,		175,	[3],	1,		"animal", 	"A blind, lethargic creature of the deep sea that walks along the sea floor on its short limbs. Its jaws unhinge and its gills flitter and sacs in its throat swell, pushing gas through the bubbling pores on its back. The resultant pitch is so hypnotic that it need only wait for its prey to swim into its mouth. *YELLOW*Added by Andrew"));
+	enemies.push(new Enemy("Risen Whale", 			250,	0,		0,		150,	[3],	1,		"evil", 	"A decomposing whale carcass reanimated by a cult’s foul magics. What was fallen will rise again. *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Dirge", 				100,	4,		6,		125,	[3],	4,		"animal", 	"Its sleek form ripples with prismatic light and a long, sharp tail flows in its wake. Those who have seen a Dirge from a great distance speak of it gliding along the horizon, where the stars drown in the sea. Those who have seen one up close no longer speak. *YELLOW*Added By Morgan"));
 	
 	//General enemies
 	//						Name, 					HP,		Phys, 	Magic, 	Diff	Zones		MOVES	TYPE
 	enemies.push(new Enemy("Warded Totem", 			40,		4,		12,		25,		[0,1,2,3],  0,		"construction", "A towering pillar of ancient grey wood, intricately decorated with dimly glowing runes. An aura of shimmering energy emits from it."));
-	enemies.push(new Enemy("Ephemeral Warrior",		50,		0,		0,		55,		[0,1,2],	2,		"", "The fading spirit of an ancient hero, animated solely by a lust for vengeance. Over several centuries their mind has been lost to hatred, and they have now become what they once sought to vanquish."));
+	enemies.push(new Enemy("Ephemeral Warrior",		50,		0,		0,		70,		[0,1,2],	2,		"", "The fading spirit of an ancient hero, animated solely by a lust for vengeance. Over several centuries their mind has been lost to hatred, and they have now become what they once sought to vanquish."));
 
 	//Other
 	//						Name, 				HP, 	Phys, 	Magic, 	Diff	Zones	MOVES
@@ -700,9 +706,18 @@ function initEnemies() {
 	enemies.push(new Enemy("Egg Sac", 			5,		0,		0,		25,		[],		0,		"", "A vast bundle of silk. Something is crawling around within it."));
 	enemies.push(new Enemy("Baby Spider", 		10,		0,		0,		5,		[],		3,		"animal", "A squat spider, about the size of a house cat. It scuttles about frantically."));
 	enemies.push(new Enemy("Living Spore",		5,		0,		0,		1,		[],		2,		"plant",  "A tiny spore that glows in the dim light. It sways on the breeze, seeking to nestle into a rotten patch to sprout."));
-	enemies.push(new Enemy("Servant",			40,		1,		1,		20,		[],	2,		"", "A well-kept and well-dressed servant, carrying a dark mahogany baton. They're undyingly loyal to the noble they serve."));
+	enemies.push(new Enemy("Servant",			40,		1,		1,		20,		[],		2,		"servant", "A well-kept and well-dressed servant, carrying a dark mahogany baton. They're undyingly loyal to the noble they serve."));
 	enemies.push(new Enemy("Mariner",			40,		0,		0,		20,		[],		2,		"",	"An old sailor."));
+	enemies.push(new Enemy("Anchorite Worm", 		5,		0,		0,		3,		[],		2,		"animal", 	"A disgusting parasite that spends its life cycle without ever emerging from its host. An old sailor’s tale warns of an adult anchorite worm crawling from a whale’s corpse into a sleeping crewman’s anus. *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Giant Anemone",			15,		1,		1,		5,		[],		0,		"plant",	"A colorful invertebrate, bristling with static shock."));
+	enemies.push(new Enemy("Coral Shard",			15,		3,		2,		5,		[],		0,		"plant",	"A jagged shard of vibrant coral, jutting strangely out of the ground."));
 	
+	
+	//Bosses
+	enemies.push(new Enemy("Seated Figure",		250,	12,		12,		2000,	[],		0,		"boss",			"Gnarled vines wrap tightly around the throne, rising and falling slightly with the breath of the figure bound underneath. An aura of serene power surrounds them - an ancient might as old as the forest itself."));
+	enemies.push(new Enemy("Beautiful Woman",   750,	0,		0,		2000,	[],		1,		"boss",			"A young woman clad in silk, wearing a circlet of thorns. Scarlet hair falls upon her freckled shoulders, framing a sly face. Behind her bright eyes a tremendous intellect is stirring."));
+	enemies.push(new Enemy("Elder Succubus",	275,	500,	100,	2000,	[],		5,		"boss",			"A wrinkled, balding hag whose eyes are as white as fogged glass. An aura of ancient power swirls around her as she stands with a toothless, gummy smile."));
+	enemies.push(new Enemy("Thrall",			100,	4,		4,		50,		[],		2,		"",				"A dark, faceless being bound to serve a Succubus. Their bodies and souls have been weathered away by their long centuries of service like a hard candy smoothed and eroded by spit. Little is left of what they once were."));
 	
 	let HP = 0;
 	let Diff = 0;
@@ -733,16 +748,22 @@ function initEnemies() {
 			enemies[i].LOOT.push(new Drop("Staff", 1));
 			enemies[i].LOOT.push(new Drop("Crook", 1));
 			enemies[i].LOOT.push(new Drop("Scepter",1));
+			if (enemies[i].ZONES.indexOf(3) > -1) {
+				enemies[i].LOOT.push(new Drop("Coral Staff", 3));
+			}
+			if (enemies[i].ZONES.indexOf(0) > -1 ) {
+				enemies[i].LOOT.push(new Drop("Blood Staff", 3));
+			}
 		}
 		if (enemies[i].DIFFICULTY >= 30) {
 			enemies[i].LOOT.push(new Drop("Health Potion", 15));
 			enemies[i].LOOT.push(new Drop("Stamina Potion", 20));
 		}
-		if (enemies[i].NAME.includes("Mage") || enemies[i].NAME.includes("Priest") || enemies[i].NAME == "Witch") {
-			enemies[i].LOOT.push(new Drop("Wand", 5));
-			enemies[i].LOOT.push(new Drop("Staff", 5));
-			enemies[i].LOOT.push(new Drop("Crook", 5));
-			enemies[i].LOOT.push(new Drop("Scepter", 5));
+		if (enemies[i].NAME.includes("Mage") || enemies[i].NAME.includes("Priest") || enemies[i].NAME == "Witch" ||  enemies[i].NAME.includes("Sorceror")) {
+			enemies[i].LOOT.push(new Drop("Wand", 8));
+			enemies[i].LOOT.push(new Drop("Staff", 4));
+			enemies[i].LOOT.push(new Drop("Crook", 4));
+			enemies[i].LOOT.push(new Drop("Scepter", 4));
 		}
 		if (enemies[i].NAME == "Witch") {
 			enemies[i].LOOT.push(new Drop("Scroll: Swamp Strike", 25));
@@ -755,10 +776,11 @@ function initEnemies() {
 			enemies[i].LOOT.push(new Drop("Scroll: Summon Spores", 25));
 			enemies[i].LOOT.push(new Drop("Scroll: Swamp Strike", 25));
 		}
-		if (enemies[i].NAME == "Sea Priest" || enemies[i].NAME == "Sea Priestess") {
+		if (enemies[i].NAME == "Sea Priest" || enemies[i].NAME == "Sea Priestess" || enemies[i].NAME == "Sea Sorceror") {
 			enemies[i].LOOT.push(new Drop("Scroll: Summon Anemone", 20));
 			enemies[i].LOOT.push(new Drop("Scroll: Summon Coral", 20));
 			enemies[i].LOOT.push(new Drop("Scroll: Guidance", 20));
+			enemies[i].LOOT.push(new Drop("Coral Staff", 10));
 		}
 		if (enemies[i].NAME == "Swamp Mage") {
 			enemies[i].LOOT.push(new Drop("Scroll: Guidance", 25));
@@ -805,7 +827,8 @@ function initEnemies() {
 			enemies[i].LOOT.push(new Drop("Death Mark", 2));
 		}
 		if (enemies[i].NAME == "Lich") {
-			enemies[i].LOOT.push(new Drop("Death Mark", 25));
+			enemies[i].LOOT.push(new Drop("Blood Staff", 40));
+			enemies[i].LOOT.push(new Drop("Death Mark", 40));
 			enemies[i].LOOT.push(new Drop("Staff", 5));
 			enemies[i].LOOT.push(new Drop("Crook", 5));
 			enemies[i].LOOT.push(new Drop("Scepter", 5));
@@ -873,7 +896,7 @@ function initEnemies() {
 	}
 	teams = newList;
 	
-	for (let i = 0; i < teams.length; i++) {
+	/*for (let i = 0; i < teams.length; i++) {
 		let score = CalcDifficulty(teams[i]);
 		if (score <= 70) {
 			enemyLevels[0].push(teams[i]);
@@ -892,16 +915,16 @@ function initEnemies() {
 	}
 	console.log("Level 1 Enemies: " + enemyLevels[0].length);
 	console.log("Level 2 Enemies: " + enemyLevels[1].length);
-	console.log("Level 3 Enemies: " + enemyLevels[2].length);
+	console.log("Level 3 Enemies: " + enemyLevels[2].length);*/
 }
 
 function initEffects() {
 	effects = [
 		//----------Name                     Type        Description                                                    Stacks
-		new Effect("Weakened",				"debuff",	"Damage is reduced by 25%.",									false),
+		new Effect("Weakened",				"debuff",	"Your damage dealt is reduced by 25%.",							false),
 		new Effect("Poison", 				"debuff",	"Take 1 dmg per turn. All healing is reduced by half.",			true),
 		new Effect("Rooted", 				"debuff",	"Unable to Move.",												false),
-		new Effect("Exposed", 				"debuff",	"Damage taken is increased by 20%",								false),
+		new Effect("Vulnerable", 			"debuff",	"Damage taken is increased by 20%",								false),
 		new Effect("Venom", 				"debuff",	"Take 5 dmg per turn.",											false),
 		new Effect("Stunned", 				"debuff",	"Lose your next turn.",											false),
 		new Effect("Slowed", 				"debuff",	"Movement costs are increased.",								false),
@@ -911,13 +934,19 @@ function initEffects() {
 		new Effect("Bleed", 				"debuff",	"Take 4 dmg per turn.",											false),
 		new Effect("Whipped", 				"debuff",	"Take 4 dmg per turn.",											false),
 		new Effect("Winded", 				"debuff",	"Your Stamina doesn't regenerate naturally.",					false),
+		new Effect("Parched", 				"debuff",	"You can't drink potions.",										false),
+		new Effect("Cursed", 				"debuff",	"Your debuffs can't end in any way.",							false),
+		new Effect("Disorganized", 			"debuff",	"+20% Damage taken. -20% Damage dealt.",						false),
+		new Effect("Wilting", 				"debuff",	"Lose 4 HP per turn. Lose 12 Stamina per turn.",				false),
+		new Effect("Enraged", 				"buff",		"Deal +50% Damage",												false),
+		new Effect("Invincible", 			"buff",		"You can't take any damage",									false),
 		new Effect("Aura", 					"buff",		"Deal 2 Damage to All Enemies",									false),
 		new Effect("Minor Reflect", 		"buff",		"When you're attacked, reflect 3 damage.",						false),
 		new Effect("Greater Reflect", 		"buff",		"When you're attacked, reflect half the damage back.",			false),
 		new Effect("Destructive Synergy",	"buff",		"Deal +1 damage for each active buff.",							false),
 		new Effect("Restorative Synergy",	"buff",		"Heal 1 HP for each active buff.",								false),
 		new Effect("Forthwith", 			"buff",		"Your first spell damage does +5 Damage.",						false),
-		new Effect("Coward's Haste", 		"buff",		"100% Flee Chance",												false),
+		new Effect("Coward's Haste", 		"buff",		"100% Flee Chance this turn. Ends if you attack or cast.",		false),
 		new Effect("Deliverance", 			"buff",		"You can't be reduced below 1 HP.",								true),
 		new Effect("Ember", 				"buff",		"Lose 1 HP per turn.",											true),
 		new Effect("Fading", 				"buff",		"This creature will vanish.",									false),
@@ -928,10 +957,13 @@ function initEffects() {
 		new Effect("Preparation", 			"buff",		"+4 AP per turn.",												false),
 		new Effect("Ferocity", 				"buff",		"Your spells deal +2 DMG",										false),
 		new Effect("Regenerative", 			"buff",		"Regenerate 6 HP per turn.",									false),
-		new Effect("Healing in Shell", 		"buff",		"Heal 8-12 HP. Gain +12 +6 Armor.",								false),
+		new Effect("Healing in Shell", 		"buff",		"Heal 6-10 HP. Gain +12 +6 Armor.",								false),
 		new Effect("Enamoured with", 		"buff",		"This creature has eyes only for one. . .",						false),
+		new Effect("Guarding", 				"buff",		"-6 AP per turn. Defend a nearby ally from attacks.",			false),
 		new Effect("Health Potion", 		"buff",		"Heal 10 HP per turn.",											true),
 		new Effect("Static",				"buff",		"Deal magic damage equal to your stacks to a random enemy.",	true),
-		new Effect("Protection",			"buff",		"+2 Physical Armor. +2 Magical Armor",							true)
+		new Effect("Protection",			"buff",		"+2 Physical Armor. +2 Magical Armor",							false),
+		new Effect("Buried",				"buff",		"+4 Physical Armor. +4 Magical Armor",							false),
+		new Effect("Jade",					"buff",		"You can't take more than 10 damage. Damage is reduced by 1.",	false),
 	]
 }
