@@ -750,6 +750,39 @@ function CanUseWeapon(C, index, range = 0) {
 	return true;
 }
 
+function genNameAll() {
+	
+}
+
+function testNames() {
+	let names = [];
+	for (let i = 0; i < 1000000; i++) {
+	let name = genSillyName();
+		if (names.indexOf(name) == -1) {
+			names.push(name);
+		}
+	}
+	console.log(names.length);
+}
+
+function genSillyName() {
+	var beg = ["Sh", "Shl", "Shr", "Ch", "B", "R", "Bl", "Pl", "J", "H", "Shr", "D", "Qu", "Bal", "Br", "Dr"];
+	var mid = ["om", "omb", "im", "imb", "int", "eb", "imp", "umb", "on", "eeb", "org", "alm", "ail", "oil", "oin", "adink", "erd", "ek", "eep", "eev"];
+	var end = ["o", "ly", "ison", "ius", "adeer", "by", "erson", "ey", "ert", "erd", "org", "us", "eus", "adoo", "a", "erp", "amo", "amus", "ador", "s"];
+	let name = mid[rand(mid.length)];
+	let start = beg[rand(beg.length)]
+	if (rand(6) == 0) {
+		name += mid[rand(mid.length)];
+	}
+	if (rand(2) == 0) {
+		name += end[rand(end.length)];
+	}
+	if (name.length > 3 && rand(4) == 0) {
+		return Prettify(name);
+	}
+	return start + "" + name;
+}
+
 function genName(male) {
 	var name = "";
 	var mBegs = ["Le", "Ke", "Je", "Be", "Me", "Ko", "Ye", "E", "Cy", "Ce", "Ci", "A"];

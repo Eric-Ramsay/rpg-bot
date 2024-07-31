@@ -477,7 +477,7 @@ function initItems() {
 	items.push(new Item("Swordfish",			"fish",		0,		"A large slender fish with long flowing fins and a sharp, needlelike protrusion on its snout."));
 
 	
-	//Purely Physical
+	//Phys										//  P       M       AP
 	armor.push(new Armor("Plain Cloak", 			2,		0,		0,  20, "A plain cloak to keep off the elements."));
 	armor.push(new Armor("Leather Cuirass", 		4, 		1, 		2, 	40, "A plain leather cuirass, well-worn and scuffed."));
 	armor.push(new Armor("Scale Armor", 			5, 		2, 		3, 	50, "A tough armor made of overlapping scales of metal."));
@@ -488,7 +488,7 @@ function initItems() {
 	armor.push(new Armor("Quilted Gambeson", 		2, 		2, 		1, 	40, "A thickly padded armor that covers from head to toe."));
 	armor.push(new Armor("Silk Armor", 				4, 		4, 		3, 	75, "An exquisite piece of incredibly light armor."));
 	armor.push(new Armor("Jade Armor", 				6, 		6, 		6, 	100, "An ancient armor wrought of shimmering Jade stone."));
-	//Purely Magical
+	//Magical
 	armor.push(new Armor("Plain Cassock", 			0,		2,		0,	15, "A monk's robes. They offer some protection against evil."));
 	armor.push(new Armor("Acolyte Robes", 			0, 		4, 		1, 	30, "The robes of a novice mage. They're simple and servicable."));
 	armor.push(new Armor("Warded Cloak",			1,		6,		2,	60, "This was left at the tavern by a travelling mage. He never returned for it."));

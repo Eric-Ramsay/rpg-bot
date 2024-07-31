@@ -1962,8 +1962,7 @@ function Command(message) {
 	for (let i = 0; i < requireBattle.length; i++) {
 		requireCharacter.push(requireBattle[i]);
 	}
-	
-	if (requireCharacter.indexOf(keyword) > -1 && words[words.length - 1][0] == "x" && words[words.length - 1].length == 2) {
+	if ((keyword == "silly" || requireCharacter.indexOf(keyword) > -1) && words[words.length - 1][0] == "x" && words[words.length - 1].length == 2) {
 		numRepeat = parseInt(words[words.length - 1][1]);
 		if (isNaN(numRepeat) || numRepeat == 0) {
 			numRepeat = 1;
@@ -2380,6 +2379,10 @@ function Command(message) {
 			}
 			C.SERVANT = args;
 			msg += "*CYAN*Your servant will now be referred to as '*GREEN*" + args + "*CYAN*'\n";
+		}
+		else if (keyword == "silly") {
+			let colors = ["*RED*", "*BLUE*", "*PINK*", "*GREEN*", "*YELLOW*"];
+			msg += colors[rand(colors.length)] + "" + genSillyName() + "\n";
 		}
 		else if (keyword == "name") {
 			words = words.slice(1, words.length);
