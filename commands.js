@@ -30,16 +30,17 @@ function ListCommands(index) {
 		msg += "*GREEN*!name [Name] *GREY*- Renames your character.\n";
 	}
 	else {
-		msg += "*GREEN*!cast SPELL on TARGET *GREY*- Casts a spell.\n";
-		msg += "*CYAN*!attack TARGET with WEAPON *GREY*- Attacks an enemy.\n";
-		msg += "*GREEN*!take ITEM *GREY*- Loots an item after combat.\n";
-		msg += "*CYAN*!flee *GREY*- Flees from combat if you're on the bottom row. Costs 3 AP to attempt.\n";
-		msg += "*GREEN*!start *GREY*- Start combat once you've entered a dungeon. No one will be able to join you after this.\n";
-		msg += "*CYAN*!end *GREY*- Ends your turn.\n";
-		msg += "*GREEN*!move LEFT/RIGHT *GREY*- Moves left or right a row. Costs 3 AP.\n";
-		msg += "*CYAN*!drink POTION *GREY*- Drinks a potion.\n";
-		msg += "*GREEN*!effects *GREY*- Lists effects on you.\n";
-		msg += "*CYAN*!guard TARGET *GREY*- Costs 6 AP per turn. Guard a target on your row; redirecting damage they would taket to yourself.\n";
+		msg += "*GREEN*!cast SPELL on TARGET *GREY*- Casts a spell.\n\n";
+		msg += "*CYAN*!attack TARGET with WEAPON *GREY*- Attacks an enemy.\n\n";
+		msg += "*GREEN*!take ITEM *GREY*- Loots an item after combat.\n\n";
+		msg += "*CYAN*!flee *GREY*- Flees from combat if you're on the bottom row. Costs 3 AP to attempt.\n\n";
+		msg += "*GREEN*!start *GREY*- Start combat once you've entered a dungeon. No one will be able to join you after this.\n\n";
+		msg += "*CYAN*!end *GREY*- Ends your turn.\n\n";
+		msg += "*GREEN*!move LEFT/RIGHT *GREY*- Moves left or right a row. Costs 3 AP.\n\n";
+		msg += "*CYAN*!drink POTION *GREY*- Drinks a potion.\n\n";
+		msg += "*GREEN*!effects *GREY*- Lists effects on you.\n\n";
+		msg += "*CYAN*!guard TARGET *GREY*- Costs 6 AP per turn. Guard a target on your row; redirecting damage they would taket to yourself.\n\n";
+		msg += "*GREEN*!brace *GREY*- Costs 3 AP. You brace yourself, giving yourself a 50% chance to dodge the next damage that comes your way.\n\n";
 	}
 
 	return msg;
@@ -399,7 +400,7 @@ function CommandGuard(words, C, battleIndex) {
 		return "*RED*You must specify an ally to guard!\n";
 	}
 	if (!battle.started) {
-		return "*RED*The battle must be started before you can attack!\n";
+		return "*RED*The battle must be started before you can guard an ally!\n";
 	}
 	let index = parseInt(words[1].slice(1, words[1].length));
 	if (isNaN(index)) {
@@ -457,6 +458,7 @@ function CommandAttack(words, C, battleIndex) {
 	}
 	let weapons = [null, null];
 	let indices = [C.LEFT, C.RIGHT];
+	console.log(indices);
 	if (C.LEFT > -1 && C.LEFT < C.INVENTORY.length) {
 		weapons[0] = C.INVENTORY[C.LEFT];
 	}
@@ -491,6 +493,7 @@ function CommandAttack(words, C, battleIndex) {
 	if (index <= -1 || index >= battle.enemies.length) {
 		return "*RED*Couldn't find that enemy!\n";
 	}
+	
 	
 	if (words[0] == "with" || words[0] == "using") {
 		words = words.slice(1, words.length);
@@ -1386,6 +1389,11 @@ function CommandEnchant(words, C) {
 		if (rune.name.toLowerCase() == "precise") {
 			C.INVENTORY[i].min += 3;
 			C.INVENTORY[i].max += 3;
+		}
+		if (rune.name.toLowerCase() == "accurate") {
+			C.INVENTORY[i].chance = Math.min(100, C.INVENTORY[i].chance+15);
+			C.INVENTORY[i].min += C.INVENTORY[i].hands;
+			C.INVENTORY[i].max += C.INVENTORY[i].hands;
 		}
 		if (rune.name.toLowerCase() == "impervious") {
 			C.INVENTORY[i].armor[0] += 3;

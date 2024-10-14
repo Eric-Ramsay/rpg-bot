@@ -1,6 +1,9 @@
-//RPG GAME
-const Discord = require('Discord.js');
-const client = new Discord.Client();
+const { Client, GatewayIntentBits, ActivityType, Events, Partials } = require('discord.js');
+const client = new Client({ intents: [GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages],
+  partials: [
+    Partials.Channel,
+    Partials.Message
+  ] });
 const fs = require('fs');
 
 eval(fs.readFileSync('models.js') + '');
@@ -55,8 +58,6 @@ function COPY(obj) {
 }
 
 function SaveState() {
-	//console.log("Saving");
-	//console.log(JSON.stringify(data));
 	fs.writeFile("./data.json", JSON.stringify(data), (err) => {
 		if (err) {
 			console.log(err)
@@ -168,7 +169,7 @@ function deathCry(C, allies, enemies) {
 			msg += "*CYAN*" + C.NAME + " has been struck down. . .\n";
 		}
 		else if (C.NAME == "Crazed Wolf") {
-				msg += "*YELLOW*" + Prettify(Name(C)) + " whimpers and dies.\n";
+			msg += "*YELLOW*" + Prettify(Name(C)) + " whimpers and dies.\n";
 		}
 		else if (C.NAME == "Swamp Ape") {
 			msg += "*YELLOW*The light fades from " + Name(C) + "'s eyes.\n";
@@ -292,6 +293,9 @@ function deathCry(C, allies, enemies) {
 		else if (C.NAME == "Treasure Chest") {
 			msg += "*YELLOW*The lock on the treasure chest breaks.\n";
 		}
+		else if (C.TYPE == "construction") {
+			msg += "*YELLOW*" + Prettify(Name(C)) + " has been destroyed!\n";
+		}
 		else {
 			msg += "*YELLOW*" + Prettify(Name(C)) + " has been slain!\n";
 		}
@@ -317,6 +321,13 @@ function deathCry(C, allies, enemies) {
 			if (hasEffect(allies[i], "compensation")) {
 				msg += Heal(allies[i], 8);
 			}				
+		}
+	}
+	for (let i = 0; i < enemies.length; i++) {
+		if (isEquipped(enemies[i], "rotten staff")) {
+			for (let j = 0; j < allies.length; j++) {
+				msg += DealDamage(new T_Attack(4), enemies, enemies[i], allies, allies[j])[0];
+			}
 		}
 	}
 	return msg + "\n";
@@ -409,6 +420,15 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 		if (chance < 35) {
 			damage = -2;
 			msg = "*RED*" + aName + " is blinded and misses!\n";
+		}
+	}
+	
+	if (damage > 0 && target.BRACING) {
+		target.BRACING = false;
+		let chance = rand(100);
+		if (chance < 50) {
+			damage = 0;
+			msg = "*GREEN*" + tName + " jumps out of harm's way!\n";
 		}
 	}
 	
@@ -547,6 +567,9 @@ function SpellDamage(attack, allies, C, targets, target) {
 	if (result[1] > 0) {
 		if (isEquipped(C, "coral staff")) {
 			result[0] += AddEffect(target, "bleed", 0, C);
+		}
+		if (isEquipped(C, "driftwood staff")) {
+			result[0] += AddEffect(target, "posion", 1, C);
 		}
 		if (hasRune(C, "tar")) {
 			msg += AddEffect(target, "Weakened", 1, C);
@@ -994,10 +1017,6 @@ function shitSort(list, property) {
 	return sorted;
 }
 
-function expected(A, B) {
-	return (1 / (1 + Math.pow(10, (B - A)/400)));
-}
-
 function clearLastLine() {
   process.stdout.moveCursor(0, -1) // up one line
   process.stdout.clearLine(1) // from cursor to end
@@ -1015,7 +1034,9 @@ client.on('ready', () => {
 		SaveState();
 	}
 	console.log("Connected as " + client.user.tag);
-	client.user.setActivity("Terrain Gen 3");
+	client.user.setPresence({
+	  activities: [{ name: "Slaying a Lich", type: ActivityType.Custom}]
+	});
 
 	if (true) {
 		testSpells();
@@ -1060,7 +1081,7 @@ function PrintQueue() {
 	processing = false;
 }
 
-client.on('message', (rec) => {
+client.on('messageCreate', (rec) => {
 	try {
 		if (rec.author != client.user) {
 			let id = rec.author.id;
@@ -1087,7 +1108,38 @@ client.on('error', error => {
 	console.error('The WebSocket encountered an error:', error);
 });
 
-function parseText(msg) {
+function parseText(msg, tabReplace = true) {
+	/*let lastColor = "GREY";
+	let nextColor = "";
+	let readingColor = false;
+	let colorIndex = 0;
+	let index = 0;
+	let numDeletions = 0;
+	for (const c of msg) {
+		if (c == '*') {
+			readingColor = !readingColor;
+			if (!readingColor) {
+				if (lastColor == nextColor) {
+					//Erase the color designator, it wasn't needed.
+					numDeletions++;
+					msg = msg.substring(0, colorIndex) + msg.substring(colorIndex + nextColor.length + 2);
+					index -= (nextColor.length + 2)
+				}
+				lastColor = nextColor;
+			}
+			else {
+				colorIndex = index;
+			}
+			nextColor = "";
+		}
+		else if (readingColor)
+		{
+			nextColor += c;
+		}
+		index++;
+	}
+	console.log("Deleted " + numDeletions + " colors.");
+	*/
 	let text = msg.split("*GREY*").join("[2;0m");
 	text = text.split("*BLACK*").join("[2;30m");
 	text = text.split("*RED*").join("[2;31m");
@@ -1098,6 +1150,9 @@ function parseText(msg) {
 	text = text.split("*CYAN*").join("[2;36m");
 	text = text.split("*WHITE*").join("[2;37m");
 	text = text.split("*GREY*").join("[2;0m");
+	if (tabReplace) {
+		text = text.split("    ").join("\t");
+	}
 	return "\`\`\`ansi\n" + text + "\`\`\`";
 }
 
@@ -1144,8 +1199,8 @@ function ItemDescription(C, item) {
 	return msg;
 }
 
-function DrawBar(val, max, size, color, drawNum = true) {
-	let str = "*GREY*[" + color;
+function DrawBar(val, max, size, color, drawNum = true, braceColor = "*GREY*") {
+	let str = braceColor + "[" + color;
 	let threshold = Math.floor(size * val / max);
 	for (let i = 0; i < size; i++) {
 		if (i < threshold) {
@@ -1158,7 +1213,7 @@ function DrawBar(val, max, size, color, drawNum = true) {
 			str += "-";
 		}
 	}
-	str += "*GREY*]";
+	str += braceColor+ "]";
 	if (drawNum) {
 		return str + "*BLACK* " + val + "/" + max;
 	}
@@ -1502,7 +1557,12 @@ function CharacterDescription(C) {
 			levelStr += "*BLACK* | *WHITE*" + C.SP + " SP";
 		}
 		msg += "*GREEN*" + C.NAME + "*GREY* the *CYAN*" + Prettify(C.CLASS) + "*BLACK* | " + levelStr + "*BLACK* | *YELLOW*" + C.XP + "*GREY*/*GREEN*" + C.LEVEL * 100 + "*GREY* XP*BLACK* | *CYAN*⛊*GREY*" + P_Armor(C) + " *CYAN*✱*GREY*" + M_Armor(C) +"*GREY*\n";
-		msg += DrawBar(C.HP, MaxHP(C), 30, "*RED*") + "\n";
+		if (C.BRACING) {
+			msg += DrawBar(C.HP, MaxHP(C), 30, "*RED*", true, "*YELLOW*") + "\n";
+		}
+		else {
+			msg += DrawBar(C.HP, MaxHP(C), 30, "*RED*") + "\n";
+		}
 		msg += DrawBar(C.STAMINA, MaxStamina(C), 30, "*GREEN*");
 		if (BattleIndex(C.ID) > -1) {
 			msg += "*GREY* - *GREEN* AP: " + C.AP;
@@ -1607,7 +1667,12 @@ function DrawSideList(symbol, allies, otherStr, statStr) {
 				num++;
 			}
 		}
-		statStr += DrawBar(allies[i].HP, MaxHP(allies[i]), 10, "*RED*", false);
+		if (allies[i].BRACING) {
+			statStr += DrawBar(allies[i].HP, MaxHP(allies[i]), 10, "*RED*", false, "*WHITE*");
+		}
+		else {
+			statStr += DrawBar(allies[i].HP, MaxHP(allies[i]), 10, "*RED*", false);
+		}
 		statStr += " *CYAN*⛊*GREY*" + P_Armor(allies[i]) + " *CYAN*✱*GREY*" + M_Armor(allies[i]);
 		let type = symbol;
 		if (allies[i].TYPE == "player") {
@@ -1957,12 +2022,12 @@ function Command(message) {
 	let numRepeat = 1;
 	
 	let requireCharacter = ["servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "enchant", "level", "stop", "move", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "read", "learn", "order", "buy", "sell", "spells"];
-	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "guard"];
+	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "guard", "brace"];
 	
 	for (let i = 0; i < requireBattle.length; i++) {
 		requireCharacter.push(requireBattle[i]);
 	}
-	if ((keyword == "silly" || requireCharacter.indexOf(keyword) > -1) && words[words.length - 1][0] == "x" && words[words.length - 1].length == 2) {
+	if ((keyword == "normal" || keyword == "silly" || requireCharacter.indexOf(keyword) > -1) && words[words.length - 1][0] == "x" && words[words.length - 1].length == 2) {
 		numRepeat = parseInt(words[words.length - 1][1]);
 		if (isNaN(numRepeat) || numRepeat == 0) {
 			numRepeat = 1;
@@ -2088,16 +2153,15 @@ function Command(message) {
 			runBattle(teamOne, teamTwo, rand(2), message.channel);
 		}
 		else if (keyword == "tutorial") {
-			msg += "*GREEN*Welcome!\n";
-			msg += "*BLUE*Please refer to the following commands to learn more about the game:\n";
+			msg += "*BLUE*Welcome! Please refer to the following commands to learn more about the game.\n\n";
 			msg += "*CYAN*!help - Lists Available Commands\n";
-			msg += "*BLUE*!classes - Provides a list of classes you can play as\n";
+			msg += "*GREEN*!classes - Provides a list of classes you can play as\n";
 			msg += "*CYAN*!stats - Describes what a character's stats do\n";
-			msg += "*BLUE*!weapons - Lists the different weapon classes and their strengths\n";
+			msg += "*GREEN*!weapons - Lists the different weapon classes and their strengths\n";
 			msg += "*CYAN*!character - Creates a character to play as\n";
-			msg += "*BLUE*!here - Gives a description of your character's surroundings.\n";
+			msg += "*GREEN*!here - Gives a description of your character's surroundings.\n";
 			msg += "*CYAN*!town - Provides a map of the town.\n";
-			msg += "*BLUE*!quest - Gives information about the current active quest.\n";
+			msg += "*GREEN*!quest - Gives information about the current active quest.\n";
 		}
 		else if (keyword == "weapons") {
 			msg += "*GREEN*Weapon Classes\n";
@@ -2149,6 +2213,11 @@ function Command(message) {
 				}
 				msg += HandleCombat(battles[index]);
 			}
+		}
+		else if (keyword == "brace") {
+			C.BRACING = true;
+			msg += "*YELLOW*" + C.NAME + " braces themselves!\n";
+			msg += HandleCombat(battles[index]);
 		}
 		else if (keyword == "end") {
 			C.ENDED = true;
@@ -2322,8 +2391,8 @@ function Command(message) {
 			msg += "*PINK*Rogue*GREY* - *CYAN*+2 AVD*GREY*. Starts with *YELLOW*40 gold*GREY*, a cloak, and two daggers. Whenever you dodge an attack, deal 6 damage to your attacker.\n\n";
 			msg += "*BLUE*Warrior*GREY* - *CYAN*+1 VIT +1 DEX +2 Armor*GREY*. Starts with *YELLOW*25 gold*GREY*, a Leather Cuirass, a Hatchet, and a Buckler. Armor doesn't reduce your Stamina.\n\n";
 			msg += "*PINK*Ranger*GREY* - *CYAN*+1 WEP +1 AVD*GREY*. Start with *YELLOW*10 gold*GREY* and a ranged weapon. Your attacks deal more damage on farther enemies (5% -> 25%)\n\n";
-			msg += "*BLUE*Mage*GREY* - *CYAN*+2 MAG*GREY*. Starts with a wand and a simple spell. Only mages can buy wield staffs that enhance their magic.\n\n";
-			msg += "*PINK*Sorcerer*GREY* - *CYAN*+1 MAG*GREY*. Start with a quarterstaff, a cloak, and *YELLOW*15 gold*GREY*. Sorcerers don't need to use wands or staves to cast spells.\n\n";
+			msg += "*BLUE*Mage*GREY* - *CYAN*+2 MAG*GREY*. Starts with a wand and a simple spell. Only mages can wield staffs that enhance their magic.\n\n";
+			msg += "*PINK*Sorcerer*GREY* - *CYAN*+1 MAG*GREY*. Start with a quarterstaff, a cloak, and *YELLOW*15 gold*GREY*. Sorcerers can cast magic without staves or wands.\n\n";
 		}
 		else if (keyword == "effects") {
 			msg += WriteEffects(C);
@@ -2383,6 +2452,10 @@ function Command(message) {
 		else if (keyword == "silly") {
 			let colors = ["*RED*", "*BLUE*", "*PINK*", "*GREEN*", "*YELLOW*"];
 			msg += colors[rand(colors.length)] + "" + genSillyName() + "\n";
+		}
+		else if (keyword == "normal") {
+			let colors = ["*RED*", "*BLUE*", "*PINK*", "*GREEN*", "*YELLOW*"];
+			msg += colors[rand(colors.length)] + "" + genName(rand(2)) + "\n";
 		}
 		else if (keyword == "name") {
 			words = words.slice(1, words.length);
@@ -2456,6 +2529,7 @@ function Command(message) {
 			}
 			if (C.BUILDING.toLowerCase() == "tavern") {
 				if (C.GOLD >= 5) {
+					//C.DIALOGUE[];
 					msg += "*GREEN*You pay 5 gold to sleep at the tavern.\n";
 					C.GOLD -= 5;
 					data["town"].prosperity += 5;

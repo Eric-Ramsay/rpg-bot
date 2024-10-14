@@ -6,6 +6,13 @@ function Report() {
 	this.mitigated = 0;
 }
 
+function Dialogue() {
+	this.NPC = "";
+	this.haircut = null;
+	this.talks = 0;
+	this.relation = 0;
+}
+
 function Character() {
 	this.TYPE = "player";
 	this.DESCRIPTION = "";
@@ -50,6 +57,7 @@ function Character() {
 	this.CURSED = false;
 	
 	this.RETIRED = false;
+	this.DIALOGUE = [];
 }
 
 function Effect(name, type, description, stackable = false) {

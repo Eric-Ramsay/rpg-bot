@@ -6,14 +6,10 @@ Feature Ideas
 - Purpose for Fishing / Drinks
 - Hiring Party Members
 - Mounts
-- Random Allies in Dungeons
-
-
+- Random Allies in Dungeons	
 
 Enemy Ideas
 ===========
-- Hivelings -> Link together and get stronger with #'s
-- Succubus -> 2 Phase boss, kills other enemies at start
 - Glutton -> Eats a player
 
 
@@ -89,6 +85,25 @@ Ask about people
 - Kobos
 - Florence
 - Nestra
+
+
+
+
+
+Improved Dialogue Manager & Interactions
+- Improved NPC interactions with player
+- Rare Events
+- Room for Player Input
+- NPC's should react to player stats like class, level, haircut, purchasing history, retreats from combat, combat victories, etc. . .
+
+Stats to store:
+- # of Combats
+- List of all enemy types killed
+- # of Retreats
+
+- unique stats per NPC
+- # of times talked to that NPC
+- variables for controlling unique dialogue events (ie to prevent dialogue from repeating)
 
 
 	

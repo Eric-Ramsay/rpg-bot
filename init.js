@@ -22,18 +22,22 @@ function initRunes() {
 	runes.push(new Rune("Reflect", 		125, 	"armor", 	"Whenever you are hit, reflect 5 damage to your attacker"));
 
 	//Weapon Runes
+	runes.push(new Rune("Peel", 		70, 	"weapon", 	"When you hit an enemy, reduce their physical protections by 1"));
 	runes.push(new Rune("Affliction", 	80, 	"weapon", 	"Randomly inflict Venom, Bleed, or Poison onto your target"));
-	runes.push(new Rune("Maladious", 	90, 	"weapon", 	"Your weapon gains +1 damage if a target is debuffed, as well as +1 damage per debuff"));
-	runes.push(new Rune("Leeching", 	90, 	"weapon", 	"Restore +2 HP and +4 Stamina per Attack"));
-	runes.push(new Rune("Accurate", 	90, 	"weapon", 	"Any attacks that miss their target are re-tried one time"));
-	runes.push(new Rune("Powerful", 	90, 	"weapon", 	"+25% Weapon Base Damage on Attacks"));
+	runes.push(new Rune("Decisive", 	90, 	"weapon", 	"+25% Base Damage on your first attack each turn."));
+	runes.push(new Rune("Lethality", 	90, 	"weapon", 	"Gain a 15% chance per attack to double your weapon's total damage."));
+	runes.push(new Rune("Maladious", 	90, 	"weapon", 	"Your weapon gains +10% damage if a target is debuffed, as well as +1 damage per debuff"));
+	runes.push(new Rune("Leeching", 	90, 	"weapon", 	"Restore +3 HP and +3 Stamina per Attack"));
+	runes.push(new Rune("Accurate", 	90, 	"weapon", 	"Your weapon gains +10% hit chance. 1H Weapons gain +1 Damage. 2H Weapons gain +2 Damage"));
+	runes.push(new Rune("Reprise", 		90, 	"weapon", 	"Any attacks that miss their target are re-tried one time"));
+	runes.push(new Rune("Powerful", 	90, 	"weapon", 	"+20% Weapon Base Damage on Attacks"));
 	runes.push(new Rune("Precise", 		90, 	"weapon", 	"+3 Damage per Attack"));
 	runes.push(new Rune("Invigorant", 	90, 	"weapon", 	"Your weapon is able to attack +1 time"));
 	runes.push(new Rune("Reach", 		90, 	"weapon", 	"Your weapon gains +2 range"));
 	runes.push(new Rune("Sweeping", 	90, 	"weapon", 	"When you hit an enemy, deal 20% of the damage to other enemies in the row"));
 	runes.push(new Rune("Density",		90,		"weapon",	"Attacks cost +3 AP, but gain +8 Damage"));	
-	runes.push(new Rune("Peel", 		90, 	"weapon", 	"When you hit an enemy, reduce their physical protections by 2"));
 	runes.push(new Rune("Orisha", 		90, 	"weapon", 	"Gain +30% Penetration"));
+	runes.push(new Rune("Terror", 		90, 	"weapon", 	"High damage attacks have a chance to cause enemies to flee from you"));
 
 	//Wild Weapon Runes
 	runes.push(new Rune("Death Mark", 	125, 	"weapon", 	"Slain enemies are raised as allied zombies"));
@@ -422,7 +426,8 @@ function initItems() {
 	items.push(new Item("Crook", 				"staff",	100,	"Your healing spells heal +2 HP. Heals you receive are increased by +1 HP"));
 	items.push(new Item("Coral Staff", 			"staff",	100,	"A colorful staff, sturdy and well-formed. Your damaging spells afflict bleeding. +3 Physical & +3 Magical Armor"));
 	items.push(new Item("Blood Staff", 			"staff",	100,	"A staff wrought of bone and inset with crystals of angelic blood. Heal +6 HP per turn. You're immune to Poison."));
-	items.push(new Item("Driftwood Staff",		"staff",	100,	"A double-ended staff of smooth wood, greyed by the swamp water that formed it. "));
+	items.push(new Item("Driftwood Staff",		"staff",	100,	"A smooth wooden staff, greyed by centuries submerged in the swamp. Your damaging spells afflict poison. For every 3 Poison Stacks on your enemies, heal +1 HP."));
+	items.push(new Item("Rotten Staff",			"staff",	100,	"Mushrooms sprout from this ancient staff, and insects stir within it. Whenever an enemy dies, deal 4 true damage to all other enemies."));
 	items.push(new Item("Staff",				"staff",	100,	"Adds +1 Damage to your spells."));
 	items.push(new Item("Scepter",				"staff",	100,	"Spells have a 20% Chance to not use AP."));
 	
@@ -643,6 +648,7 @@ function initEnemies() {
 	
 	//2 - The Wilted Woods
 	//						Name, 					HP, 	Phys, 	Magic, 	Diff	Zones	MOVES	TYPE			DESCRIPTION
+	enemies.push(new Enemy("Impling Druid",			20,		0,		0,		20,		[0, 1, 2],	2,	"",				"A grey, spindly creature that has dressed itself in leaves, wielding a staff whittled from a decaying twig. It single eye glances around nervously."));
 	enemies.push(new Enemy("Scoundrel", 			40,		0,		0,		40,		[2],	2,		"", 			"A round and gnarlish figure, who swipes his knife upward at you from his slumped position. *YELLOW*Added By Christopher"));
 	enemies.push(new Enemy("Crazed Wolf", 			40, 	2,		0,		40, 	[2], 	3,		"animal", 		"A mangy wolf, foaming at its mouth and snapping viciously.")); //Phys
 	enemies.push(new Enemy("Briar Beast", 			60, 	4,		2,		40, 	[2, 1], 1,		"animal", 		"A squat, rotund creature with thorny wood-like skin and a shaggy coat of bright green leaves.")); //Phys + Magic Reflect
@@ -704,6 +710,7 @@ function initEnemies() {
 	//						Name, 				HP, 	Phys, 	Magic, 	Diff	Zones	MOVES
 	enemies.push(new Enemy("Swarm of Bees", 	2, 		100,	100,	5, 		[], 	4,		"animal", "A pesky swarm of enlarged, stinging insects")); //Phys
 	enemies.push(new Enemy("Egg Sac", 			5,		0,		0,		25,		[],		0,		"", "A vast bundle of silk. Something is crawling around within it."));
+	enemies.push(new Enemy("Web", 				5,		10,		10,		0,		[],		0,		"construction", "A hastily strewn web of sturdy white spider silk that traps creatures that pass through it."));
 	enemies.push(new Enemy("Baby Spider", 		10,		0,		0,		5,		[],		3,		"animal", "A squat spider, about the size of a house cat. It scuttles about frantically."));
 	enemies.push(new Enemy("Living Spore",		5,		0,		0,		1,		[],		2,		"plant",  "A tiny spore that glows in the dim light. It sways on the breeze, seeking to nestle into a rotten patch to sprout."));
 	enemies.push(new Enemy("Servant",			40,		1,		1,		20,		[],		2,		"servant", "A well-kept and well-dressed servant, carrying a dark mahogany baton. They're undyingly loyal to the noble they serve."));
@@ -753,6 +760,12 @@ function initEnemies() {
 			}
 			if (enemies[i].ZONES.indexOf(0) > -1 ) {
 				enemies[i].LOOT.push(new Drop("Blood Staff", 3));
+			}
+			if (enemies[i].ZONES.indexOf(1) > -1 ) {
+				enemies[i].LOOT.push(new Drop("Driftwood Staff", 3));
+			}
+			if (enemies[i].ZONES.indexOf(1) > -1 ) {
+				enemies[i].LOOT.push(new Drop("Rotten Staff", 3));
 			}
 		}
 		if (enemies[i].DIFFICULTY >= 30) {
@@ -827,8 +840,8 @@ function initEnemies() {
 			enemies[i].LOOT.push(new Drop("Death Mark", 2));
 		}
 		if (enemies[i].NAME == "Lich") {
-			enemies[i].LOOT.push(new Drop("Blood Staff", 40));
-			enemies[i].LOOT.push(new Drop("Death Mark", 40));
+			enemies[i].LOOT.push(new Drop("Blood Staff", 30));
+			enemies[i].LOOT.push(new Drop("Death Mark", 30));
 			enemies[i].LOOT.push(new Drop("Staff", 5));
 			enemies[i].LOOT.push(new Drop("Crook", 5));
 			enemies[i].LOOT.push(new Drop("Scepter", 5));
@@ -937,6 +950,7 @@ function initEffects() {
 		new Effect("Parched", 				"debuff",	"You can't drink potions.",										false),
 		new Effect("Cursed", 				"debuff",	"Your debuffs can't end in any way.",							false),
 		new Effect("Disorganized", 			"debuff",	"+20% Damage taken. -20% Damage dealt.",						false),
+		new Effect("Terrified", 			"debuff",	"This creature is fleeing for their life!",						false),
 		new Effect("Wilting", 				"debuff",	"Lose 4 HP per turn. Lose 12 Stamina per turn.",				false),
 		new Effect("Enraged", 				"buff",		"Deal +50% Damage",												false),
 		new Effect("Invincible", 			"buff",		"You can't take any damage",									false),
@@ -957,7 +971,7 @@ function initEffects() {
 		new Effect("Preparation", 			"buff",		"+4 AP per turn.",												false),
 		new Effect("Ferocity", 				"buff",		"Your spells deal +2 DMG",										false),
 		new Effect("Regenerative", 			"buff",		"Regenerate 6 HP per turn.",									false),
-		new Effect("Healing in Shell", 		"buff",		"Heal 6-10 HP. Gain +12 +6 Armor.",								false),
+		new Effect("Healing in Shell", 		"buff",		"Heal 6-10 HP per turn. Gain +12 +6 Armor.",					false),
 		new Effect("Enamoured with", 		"buff",		"This creature has eyes only for one. . .",						false),
 		new Effect("Guarding", 				"buff",		"-6 AP per turn. Defend a nearby ally from attacks.",			false),
 		new Effect("Health Potion", 		"buff",		"Heal 10 HP per turn.",											true),

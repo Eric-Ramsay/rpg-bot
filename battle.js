@@ -71,6 +71,13 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 			if (hasEffect(C, "restorative synergy")) {
 				healing += numBuffs(C);
 			}
+			if (isEquipped(C, "Driftwood Staff")) {
+				let numPoisons = 0;
+				for (let i = 0; i < enemies.length; i++) {
+					numPoisions += countEffect(enemies[i], "poison");
+				}
+				healing += Math.floor(numPoisons/3);
+			}
 			if (!invincible) {
 				let poison = countEffect(C, "poison");
 				C.HP = Math.max(1, C.HP - poison);
@@ -100,6 +107,7 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 				C.FLED = false;	
 				C.CASTS = 0;
 				C.ENDED = false;
+				C.BRACING = false;
 				for (let j = 0; j < C.INVENTORY.length; j++) {
 					if (C.INVENTORY[j].type == "weapon") {
 						C.INVENTORY[j].attacks[0] = C.INVENTORY[j].attacks[1];
@@ -425,13 +433,13 @@ function WinBattle(battle) {
 				goldReward += 40;
 			}
 			else {
-				goldReward += (1 + Math.ceil(enemy.DIFFICULTY/8));
+				goldReward += (1 + Math.ceil(enemy.DIFFICULTY/10));
 			}
 			goldReward = Math.min(200, goldReward);
 			expReward += enemy.DIFFICULTY;
 			for (const drop of enemy.LOOT) {
 				let ran = rand(100);
-				if (lootValue <= enemy.DIFFICULTY/2) {
+				if (lootValue <= enemy.DIFFICULTY/4) {
 					if (ran <= drop.chance) {
 						let index = findItem(items, drop.name);
 						if (index > -1) {
@@ -442,7 +450,7 @@ function WinBattle(battle) {
 				}
 			}
 		}
-		if (rand(5) == 0 && (numMimics < battle.loot.length/4)) {
+		if (rand(8) == 0 && (numMimics < battle.loot.length/4)) {
 			numMimics++;
 			let mimics = [
 				new Item("Stanima Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
@@ -534,7 +542,7 @@ function CheckEnemies(battle, testing = false) {
 	}
 	battle.started = battle.started && (battle.allies.length > 0 && battle.enemies.length > 0);
 	if (!battle.started && battle.allies.length > 0 && !testing) {
-		let ran = rand(10);
+		let ran = rand(20);
 		if (ran == 0) {
 			battle.started = true;
 			msg += "*YELLOW*You come upon an old treasure chest. . .\n";
@@ -586,8 +594,20 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	}
 	RemoveEffect(C, "Coward's Haste");
 	let dmg = weapon.min + rand(1 + ((weapon.max + C.STATS[WEP]) - weapon.min));
+	if (hasWeaponRune(weapon, "decisive")) {
+		if (weapon.attacks[0] == weapon.attacks[1] - 1) {
+			dmg *= 1.25;
+		}
+	}
 	if (hasWeaponRune(weapon, "powerful")) {
-		dmg *= 1.25;
+		dmg *= 1.20;
+	}
+	if (hasWeaponRune(weapon, "maladious")) {
+		let debuffs = numDebuffs(enemy);
+		if (debuffs > 0) {
+			dmg *= 1.1;
+			dmg += debuffs;
+		}
 	}
 	if (C.CLASS == "ranger") {
 		let mult = 1 + (1 + Math.abs(C.ROW - enemy.ROW)) * .05;
@@ -597,12 +617,11 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	if (hasEffect(C, "cascade")) {
 		dmg += 2;
 	}
-	msg = "*GREEN*" + C.NAME + "*GREY*" + " attacks the *RED*" + enemy.NAME + "*GREY* with their " + weapon.name + ".\n";	
-	if (hasWeaponRune(weapon, "maladious")) {
-		let debuffs = numDebuffs(enemy);
-		if (debuffs > 0) {
-			dmg += 1;
-			dmg += debuffs;
+	msg = "*GREEN*" + C.NAME + "*GREY*" + " attacks the *RED*" + enemy.NAME + "*GREY* with their " + weapon.name + ".\n";
+	if (hasWeaponRune(weapon, "lethality")) {
+		if (rand(101) <= 15) {
+			dmg *= 2;
+			msg += "*PINK*It's a lethal blow!\n";
 		}
 	}
 	if (weapon.subclass == "axe") {
@@ -634,8 +653,8 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	let result = DealDamage(new P_Attack(Math.round(dmg), weaponChance, weapon.pen), Battle.allies, C, Battle.enemies, enemy);
 	msg += result[0];
 	if (result[1] == -2) {
-		if (depth == 0 && hasWeaponRune(weapon, "accurate")) {
-			msg += "*CYAN*The Accurate Rune takes effect!\n";
+		if (depth == 0 && hasWeaponRune(weapon, "reprise")) {
+			msg += "*CYAN*Reprise takes effect\n";
 			msg += AllyAttack(Battle, C, enemyIndex, weaponIndex, 1);
 		}
 	}
@@ -656,15 +675,14 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 			}
 		}
 		if (hasWeaponRune(weapon, "leeching")) {
-			msg += Heal(C, 2);
-			C.STAMINA = Math.min(C.STAMINA + 4, MaxStamina(C));
-			C.HP = Math.min(C.HP + 2, MaxHP(C));
+			msg += Heal(C, 3);
+			C.STAMINA = Math.min(C.STAMINA + 3, MaxStamina(C));
 		}
 		if (weapon.name == "Vampire Fang") {
 			msg += Heal(C, Math.ceil(result[1]/2));
 		}
 		if (hasWeaponRune(weapon, "peel")) {
-			msg += "You peel away the armor of the " + enemyList[index].NAME + "!\n"
+			msg += "You peel away the armor of the " + enemy.NAME + "!\n"
 			enemy.ARMOR[0]--;
 		}
 		if (enemy.HP > 0) {
@@ -693,6 +711,16 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		}
 		if (hasWeaponRune(weapon, "sweeping") && result[1] > 0) {
 			sweepDmg += Math.max(1, Math.round(dmg * .2));
+		}
+		if (hasWeaponRune(weapon, "terror") && result[1] > 0) {
+			for (let i = 0; i < Battle.enemies.length; i++) {
+				if (Battle.enemies[i].ROW == enemy.ROW && dmg > Battle.enemies[i].DIFFICULTY) {
+					let ran = rand(100);
+					if (ran < 50) {
+						msg += AddEffect(Battle.enemies[i], "terrified", 1, C);
+					}
+				}
+			}
 		}
 		if (sweepDmg > 0 && !bossKill) {
 			for (let i = 0; i < Battle.enemies.length; i++) {

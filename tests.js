@@ -48,10 +48,12 @@ function testMonsters() {
 	}
 	for (let i = 0; i < wins.length; i++) {
 		if (i > 0) {
-			clearLastLine();
+			//clearLastLine();
 		}
-		console.log(i + "/" + wins.length);
+		//console.log(i + "/" + wins.length);
+		console.log("Testing " + removeColors(wins[i].name) + " . . .");
 		for (let j = i + 1; j < wins.length; j++) {
+			console.log("    vs. " + removeColors(wins[j].name));
 			let winsOne = 0;
 			let winsTwo = 0;
 			let enemyOne = "Flaming Wisp";
@@ -111,7 +113,7 @@ function testMonsters() {
 		msg += StackStrings(strTwo, "*RED*"+sorted[i].name, 25)+"*GREY*" + "\n";
 	}
 	value /= sorted.length
-	console.log(parseText(msg));
+	console.log(parseText(msg, false));
 	console.log("Avg Score: " + Math.floor(100 * value)/100);
 }
 

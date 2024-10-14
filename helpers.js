@@ -12,6 +12,22 @@ function Dequip(C, invIndex) {
 	return "*RED*That item is not equipped!\n";
 }
 
+function removeColors(msg)
+{
+	let newMsg = "";
+	let readingColor = false;
+	for (const c of msg) {
+		if (c == '*') {
+			readingColor = !readingColor;
+		}
+		else if (!readingColor)
+		{
+			newMsg += c;
+		}
+	}
+	return newMsg;
+}
+
 function Equip(C, invIndex) {
 	if (C.INVENTORY[invIndex].equipped) {
 		return "*RED*This item is already equipped!\n";
@@ -253,7 +269,7 @@ function AddEffect(C, eName, duration, attacker = null, target = null, stacks = 
 		immune = true;
 	}
 	if (C.TYPE == "construction") {
-		if (eName == "whipped" || eName == "bleed" || eName == "venom" || eName == "poison" || eName == "blinded") {
+		if (eName == "terrified" || eName == "whipped" || eName == "bleed" || eName == "venom" || eName == "poison" || eName == "blinded") {
 			immune = true;
 		}
 	}
@@ -750,32 +766,25 @@ function CanUseWeapon(C, index, range = 0) {
 	return true;
 }
 
-function genNameAll() {
-	
-}
-
-function testNames() {
-	let names = [];
-	for (let i = 0; i < 1000000; i++) {
-	let name = genSillyName();
-		if (names.indexOf(name) == -1) {
-			names.push(name);
-		}
-	}
-	console.log(names.length);
-}
 
 function genSillyName() {
-	var beg = ["Sh", "Shl", "Shr", "Ch", "B", "R", "Bl", "Pl", "J", "H", "Shr", "D", "Qu", "Bal", "Br", "Dr"];
-	var mid = ["om", "omb", "im", "imb", "int", "eb", "imp", "umb", "on", "eeb", "org", "alm", "ail", "oil", "oin", "adink", "erd", "ek", "eep", "eev"];
-	var end = ["o", "ly", "ison", "ius", "adeer", "by", "erson", "ey", "ert", "erd", "org", "us", "eus", "adoo", "a", "erp", "amo", "amus", "ador", "s"];
+	var beg = ["Zin", "Koin", "Ur", "Guan", "Bob", "Sh", "Shl", "Shr", "Ch", "B", "R", "Bl", "Pl", "J", "H", "Shr", "D", "Qu", "Bal", "Br", "Dr", "Chl", "G", "Gr", "Beet", "Helm", "Far", "Bor", "Cab", "D"];
+	var mid = ["om", "omb", "air", "im", "imb", "int", "ul", "ur", "unt", "eb", "imp", "umb", "on", "eeb", "org", "alm", "ail", "oil", "oin", "oim", "adink", "erd", "ek", "eep", "eev", "oiler"];
+	var end = ["ave", "ad", "at", "do", "o", "ly", "ison", "abob", "ius", "adeer", "by", "erson", "ey", "ert", "erd", "org", "us", "eus", "erg", "adoo", "a", "erp", "amo", "amus", "ador", "s", "stein", "lus", "adub", "adoil", "ong", "ang"];
 	let name = mid[rand(mid.length)];
 	let start = beg[rand(beg.length)]
-	if (rand(6) == 0) {
-		name += mid[rand(mid.length)];
-	}
-	if (rand(2) == 0) {
-		name += end[rand(end.length)];
+	let hold = true;
+	while (hold || rand(2 == 0)) {
+		hold = false;
+		let marked = false;
+		if (rand(2) == 0) {
+			name += mid[rand(mid.length)];
+			marked = true;
+		}
+		if (rand(3) == 0) {
+			name += end[rand(end.length)];
+			marked = true;
+		}
 	}
 	if (name.length > 3 && rand(4) == 0) {
 		return Prettify(name);
