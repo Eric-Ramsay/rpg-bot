@@ -12,25 +12,36 @@ Enemy Ideas
 ===========
 - Glutton -> Eats a player
 
-
-
 Rune Ideas
 ==========
-- Reflect Debuffs back to afflicter
+
 
 
 Other Ideas
 ===========
 - Confused Effect -> Enemy attacks other enemies
-- 1 Unique staff per zone
-- more weapons and runes dropped by enemies
 
 
 Spell Ideas
 ===========
-- Spell where you mark an enemy. While marked, they heal you for 1 HP per turn.
-- Spell to deal damage and consume marks
-- Blood Staff, deal additional dmg to damaged enemies
+
+
+
+Ideas to add
+
+Dialogue System overhaul - Improved relationship tracking and diversity + user input
+ - Event system where each event has a custom trigger function (ie if relation > 50 and this event hasn't triggered and player recently defeated lich)
+ - Then have custom function to process the event and user responses
+ 
+Make rare weapons a little more expensive
+
+Add a way to prevent re-delving over and over to get to the wandering merchant
+
+Track down and squash the bug for picking which weapon to use when fighting
+
+Add traits to choose from
+
+Add hirable party members
 
 
 Patch Notes

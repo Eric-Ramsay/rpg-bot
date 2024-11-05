@@ -106,11 +106,13 @@ function testMonsters() {
 	let value = 0;
 	for (let i = 0; i < sorted.length; i++) {
 		value += Math.floor(100 * sorted[i].wins/sorted[i].cost)/100;
+		let num = ("*PINK*" + (i+1)).padStart(2, '0') + "*GREY*)";
 		let indivScore = Math.floor(Math.floor(150 * sorted[i].wins/max));
 		let percent = Math.floor(1000 * sorted[i].wins/sorted[i].battles)/10;
-		let strOne = StackStrings("*GREEN*"+sorted[i].cost, "*CYAN*" + sorted[i].turns+"*GREY*", 5, false);
-		let strTwo = StackStrings(strOne, "*YELLOW*" + percent+"*GREY*%", 13, false);
-		msg += StackStrings(strTwo, "*RED*"+sorted[i].name, 25)+"*GREY*" + "\n";
+		let strOne = StackStrings("*GREY*"+num, "*GREEN*"+sorted[i].cost, 5, false);
+		let strTwo = StackStrings(strOne, "*CYAN*" + sorted[i].turns+"*GREY*", 10, false);
+		let strThree = StackStrings(strTwo, "*YELLOW*" + percent+"*GREY*%", 18, false);
+		msg += StackStrings(strThree, "*RED*"+sorted[i].name, 30)+"*GREY*" + "\n";
 	}
 	value /= sorted.length
 	console.log(parseText(msg, false));

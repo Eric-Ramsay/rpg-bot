@@ -30,6 +30,10 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 				msg += DealDamage(new M_Attack(shock.stacks), allies, C, enemies, enemies[rand(enemies.length)])[0];
 			}
 			
+			if (isEquipped(C, "blood staff") && C.HP < MaxHP(C)) {
+				healing += 6;
+			}
+			
 			//Runic Effects
 			if (hasRune(C, "cultivation") && C.HP < MaxHP(C)) {
 				healing += 4;
@@ -74,7 +78,7 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 			if (isEquipped(C, "Driftwood Staff")) {
 				let numPoisons = 0;
 				for (let i = 0; i < enemies.length; i++) {
-					numPoisions += countEffect(enemies[i], "poison");
+					numPoisons += countEffect(enemies[i], "poison");
 				}
 				healing += Math.floor(numPoisons/3);
 			}
@@ -206,6 +210,12 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 		}
 		if (allies[i].TYPE == "player" && hasEffect(allies[i], "guarding")) {
 			allies[i].AP = Math.max(0, allies[i].AP - 6);
+		}
+	}
+	for (let i = enemies.length - 1; i >= 0; i--) {
+		if (enemies[i].HP <= 0) {
+			deadEnemies.push(COPY(enemies[i]));
+			enemies.splice(i, 1);
 		}
 	}
 	if (battle.allyTurn) {
@@ -415,7 +425,7 @@ function WinBattle(battle) {
 			}
 		}
 	}
-	let goldReward = 10;
+	let goldReward = 15;
 	let expReward = 0;
 	let numMimics = 0;
 	for (const enemy of battle.deadEnemies) {
@@ -450,14 +460,16 @@ function WinBattle(battle) {
 				}
 			}
 		}
-		if (rand(8) == 0 && (numMimics < battle.loot.length/4)) {
+		if (rand(10) == 0 && (numMimics < battle.loot.length/4)) {
 			numMimics++;
 			let mimics = [
 				new Item("Stanima Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
 				new Item("Heolth Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
 				new Item("Armor", 			"mimic", 0, "It looks like metal, but it's pulsing . . ."),
-				new Item("Weapon", 			"mimic", 0, "It kind of looks like a sword, maybe an axe. . ."),
-				new Item("Gold", 			"mimic", 0, "An amoprhous pile resembling coins.")
+				new Item("Weapon", 			"mimic", 0, "It kind of looks like a sword, or maybe an axe. . ."),
+				new Item("Gold", 			"mimic", 0, "An amoprhous pile resembling coins."),
+				new Item("Potion", 			"mimic", 0, "A translucent bottle-shaped lump filled with what looks like blood."),
+				new Item("Gemstome", 		"mimic", 0, "A damp lump that almost resembles a ruby."),
 			]
 			battle.loot.push(COPY(mimics[rand(mimics.length)]));
 		}
@@ -707,7 +719,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	if (!bossKill) {
 		let sweepDmg = 0;
 		if (weapon.subclass == "blunt") {
-			sweepDmg += 2;
+			sweepDmg += 2 + Math.floor(dmg/10);
 		}
 		if (hasWeaponRune(weapon, "sweeping") && result[1] > 0) {
 			sweepDmg += Math.max(1, Math.round(dmg * .2));

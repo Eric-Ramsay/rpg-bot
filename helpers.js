@@ -466,6 +466,36 @@ function Heal(C, health, overheal = false) {
 	return "*PINK*" + Prettify(Name(C)) + " is healed for " + (C.HP - startHP) + " HP!\n";
 }
 
+function prepMerchant() {
+	let rareItems = [];
+	let inventory = ["Warp Potion", "Potion of Wrath", "Tears of a God", "Scroll: Gamble"]
+	for (let i = 0; i < items.length; i++) {
+		if (!items[i].canDrop || (items[i].type == "scroll" && items[i].value > 15)) {
+			rareItems.push(items[i].name);
+		}
+	}
+	for (let i = 0; i < 3; i++) {
+		let ran = rand(rareItems.length);
+		inventory.push(rareItems[ran]);
+		rareItems.splice(ran, 1);
+	}
+	for (let i = 0; i < inventory.length; i++) {
+		inventory[i] = startItem(inventory[i]);
+	}
+	
+	inventory = shitSort(inventory, "type");
+	
+	for (let i = 0; i < locations.length; i++) {
+		if (locations[i].id == "A Strange Clearing") {
+			for (let j = 0; j < locations[i].people.length; j++) {
+				if (locations[i].people[j].NAME == "Wandering Merchant") {
+					locations[i].people[j].ITEMS = inventory;
+				}
+			}
+		}
+	}
+}
+
 function RemoveItem(C, index) {
 	if (index == C.LEFT) {
 		C.LEFT = -1;
@@ -613,7 +643,7 @@ function P_Armor(C) {
 		}
 	}
 	if (isEquipped(C, "coral staff")) {
-		armor += 3;
+		armor += 4;
 	}
 	if (hasEffect(C, "buried")) {
 		armor += 4;
@@ -643,7 +673,7 @@ function M_Armor(C) {
 		}
 	}
 	if (isEquipped(C, "coral staff")) {
-		armor += 3;
+		armor += 4;
 	}
 	if (hasEffect(C, "buried")) {
 		armor += 4;

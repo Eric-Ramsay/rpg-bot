@@ -22,7 +22,7 @@ function summon(name, row, summoned = true, fading = 0) {
 	return copy;
 }
 
-function findVictim(row, targets, range, type = "random") {
+function findVictim(row, targets, range, type = "random", ignoreWeak = false) {
 	if (rand(8) == 0) {
 		type = "random";
 	}
@@ -33,7 +33,7 @@ function findVictim(row, targets, range, type = "random") {
 	}
 	let numTargets = 0;
 	for (let i = 0; i < targets.length; i++) {
-		if (targets[i].HP > 0) {
+		if (targets[i].HP > 0 && (targets[i].HP > 5 || !ignoreWeak)) {
 			if (type == "strongest" && (strongest == -1 || MaxHP(targets[i]) > MaxHP(targets[strongest]))) {
 				strongest = i;
 			}
@@ -90,16 +90,18 @@ function CalcDifficulty(enemies) {
 	return value;
 }
 
-function desiredRow(enemy, targets, range, type = "close") {
+function desiredRow(enemy, targets, range, type = "close", ignoreWeak = true) {
 	let min = 999;
+	let enemyFound = false;
 	let minRow = enemy.ROW;
 	let strongest = 0;
 	if (targets.length == 0) {
 		return enemy.ROW;
 	}
 	for (let r = 0; r < 5; r++) {
-		let index = findVictim(r, targets, range);
+		let index = findVictim(r, targets, range, "random", ignoreWeak);
 		if (index > -1) {
+			enemyFound = true;
 			let dist = Math.abs(r - enemy.ROW);
 			if (type == "kite") {
 				let numEnemies = 0;
@@ -121,6 +123,9 @@ function desiredRow(enemy, targets, range, type = "close") {
 				strongest = index;
 			}
 		}
+	}
+	if (!enemyFound && ignoreWeak) {
+		return desiredRow(enemy, targets, range, type, false);
 	}
 	if (type == "strongest") {
 		return targets[strongest].ROW;
@@ -546,6 +551,30 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 		}
 		else if (enemy.NAME == "Lost Angel") {
 			let ran = 1 + rand(3);
+			if (enemy.HP < 150 && enemy.PHASE < 3) {
+				if (enemy.PHASE < 2) {
+					let dialogue = [
+						"*YELLOW*The angel kneels, and whispered prayers pour as fire from its mouth.\n",
+						"*YELLOW*The angel's flesh splits apart, and in its eyes shine the sun and the moon.\n"
+					];
+					msg = dialogue[enemy.PHASE];
+					if (enemy.PHASE == 0) {
+						msg += AddEffect(enemy, "resilient", 5);
+					}
+				}
+				else {
+					msg += "*PINK*" + Prettify(Name(enemy)) + " swings its blade, and the ground sinks beneath the unrighteous!\n";
+					for (let i = 0; i < targets.length; i++) {
+						let dmg = 12 + rand(13);
+						if (targets[i].TYPE == "evil") {
+							dmg *= 3;
+						}
+						msg += DealDamage(new T_Attack(dmg), allies, enemy, targets, targets[i])[0];
+					}
+				}
+				enemy.PHASE++;
+				return msg;
+			}
 			if (rand(6) == 0) {
 				ran = 0;
 			}
@@ -635,18 +664,19 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 		}
 		else if (enemy.NAME == "Web") {
 			for (let i = 0; i < targets.length; i++) {
-					if (targets[i].ROW == enemy.ROW) {
-						let ran = rand(2);
-						if (ran == 0) {
-							msg += "*RED*" + Name(targets[i]) + " is caught in the web and slowed!\n";
-							msg += AddEffect(targets[i], "slowed", 1, enemy);
-						}
-						else {
-							msg += "*RED*" + Name(targets[i]) + " is caught in the web and rooted!\n";
-							msg += AddEffect(targets[i], "rooted", 1, enemy);
-						}
+				if (targets[i].ROW == enemy.ROW) {
+					let ran = rand(2);
+					if (ran == 0) {
+						msg += "*RED*" + Name(targets[i]) + " is caught in the web and slowed!\n";
+						msg += AddEffect(targets[i], "slowed", 1, enemy);
+					}
+					else {
+						msg += "*RED*" + Name(targets[i]) + " is caught in the web and rooted!\n";
+						msg += AddEffect(targets[i], "rooted", 1, enemy);
 					}
 				}
+			}
+			enemy.HP--;
 		}
 		else if (enemy.NAME == "Spider Queen") {
 			let ran = rand(4);
@@ -867,45 +897,45 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 		}
 		else if (enemy.NAME == "Skeletal Swordsman") {
-			msg += moveAttack(allies, enemy, targets, new Attack("hacks at", 8 + rand(17), 90, 0, 1, 1, 10))[0];
+			msg += moveAttack(allies, enemy, targets, new P_Move(8 + rand(17), 90, 10, "hacks at"))[0];
 		}
 		else if (enemy.NAME == "Skeletal Spearman") {
-			msg += moveAttack(allies, enemy, targets, new Attack("stabs", 12 + rand(7), 75, 0, 1, 2, 25))[0];
+			msg += moveAttack(allies, enemy, targets, new P_Move(12 + rand(7), 75, 25, "stabs", 2))[0];
 		}
 		else if (enemy.NAME == "Skeletal Archer") {
 			let ran = rand(2);
+			let aimAt = "strong";
 			if (ran == 0) {
-				msg += moveAttack(allies, enemy, targets, new Attack("looses an arrow at", 6 + rand(9), 80, 0, 1, 6, 30), "strong")[0];
+				aimAt = "weak";
 			}
-			else {
-				msg += moveAttack(allies, enemy, targets, new Attack("looses an arrow at", 6 + rand(9), 80, 0, 1, 6, 30), "weak")[0];
-			}
+			msg += moveAttack(allies, enemy, targets, new P_Move(6 + rand(9), 80, 30, "looses an arrow at", 6), "strong")[0];
 		}
 		else if (enemy.NAME == "Goblin Swordsman") {
-			msg += moveAttack(allies, enemy, targets, new Attack("slashes", 12 + rand(7), 75, 0, 2, 1, 10), "strong")[0];
+			msg += moveAttack(allies, enemy, targets, new P_Move(18 + rand(9), 85, 10, "slashes", 1), "strong")[0];
 		}
 		else if (enemy.NAME == "Goblin Spearman") {
-			msg += moveAttack(allies, enemy, targets, new Attack("stabs", 14 + rand(9), 85, 0, 1, 2, 20), "strong")[0];
+			msg += moveAttack(allies, enemy, targets, new P_Move(14 + rand(9), 85, 20, "stabs", 2), "strong")[0];
 		}
 		else if (enemy.NAME == "Goblin Archer") {
 			let ran = rand(2);
+			let aimAt = "strong";
 			if (ran == 0) {
-				msg += moveAttack(allies, enemy, targets, new Attack("looses an arrow at", 10 + rand(9), 90, 0, 1, 6, 20), "strong")[0];
+				aimAt = "weak";
 			}
-			else {
-				msg += moveAttack(allies, enemy, targets, new Attack("looses an arrow at", 10 + rand(9), 90, 0, 1, 6, 20), "weak")[0];
-			}
+			msg += moveAttack(allies, enemy, targets, new P_Move(10 + rand(9), 90, 20, "looses an arrow at", 6), "strong")[0];
 		}
 		else if (enemy.NAME == "Flesh Golem") {
 			let ran = rand(3);
 			if (ran == 0) {
-				msg += moveAttack(allies, enemy, targets, new Attack("spits cursed blood at", 8 + rand(11), 75, 1))[0];
+				let dmg = 8 + rand(7);
+				dmg += Math.floor((enemy.MaxHP - enemy.HP)/10);
+				msg += moveAttack(allies, enemy, targets, new M_Move(dmg, 85, 0, "spits cursed blood at", 2))[0];
 			}
 			else if (ran == 1) {
-				msg += moveAttack(allies, enemy, targets, new Attack("crushes", 16 + rand(17), 50))[0];
+				msg += moveAttack(allies, enemy, targets, new P_Move(16 + rand(9), 70, 50, "crushes"))[0];
 			}
 			else if (ran == 2) {
-				msg += moveAttack(allies, enemy, targets, new Attack("bites", 6 + rand(5), 75, 1, 2))[0];
+				msg += moveAttack(allies, enemy, targets, new P_Move(6 + rand(5), 90, 20, "bites", 1, 2))[0];
 			}
 		}
 		else if (enemy.NAME == "Lich") {
@@ -1132,8 +1162,9 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			else {
 				msg = "*PINK*The statue shrieks, as if crying in pain!\n";
 				for (let i = 0; i < targets.length; i++) {
-					msg += DealDamage(new M_Attack(2 * enemy.PHASE), allies, enemy, targets, targets[i])[0];
+					msg += DealDamage(new M_Attack(enemy.PHASE), allies, enemy, targets, targets[i])[0];
 				}
+				enemy.PHASE += rand(3);
 			}
 			enemy.PHASE++;
 		}
@@ -1163,7 +1194,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			else {
 				//Damage an enemy
 				let index = findVictim(enemy.ROW, targets, 5);
-				msg += "*PINK*The Impling Druid conjures a balll of fire, and launches it at " + Name(targets[index]) + "!\n";
+				msg += "*PINK*The Impling Druid conjures a ball of fire, and launches it at " + Name(targets[index]) + "!\n";
 				msg += DealDamage(new M_Attack(8 + rand(5)), allies, enemy, targets, targets[index])[0];
 			}
 		}
@@ -1222,7 +1253,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			if (ran == 0) {
 				msg += "*PINK*" + Prettify(Name(enemy)) + " emits a static burst!\n";
 				for (let i = 0; i < targets.length; i++) {
-					msg += DealDamage(new M_Attack(2 + rand(5), 50), allies, enemy, targets, targets[i])[0]; 
+					msg += DealDamage(new M_Attack(4 + rand(5), 50), allies, enemy, targets, targets[i])[0]; 
 				}
 			}
 			else if (ran == 1) {
@@ -1236,7 +1267,11 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					}
 				}
 			}
-			//1/3 chance do nothing
+			else if (ran == 2) {
+				let index = findVictim(enemy.ROW, targets, 5);
+				msg += "*PINK*The warded totem shocks " + Name(targets[index]) + "\n";
+				msg += DealDamage(new M_Attack(8 + rand(5)), allies, enemy, targets, targets[index])[0];
+			}
 		}
 		else if (enemy.NAME == "Cult Leader") {
 			let numCultists = 0;
@@ -1454,7 +1489,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					ran = rand(3);
 					let summons = ["Giant Frog", "Living Vine", "Swamp Stalker"];
 					msg += "*PINK*" + Prettify(Name(enemy)) + " summons a " + summons[ran] + "!\n";
-					allies.push(summon(summons[ran], rand(6), true, 3));
+					allies.push(summon(summons[ran], rand(5), true, 3));
 				}
 				if (ran == 2) {
 					msg += moveInRange(enemy, targets, min);
@@ -1755,7 +1790,30 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 		}
 		else if (enemy.NAME == "Foul Sluglord") {
-			msg += moveAttack(allies, enemy, targets, new Attack("chomps", 34 + rand(11), 20, 1), "strong")[0];
+			let index = findVictim(enemy.ROW, targets, 1);
+			let ran = rand(3);
+			if (index > -1) {
+				if (ran > 0) {
+					msg += moveAttack(allies, enemy, targets, new Attack("chomps", 42 + rand(17), 20, 1), "strong")[0];
+				}
+				else {
+					msg += "*PINK*" + Prettify(Name(enemy)) + " writhes onto " + Name(targets[index]) + ", pressing them against the ground!\n";
+					let result = DealDamage(new P_Attack(12 + rand(9), 100, 30), allies, enemy, targets, targets[index]);
+					msg += result[0];
+					if (result[1] > 0) {
+						ran = rand(2);
+						if (ran == 0) {
+							msg += AddEffect(targets[index], "rooted", 1, enemy);
+						}
+						else {
+							msg += AddEffect(targets[index], "stunned", 1, enemy);
+						}
+					}
+				}
+			}
+			else {
+				msg = moveInRange(enemy, targets, 1);
+			}
 			for (let i = 0; i < targets.length; i++) {
 				if (targets[i].ROW == enemy.ROW) {
 					msg += "*PINK*" + Prettify(Name(targets[i])) + " is slowed by the Foul Sluglord's slime!\n";
@@ -2038,7 +2096,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					break;
 				}
 			}
-			if (enemy.HP < enemy.MaxHP) {
+			if (enemy.HP < enemy.MaxHP || rand(10) == 0) {
 				let result = moveAttack(allies, enemy, targets, new Attack("stings", 2 + rand(7), 85));
 				msg += result[0];
 				if (result[1]) {
@@ -2283,21 +2341,25 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 			else {
 				let ran = rand(2);
-				if (ran == 0) {
-					for (let i = 0; i < allies.length; i++) {
-						if (allies[i].NAME.toLowerCase().includes("crab")) {
-							if (allies[i].ROW != enemy.ROW) {
-								msg += moveToRow(enemy, allies[i].ROW);
-							}
-							if (allies[i].ROW == enemy.ROW) {
-								msg += "*PINK*Carcinos seems to be inspecting the crab on R" + (enemy.ROW + 1) + ".\n";
-							}
+				let foundCrab = false;
+				for (let i = 0; i < allies.length; i++) {
+					if (allies[i].NAME.toLowerCase().includes("crab")) {
+						foundCrab = true;
+						if (allies[i].ROW != enemy.ROW) {
+							msg += moveToRow(enemy, allies[i].ROW);
+						}
+						if (allies[i].ROW == enemy.ROW) {
+							msg += "*PINK*Carcinos seems to be inspecting the crab on R" + (enemy.ROW + 1) + ".\n";
 						}
 					}
 				}
-				else {
+				if (ran == 0) {
 					let options = ["Carcinos speaks in a chittering, clicky language. . .", "Carcinos seems annoyed. . .", "Carcinos doesn't seem interested in fighting.", "Carcinos seems to only be focused on its work."];
 					msg += "*PINK*" + options[rand(3)];
+				}
+				else if (!foundCrab) {
+					msg += "*PINK*Carcinos paces. . .\n";
+					msg += moveToRow(enemy, rand(5));
 				}
 			}
 		}

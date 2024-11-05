@@ -719,6 +719,9 @@ function CommandTravel(words, C, index) {
 		for (let i = 0; i < locations.length; i++) {
 			let location = locations[i].id.toLowerCase();
 			if (location == args || location == altArgs) {
+				if (!locations[i].canTravelHere) {
+					return "*RED*You can't go that way.\n";
+				}
 				if (prosperity < locations[i].prosperity) {
 					return "*RED*The town isn't prosperous enough yet to travel to this location.";
 				}
@@ -903,7 +906,7 @@ function CommandCharacter(words, C, authorId) {
 			}
 		}
 		if (C.CLASS == "noble") {
-			C.GOLD = 150;
+			C.GOLD = 100;
 			C.INVENTORY.push(startItem("scimitar"));
 			C.INVENTORY.push(startItem("stylish shirt"));
 			for (let i = 0; i < C.INVENTORY.length; i++) {
@@ -979,6 +982,33 @@ function CommandDrink(words, C) {
 		let amount = 10;
 		msg += Heal(C, amount);
 		msg += AddEffect(C, "health potion", 2);
+	}
+	if (name == "tears of a god") {
+		msg += AddEffect(C, "invincible", 1);
+	}
+	if (name == "potion of wrath") {
+		msg += AddEffect(C, "enraged", 2);
+		msg += AddEffect(C, "vulnerable", 2);
+	}
+	if (name == "warp potion") {
+		let spot = rand(locations.length);
+		C.LOCATION = locations[spot].id;
+		let index = BattleIndex(C.ID);
+		if (index > -1) {
+			if (battles[index].level == 4) {
+				return "*RED*You drink the potion, but it has no effect!\n";
+			}
+			let battle = battles[index];
+			for (let a = battle.allies.length - 1; a >= 0; a--) {
+				if (battle.allies[a].ID == C.ID) {
+					battle.allies.splice(a, 1);
+					break;
+				}
+			}
+		}
+		msg = "*GREEN*You drink the bottle and in an instant you've returned to the town!\n\n";
+		msg += RoomDescription(C);
+		return msg;
 	}
 	if (name == "panacea") {
 		if (hasEffect(C, "cursed")) {
@@ -1062,6 +1092,23 @@ function CommandTalk(words, C) {
 	}
 	if (!NPC) {
 		return "*RED*Can't find '" + args + "'\n";
+	}
+	console.log(dialogues);
+	for (const dialogue of dialogues) {
+		console.log("Checking Dialogue");
+		console.log(dialogue);
+		console.log(NPC.NAME);
+		if (dialogue.speaker == NPC.NAME) {
+			if (dialogue.condition(C)) {
+				let msg = dialogue.init(C);
+				let i = 1;
+				for (const response of C.DIALOGUE.STEP.responses) {
+					msg += "\n*BLACK*" + i++ + ") *YELLOW*" + response.trigger;
+				}
+				msg += "\n";
+				return msg;
+			}
+		}
 	}
 	let color = "*GREEN*";
 	if (NPC.MERCHANT) {

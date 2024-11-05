@@ -6,11 +6,11 @@ function Report() {
 	this.mitigated = 0;
 }
 
-function Dialogue() {
-	this.NPC = "";
-	this.haircut = null;
-	this.talks = 0;
-	this.relation = 0;
+function DialogueHandler() {
+	this.RELATIONS = [];
+	this.EVENTS = [];
+	this.EVENT = null;
+	this.STEP = null;
 }
 
 function Character() {
@@ -57,7 +57,7 @@ function Character() {
 	this.CURSED = false;
 	
 	this.RETIRED = false;
-	this.DIALOGUE = [];
+	this.DIALOGUE = new DialogueHandler();
 }
 
 function Effect(name, type, description, stackable = false) {
@@ -86,13 +86,14 @@ function Battle(parent) {
 	this.parent = parent;
 }
 
-function Item(name, type, value, description) {
+function Item(name, type, value, description, canDrop = true) {
 	this.name = name;
 	this.type = type;
 	this.value = value;
 	this.equipped = false;
 	this.runes = [];
 	this.description = description;
+	this.canDrop = canDrop;
 }
 
 function NPC(name, merch, desc) {
@@ -116,6 +117,7 @@ function Location() {
 	this.dungeon = false;
 	this.prosperity = 0;
 	this.cost = 0;
+	this.canTravelHere = true;
 }
 
 function Building(id, description) {
@@ -193,14 +195,6 @@ function Town() {
 	this.retired = [];
 }
 
-function P_Attack(damage, hitChance, pen) {
-	this.type = 0;
-	this.number = 1;
-	this.damage = damage;
-	this.pen = pen;
-	this.hitChance = hitChance;
-}
-
 function WeaponReport(name, cost, dmg, AP, pen, efficiency, scaling) {
 	this.name = name;
 	this.cost = cost;
@@ -209,6 +203,14 @@ function WeaponReport(name, cost, dmg, AP, pen, efficiency, scaling) {
 	this.pen = pen;
 	this.eff = efficiency;
 	this.scaling = scaling;
+}
+
+function P_Attack(damage, hitChance, pen) {
+	this.type = 0;
+	this.number = 1;
+	this.damage = damage;
+	this.pen = pen;
+	this.hitChance = hitChance;
 }
 
 function T_Attack(damage) {
@@ -225,6 +227,18 @@ function M_Attack(damage, pen = 0, hitChance = 100) {
 	this.damage = damage;
 	this.pen = pen;
 	this.hitChance = hitChance;
+}
+
+function P_Move(damage, hitChance, pen, verb, range = 1, number = 1){
+	return new Attack(verb, damage, hitChance, 0, number, range, pen);
+}
+
+function M_Move(damage, hitChance, pen, verb, range = 1, number = 1){
+	return new Attack(verb, damage, hitChance, 1, number, range, pen);
+}
+
+function T_Move(damage, hitChance, pen, verb, range = 1, number = 1) {
+	return new Attack(verb, damage, hitChance, 2, number, range, pen);
 }
 
 function Attack(verb, damage, hitChance, type = 0, number = 1, range = 1, pen = 0) {
@@ -258,13 +272,14 @@ function FishEvent(fish, date, location, caught = false) {
 	this.location = location;
 }
 
-function Rune(name, value, target, description) {
+function Rune(name, value, target, description, canDrop = true) {
 	this.value = value;
 	this.type = "rune";
 	this.target = target;
 	this.name = name;
 	this.description = description;
 	this.equipped = false;
+	this.canDrop = canDrop;
 }
 
 function Spell(name, school, description, AP, HP = 0, range = 6, numEnemies = 0, numRows = 0, numAllies = 0) {

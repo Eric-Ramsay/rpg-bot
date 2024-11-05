@@ -9,6 +9,7 @@ const fs = require('fs');
 eval(fs.readFileSync('models.js') + '');
 eval(fs.readFileSync('init.js') + '');
 eval(fs.readFileSync('helpers.js') + '');
+eval(fs.readFileSync('dialogue.js') + '');
 eval(fs.readFileSync('commands.js') + '');
 eval(fs.readFileSync('AI.js') + '');
 eval(fs.readFileSync('battle.js') + '');
@@ -401,12 +402,14 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 	if (hasEffect(target, "vulnerable")) {
 		damage *= 1.2;
 	}
+	if (hasEffect(target, "resilient")) {
+		damage *= .5;
+	}
 	
 	if (hasRune(attacker, "berserk")) {
 		let num = 10 - Math.floor(10 * attacker.HP/MaxHP(attacker));
 		damage *= 1 + (num/20);
 	}
-	
 	damage = Mitigate(attacker, target, damage, attack.pen, attack.type);
 	
 	let chance = rand(100);
@@ -415,7 +418,7 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 		msg += "*RED*" + aName + " misses!\n";
 	}
 	
-	if (hasEffect(attacker, "blinded")) {
+	if (canReflect && hasEffect(attacker, "blinded")) {
 		let chance = rand(101);
 		if (chance < 35) {
 			damage = -2;
@@ -569,7 +572,7 @@ function SpellDamage(attack, allies, C, targets, target) {
 			result[0] += AddEffect(target, "bleed", 0, C);
 		}
 		if (isEquipped(C, "driftwood staff")) {
-			result[0] += AddEffect(target, "posion", 1, C);
+			result[0] += AddEffect(target, "poison", 1, C);
 		}
 		if (hasRune(C, "tar")) {
 			msg += AddEffect(target, "Weakened", 1, C);
@@ -629,6 +632,12 @@ function Cast(C, spell, allies, enemyList, targets) {
 	}
 	
 	for (let n = 0; n < numCasts; n++) {
+		if (spellName == "gamble") {
+			if (C.GOLD < 3) {
+				return "*RED*You don't have enough gold!\n";
+			}
+			C.GOLD -= 3;
+		}
 		for (let t = 0; t <= targets.length; t++) {
 			let index = null;
 			if (targets.length > 0) {
@@ -645,10 +654,9 @@ function Cast(C, spell, allies, enemyList, targets) {
 			}
 			else if (spellName == "swamp strike") {
 				msg += CastMessage("A toxic blast poisons your foe!", t + n);
-				msg += SpellDamage(new M_Attack(4 + rand(5)), allies, C, enemyList, enemyList[index])[0];
-				for (let i = 0; i < 3; i++) {
-					AddEffect(enemyList[index], "Poison", 3, C);
-				}
+				let dmg = 3 + rand(4);
+				msg += SpellDamage(new M_Attack(dmg), allies, C, enemyList, enemyList[index])[0];
+				AddEffect(enemyList[index], "Poison", 3, C, null, dmg);
 			}
 			else if (spellName == "spear") { // Deal 12-20 Damage to an enemy on your row.
 				msg += CastMessage("A crude spear of jagged stone bursts out from the ground!", t + n);
@@ -913,7 +921,22 @@ function Cast(C, spell, allies, enemyList, targets) {
 					msg += AddEffect(enemyList[i], "Slowed", 1, C);
 				}
 			}
-			else if (spellName == "gamble") { //Deal 2-12 damage to a random enemy in each row
+			else if (spellName == "gamble") {
+				let ran = rand(21);
+				if (ran == 0) {
+					let gold = 40 + rand(41);
+					C.GOLD += gold;
+					msg += "*YELLOW*Jackpot! You've won " + gold + " gold!\n";
+					for (let i = 0; i < enemyList.length; i++) {
+						msg += SpellDamage(new M_Attack(12 + rand(9)), allies, C, enemyList, enemyList[i])[0];
+					}
+				}
+				else {
+					msg += CastMessage("Your gold dissolves into a beam of energy!\n", t + n);
+					msg += SpellDamage(new M_Attack(10), allies, C, enemyList, enemyList[index])[0];
+				}
+			}
+			else if (spellName == "sunbeams") { //Deal 2-12 damage to a random enemy in each row
 				msg += CastMessage("*YELLOW*Scattered sunbeams shine down across the battlefield.", t + n);
 				let rows = [[], [], [], [], []];
 				for (let i = 0; i < enemyList.length; i++) {
@@ -1090,6 +1113,9 @@ client.on('messageCreate', (rec) => {
 					CHARACTER: null
 				}
 			}
+			if (data[id].CHARACTER  && ! data[id].CHARACTER.DIALOGUE) {
+				data[id].CHARACTER.DIALOGUE = new DialogueHandler()
+			}
 			if (rec.content.startsWith("!")) {
 				let msg = Command(rec);
 				if (msg != "") {
@@ -1163,6 +1189,9 @@ function ItemDescription(C, item) {
 		msg += "*RED*" + item.name + "*BLACK* | *CYAN*" + item.hands + "H*BLACK* | *PINK*" + item.chance + "%*BLACK* | *YELLOW*" + item.value + "G*GREY*\n";
 		let mult = 1 + (.05 * C.STATS[WEP]);
 		if (hasWeaponRune(item, "powerful")) {
+			mult *= 1.2;
+		}
+		if (hasWeaponRune(item, "decisive")) {
 			mult *= 1.25;
 		}
 		let multStr = "*GREEN* (x " + mult.toFixed(2) + ")";
@@ -2202,22 +2231,48 @@ function Command(message) {
 		}
 		else if (keyword == "start") {
 			if (!battles[index].started) {
-				battles[index].started = true;
-				battles[index].allyTurn = true;
-				msg += StartBattle(battles[index]);
-				msg += StartTurn(battles[index], battles[index].allies, battles[index].enemies, battles[index].deadAllies, battles[index].deadEnemies);
-				for (let i = 0; i < battles[index].allies.length; i++) {
-					if (battles[index].allies.TYPE == "player") {
-						battles[index].allies.STAMINA = MaxStamina(battles[index].allies);
+				let ran = rand(20);
+				if (ran == 0) {
+					prepMerchant();
+					msg += "*YELLOW*You find yourself in a strange place. . .\n\n";
+					for (let i = battles[index].allies.length - 1; i >= 0; i--) {
+						if (battles[index].allies[i].TYPE == "player") {
+							battles[index].allies[i].LOCATION = "A Strange Clearing";
+						}
 					}
+					battles[index].allies = [];
+					msg += RoomDescription(C);
 				}
-				msg += HandleCombat(battles[index]);
+				else {
+					battles[index].started = true;
+					battles[index].allyTurn = true;
+					msg += StartBattle(battles[index]);
+					msg += StartTurn(battles[index], battles[index].allies, battles[index].enemies, battles[index].deadAllies, battles[index].deadEnemies);
+					for (let i = 0; i < battles[index].allies.length; i++) {
+						if (battles[index].allies.TYPE == "player") {
+							battles[index].allies.STAMINA = MaxStamina(battles[index].allies);
+						}
+					}
+					msg += HandleCombat(battles[index]);
+				}
 			}
 		}
 		else if (keyword == "brace") {
-			C.BRACING = true;
-			msg += "*YELLOW*" + C.NAME + " braces themselves!\n";
-			msg += HandleCombat(battles[index]);
+			if (hasEffect(C, "stunned")) {
+				return "*RED*You can't act while you're stunned!\n";
+			}
+			else if (C.BRACED) {
+				msg = "*RED*You're already braced!\n";
+			}
+			else if (C.AP >= 3) {
+				C.AP -= 3;
+				C.BRACING = true;
+				msg += "*YELLOW*" + C.NAME + " braces themselves!\n";
+				msg += HandleCombat(battles[index]);
+			}
+			else {
+				msg += "*RED*You don't have enough AP to brace.\n";
+			}
 		}
 		else if (keyword == "end") {
 			C.ENDED = true;
@@ -2387,7 +2442,7 @@ function Command(message) {
 		}
 		else if (keyword == "classes") {
 			msg += "*PINK*Peasant*GREY* - *CYAN*+2 END +2 VIT*GREY*. Starts with a club but *RED*no gold*GREY*.\n\n";
-			msg += "*BLUE*Noble*GREY* - Starts with *YELLOW*150 gold*GREY*, a stylish shirt, and a scimitar. A *GREEN*loyal servant*GREY* follows you into battle.\n\n";
+			msg += "*BLUE*Noble*GREY* - Starts with *YELLOW*100 gold*GREY*, a stylish shirt, and a scimitar. A *GREEN*loyal servant*GREY* follows you into battle.\n\n";
 			msg += "*PINK*Rogue*GREY* - *CYAN*+2 AVD*GREY*. Starts with *YELLOW*40 gold*GREY*, a cloak, and two daggers. Whenever you dodge an attack, deal 6 damage to your attacker.\n\n";
 			msg += "*BLUE*Warrior*GREY* - *CYAN*+1 VIT +1 DEX +2 Armor*GREY*. Starts with *YELLOW*25 gold*GREY*, a Leather Cuirass, a Hatchet, and a Buckler. Armor doesn't reduce your Stamina.\n\n";
 			msg += "*PINK*Ranger*GREY* - *CYAN*+1 WEP +1 AVD*GREY*. Start with *YELLOW*10 gold*GREY* and a ranged weapon. Your attacks deal more damage on farther enemies (5% -> 25%)\n\n";
@@ -2543,7 +2598,7 @@ function Command(message) {
 				return "*RED*You have to be at the tavern to sleep.\n";
 			}
 		}
-		else if (keyword == "town") {
+		else if (keyword == "town" || keyword == "map") {
 			let prosperity = data["town"].prosperity;
 			msg += "*YELLOW*Town Prosperity: " + prosperity + "\n\n";
 			msg += "*YELLOW*Town Locations\n";
