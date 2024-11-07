@@ -58,6 +58,11 @@ function Character() {
 	
 	this.RETIRED = false;
 	this.DIALOGUE = new DialogueHandler();
+	
+	this.FISH = [];
+	this.FISH_REWARDS = [];
+	
+	this.ROW_PREFERENCE = 0;
 }
 
 function Effect(name, type, description, stackable = false) {
@@ -127,10 +132,10 @@ function Building(id, description) {
 	this.prosperity = 0;
 }
 
-function Weapon(name, weaponType, hands, attacks, value, chance, min, max, pen, AP, range, canDrop = true) {
+function Weapon(name, weaponType, description, hands, attacks, value, chance, min, max, pen, AP, range, canDrop = true) {
 	this.type = "weapon";
 	this.subclass = weaponType;
-	this.description = "";
+	this.description = description;
 	this.effect = "";
 	this.runes = [];
 	this.name = name;

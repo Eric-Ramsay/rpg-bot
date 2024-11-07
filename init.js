@@ -10,7 +10,7 @@ function initRunes() {
 	runes.push(new Rune("Reflex", 		100, 	"armor", 	"Gain +25% Dodge Chance against all attacks. When you dodge an attack, deal 6 damage to your attacker"));
 	runes.push(new Rune("Sunset", 		100, 	"armor", 	"Each turn deal 3 true damage to all enemies"));
 	runes.push(new Rune("Huntsman", 	100, 	"armor", 	"Fleeing costs no AP and can be done from any row. When you win a battle, heal to full HP."));
-	runes.push(new Rune("Static", 		100, 	"armor", 	"Gain 3 stacks of static each turn. Static deals damage to a random enemy. Lose 1 stack when you take damage."));
+	runes.push(new Rune("Static", 		100, 	"armor", 	"Gain 4 stacks of static each turn. Static deals damage to a random enemy. Lose 1 stack when you take damage."));
 	runes.push(new Rune("Berserk", 		100, 	"armor", 	"For every 10% missing HP, gain 5% damage dealt"));
 	runes.push(new Rune("Pacifist", 	100, 	"armor", 	"Your damage dealt is increased by 100%. Your spell and attack damage is reduced to nothing."));
 	runes.push(new Rune("Bold", 		100, 	"armor", 	"Gain +4 Physical and Magical Armor against enemies in your row."));
@@ -196,7 +196,7 @@ function initLocations() {
 	people = [Gout, Nestra, Minsiki, Tobin, Kobos, Clyde, Qarana, Asha, Penelope, Florence, Sarkana, Terat, Merchant];
 	
 	Gout.ITEMS = ["stick and string", "old fishing pole", "fishing pole", "masterwork pole"];
-	Minsiki.ITEMS = ["backpack", "jade armor", "rondel dagger", "spiked shield", "quarterstaff", "whip", "scourge", "urumi", "scimitar"];
+	Minsiki.ITEMS = ["backpack", "jade armor", "rondel dagger", "spiked shield", "quarterstaff", "whip", "scourge", "urumi", "scimitar", "Hand Cannon"];
 	Florence.ITEMS = ["Plain Cassock", "Acolyte Robes", "Warded Cloak", "Stylish Shirt", "Plain Cloak", "Leather Cuirass", "Quilted Gambeson", "Silk Armor", "Amethyst Tunic"];
 	Kobos.ITEMS = ["Spear", "Halberd", "Longsword", "Claymore", "Morningstar", "War Hammer", "Mace", "Maul", "Flail", "Bearded Axe", "War Axe", "Great Axe", "Shield", "Scale Armor", "Chainmail", "Plate Armor"];
 	Clyde.ITEMS = ["Dagger", "Club", "Hatchet", "Buckler", "Throwing Axe", "Staff Sling", "Longbow", "Crossbow", "Repeating Crossbow"];
@@ -204,7 +204,7 @@ function initLocations() {
 	Penelope.ITEMS = ["Penelope's Brew", "Mead", "Imperial Wine", "Northern Wine"]
 	Tobin.ITEMS = ["Wand", "Staff", "Scepter", "Crook", "Tome of the Duelist", "Tome of Strength", "Tome of Summoning", "Tome of Affliction", "Tome of Destruction", "Tome of the Guardian", "Scroll: Random"];
 	
-	Merchant.ITEMS = ["Warp Potion", "Potion of Wrath", "Tears of a God", "Scroll: Gamble"];
+	Merchant.ITEMS = ["Warp Potion", "Potion of Wrath", "Tears of a God", "Scroll: Gamble", "Driftwood Staff", "Rotten Staff"];
 	
 	for (let i = 0; i < people.length; i++) {
 		for (let j = 0; j < people[i].ITEMS.length; j++) {
@@ -325,18 +325,10 @@ function initLocations() {
 	Island.buildings = [GuildHall, Bait]
 	Island.connections = [new Connection("Island Ferry", "south")];
 	
-	let Reef = new Location();
-	Reef.id = "Coral Reef";
-	Reef.prosperity = 3500;
-	Reef.dungeon = true;
-	Reef.description = "A vibrant reef on the north shore of the stony island. The water is clear and warm, but scattered along the seafloor are pits and ditches of unfathomable depth, and below the water's shimmering surface dark creatures are lurking."; 
-	Reef.connections = [new Connection("Stony Island", "south")];
-	
-	Swamp.fish = ["Minnow", "Crawdad", "Crappie", "Carp", "Trout", "Perch", "Grindle", "Salmon", "Bluegill", "Shad", "Catfish", "Bass", "Freshwater Eel", "Freshwater Sunfish", "Pike", "Gar", "Sturgeon"];
-	Ferry.fish = ["Shrimp", "Sardine", "Grunion", "Jack", "Porgy", "Common Snook", "Squid", "Mackerel", "Hake", "Flying Fish", "Snapper", "Pufferfish", "Cod", "Sunfish", "Grouper", "Tuna", "Ray"];
-	Harbor.fish = ["Shrimp", "Sardine", "Grunion", "Crab", "Jack", "Porgy", "Common Snook", "Squid", "Mackerel", "Hake", "Flying Fish", "Snapper", "Pufferfish", "Cod", "Sunfish", "Grouper"];
-	Island.fish = ["Shrimp", "Sardine", "Grunion", "Crab", "Jack", "Porgy", "Common Snook", "Squid", "Mackerel", "Hake", "Flying Fish", "Snapper", "Pufferfish", "Cod", "Sunfish", "Grouper", "Jellyfish", "Ray", "Stonefish", "Eel", "octopus", "Tuna", "Wahoo", "Swordfish"];
-	Reef.fish = ["Sardine", "Grunion", "Crab", "Jack", "Porgy", "Common Snook", "Squid", "Mackerel", "Hake", "Flying Fish", "Snapper", "Pufferfish", "Cod", "Sunfish", "Grouper", "Jellyfish", "Ray", "Stonefish", "Eel", "octopus", "Tuna", "Wahoo", "Swordfish"];
+	Swamp.fish = ["Minnow", "Crawdad", "Crappie", "Carp", "Trout", "Perch", "Salmon", "Bluegill", "Shad", "Catfish", "Bass", "Freshwater Eel", "Pike", "Gar", "Sturgeon"];
+	Ferry.fish = ["Shrimp", "Sardine", "Common Snook", "Squid", "Mackerel", "Hake", "Snapper", "Cod", "Grouper", "Tuna", "Ray", "Tuna", "Wahoo", "Swordfish"];
+	Harbor.fish = ["Shrimp", "Sardine", "Common Snook", "Squid", "Mackerel", "Hake", "Snapper", "Cod", "Grouper", "Tuna", "Ray", "Tuna", "Wahoo", "Swordfish"];
+	Island.fish = ["Shrimp", "Crab", "Common Snook", "Squid", "Flying Fish", "Snapper", "Pufferfish", "Cod", "Sunfish", "Grouper", "Jellyfish", "Ray", "Stonefish", "Eel", "octopus"];
 	
 	locations = [Island, Ferry, Harbor, Merchants, Churchyard, Square, Graveyard, Crypts, Woods, Swamp, Clearing];
 	
@@ -355,89 +347,62 @@ function initLocations() {
 	}
 }
 
+function OneH(name, weaponType, description, attacks, value, chance, min, max, pen, AP, range, canDrop = true) {
+	return new Weapon(name, weaponType, description, 1, attacks, value, chance, min, max, pen, AP, range, canDrop);
+}
+function TwoH(name, weaponType, description, attacks, value, chance, min, max, pen, AP, range, canDrop = true) {
+	return new Weapon(name, weaponType, description, 2, attacks, value, chance, min, max, pen, AP, range, canDrop);
+}
+
 function initItems() {
-	//WEAPON NAME	  			Name	 		Class, 				Hands	#Atks	Value 	Chance 	MinDmg 	MaxDmg 	Pen% 	AP 		Range	Normal?
+	//WEAPON NAME	  			Name	 		Class, 			Description 																						#Atks	Value 	Chance 	MinDmg 	MaxDmg 	Pen% 	AP 		Range	Normal?
 	//Blades
-	weapons.push(new Weapon("Dagger", 				"blade",
-																	1, 		3,		25, 	70, 	2, 		4,	 	0, 		1, 		1));
-	weapons.push(new Weapon("Vampire Fang", 		"blade",
-																	1, 		3,		50, 	70, 	1, 		3,	 	0, 		1, 		1, 		false));
-	weapons.push(new Weapon("Rondel Dagger", 		"blade",
-																	1, 		2,		25, 	75, 	2, 		6, 		50, 	1, 		1));
-	weapons.push(new Weapon("Scimitar", 			"blade",
-																	1, 		1,		25, 	90,		8,		14,		10,		6,		1));
-	weapons.push(new Weapon("Longsword", 			"blade",
-																	2, 		2,		50, 	90,		12,		18,		10,		9,		1));
-	weapons.push(new Weapon("Claymore", 			"blade",
-																	2, 		1,		50, 	90,		20,		28,		20,		12,		1));
-	weapons.push(new Weapon("Ephemeral Blade", 		"blade",
-																	2, 		4,		100, 	100,	4,		8,		30,		1,		1,  	false));
-	weapons.push(new Weapon("Angel's Sword", 		"blade",
-																	2, 		1,		100, 	100,	12,		18,		30,		9,		1,  	false));
-	
+	weapons.push(new OneH("Dagger", 			"blade",	"A simple dagger, lightweight and easy to use.",														3,		25, 	70, 	2, 		4,	 	0, 		1, 		1));
+	weapons.push(new OneH("Rondel Dagger", 		"blade", 	"A short, thick-bladed dagger design to puncture armor.", 												2,		25, 	75, 	2, 		6, 		50, 	1, 		1));
+	weapons.push(new OneH("Scimitar", 			"blade", 	"A curious blade that curves and widens, to give more power to its swings.",  							1,		25, 	90,		8,		14,		10,		6,		1));
+	weapons.push(new TwoH("Longsword", 			"blade", 	"A well-balanced and versatile sword.",  																2,		50, 	90,		12,		18,		10,		9,		1));
+	weapons.push(new TwoH("Claymore", 			"blade", 	"A long, heavy blade with a sturdy hilt.",  															1,		50, 	90,		20,		28,		20,		12,		1));
+	weapons.push(new OneH("Vampire Fang", 		"blade",	"A long, crooked fang pulled from the mouth of a dead vampire. Heal for half of your damage dealt.", 	3,		60, 	70, 	1, 		3,	 	0, 		1, 		1, 		false));
+	weapons.push(new TwoH("Ephemeral Blade", 	"blade", 	"A ghastly, translucent blade that hardly has any weight to it.",  										4,		150, 	100,	4,		8,		30,		1,		1,  	false));
+	weapons.push(new TwoH("Sweeping Sword", 	"blade", 	"A sacred sword, taken from the hands of a dead angel. Each attack damages every enemy in your row.",  	1,		150, 	90,		10,		16,		30,		9,		1,  	false));
 	//Blunt Weapons
-	weapons.push(new Weapon("Club", 				"blunt",
-																	2, 		1,		10, 	60, 	12, 	22, 	70, 	6, 		1));
-	weapons.push(new Weapon("Morningstar", 			"blunt",
-																	1, 		3,		25, 	70, 	6, 		8, 		50, 	3,		1));
-	weapons.push(new Weapon("War Hammer", 			"blunt",
-																	1, 		1,		25, 	70, 	10, 	16,		70, 	6, 		1));
-	weapons.push(new Weapon("Mace", 				"blunt",
-																	2, 		2,		50, 	70,		10,		16,		80,		6,		1));
-	weapons.push(new Weapon("Maul", 				"blunt",
-																	2, 		1,		50, 	70, 	26, 	32, 	70, 	12, 	1));
-	weapons.push(new Weapon("Ogre Club",			"blunt",
-																	2,		1,		100,	60,		32,		48,		60,		18,		2, 		false));
-	
+	weapons.push(new TwoH("Club", 				"blunt", 	"A brutish club made of heavy, gnarled wood.",  														1,		10, 	60, 	12, 	22, 	70, 	6, 		1));
+	weapons.push(new OneH("Morningstar", 		"blunt", 	"A short-handed mace with a spiked head.",  															3,		25, 	70, 	6, 		8, 		50, 	3,		1));
+	weapons.push(new OneH("War Hammer", 		"blunt", 	"A wooden haft with a metal head featuring a hammer on one side, and a spike on the other.",  			1,		25, 	70, 	10, 	16,		70, 	6, 		1));
+	weapons.push(new TwoH("Mace", 				"blunt", 	"A long, metal pole with a spherical head on its end.",  												2,		50, 	70,		10,		16,		80,		6,		1));
+	weapons.push(new TwoH("Maul", 				"blunt", 	"A massive, two-handed war hammer that packs a serious punch.",  										1,		50, 	70, 	26, 	32, 	70, 	12, 	1));
+	weapons.push(new TwoH("Ogre Club",			"blunt", 	"A massive club that only the strongest heroes can wield.",  											1,		125,	60,		32,		48,		60,		18,		2, 		false));
 	//Whips
-	weapons.push(new Weapon("Whip", 				"whip",
-																	1, 		1,		25, 	90,		8,		12,		0,		6,		3));
-	weapons.push(new Weapon("Scourge", 				"whip",
-																	1, 		4,		25, 	70,		4,		8,		0,		3,		2));
-	weapons.push(new Weapon("Urumi", 				"whip",
-																	1, 		1,		25, 	80,		6,		12,		0,		3,		2));
-	weapons.push(new Weapon("Flail", 				"whip",
-																	2, 		1,		50, 	80,		10,		20,		70,		6,		1));
-	
+	weapons.push(new OneH("Whip", 				"whip", 	"A leather whip, tipped with a sharp metal point. It has quite a long reach.",  						1,		25, 	90,		8,		12,		0,		6,		3));
+	weapons.push(new OneH("Scourge", 			"whip", 	"A short-handled whip with several strips of metal-tipped leather at its head.",  						4,		25, 	70,		4,		8,		0,		3,		2));
+	weapons.push(new OneH("Urumi", 				"whip", 	"A cross between a sword and a whip, this weapon requires some skill to properly utilize.",  			1,		25, 	80,		6,		12,		0,		3,		2));
+	weapons.push(new TwoH("Flail", 				"whip", 	"A short handle that ends with three spiked heads, connected to the haft by iron chains.",  			1,		50, 	80,		10,		20,		70,		6,		1));
 	//Axes
-	weapons.push(new Weapon("Hatchet", 				"axe",
-																	1, 		3,		25, 	80, 	2, 		6, 		20, 	2, 		1));
-	weapons.push(new Weapon("Throwing Axe", 		"axe",
-																	1, 		3,		25, 	80, 	4, 		6, 		20, 	3, 		3));
-	weapons.push(new Weapon("Bearded Axe", 			"axe",
-																	1, 		1,		25, 	80, 	10, 	14, 	20, 	6, 		1));
-	weapons.push(new Weapon("War Axe", 				"axe",
-																	2, 		2,		50, 	80, 	12, 	24, 	20, 	9,		1));
-	weapons.push(new Weapon("Great Axe", 			"axe",
-																	2, 		1,		50, 	70, 	8, 		52, 	20, 	12,		1));
-	
+	weapons.push(new OneH("Hatchet", 			"axe", 		"A short, simple axe that splits wood and skulls alike.",  												3,		25, 	80, 	2, 		6, 		20, 	2, 		1));
+	weapons.push(new OneH("Throwing Axe", 		"axe", 		"A small, short-handled axe designed to be thrown.",  													3,		25, 	80, 	4, 		6, 		20, 	3, 		3));
+	weapons.push(new OneH("Bearded Axe", 		"axe", 		"A one handed axe whose blade has been extended to provide a longer cutting edge.",  					1,		25, 	80, 	10, 	14, 	20, 	6, 		1));
+	weapons.push(new TwoH("War Axe", 			"axe", 		"A one-sided steel axehead fixed onto a long pole.",  													2,		50, 	80, 	12, 	24, 	20, 	9,		1));
+	weapons.push(new TwoH("Great Axe", 			"axe", 		"A massive axe-blade fixed onto a relatively short handle.",  											1,		50, 	70, 	8, 		52, 	20, 	12,		1));
+	weapons.push(new TwoH("Coral Axe", 			"axe", 		"Made from a hunk of violet coral. Afflicts bleed. Deals +25% damage against bleeding enemies.",  		2,		125, 	80, 	10, 	20, 	20, 	6,		1,		false));
 	//Polearms
-	weapons.push(new Weapon("Short Spear", 			"polearm",
-																	1, 		1,		25, 	80,		8,		16,		30,		6,		2));
-	weapons.push(new Weapon("Quarterstaff", 		"polearm",
-																	2, 		3,		50, 	75,		6,		10,		70,		4,		2));
-	weapons.push(new Weapon("Spear", 				"polearm",
-																	2, 		1,		50, 	90,		14,		20,		30,		9,		2));
-	weapons.push(new Weapon("Halberd",				"polearm",
-																	2, 		2,		50, 	75,		10,		20,		30,		6,		2));
+	weapons.push(new OneH("Short Spear", 		"polearm", 	"A small spear designed for use with annother weapon or shield.",  										1,		25, 	80,		8,		16,		30,		6,		2));
+	weapons.push(new TwoH("Quarterstaff", 		"polearm", 	"A long pole with weighted sections on its ends.",  													3,		50, 	75,		6,		10,		70,		4,		2));
+	weapons.push(new TwoH("Spear", 				"polearm", 	"A long spear, that provides decent damage and puncturing power.",  									1,		50, 	90,		14,		20,		30,		9,		2));
+	weapons.push(new TwoH("Halberd",			"polearm", 	"A long-handled weapon that features a hammer, axe-blade, and spear tip on its head.",  				2,		50, 	75,		10,		20,		30,		6,		2));
+	weapons.push(new TwoH("Swordfish Spear",	"polearm", 	"A giant spear made from the nose of a monstrous swordfish.",											1,		100,	80,		16,		24,		50,		9,		3,		false));
 	
 	//Shields
-	weapons.push(new Weapon("Buckler", 				"shield",
-																	1, 		1,		25, 	90, 	4, 		6, 		50, 	3,		1));
-	weapons.push(new Weapon("Spiked Shield", 		"shield",
-																	1, 		1,		25, 	90, 	6, 		12, 	50, 	6,		1));
-	weapons.push(new Weapon("Shield", 				"shield",
-																	1, 		1,		50, 	90, 	4, 		8, 		50, 	6,		1));
-	
+	weapons.push(new OneH("Buckler", 			"shield", 	"A simple wooden shield. Provides 20% Block Chance.", 													1,		25, 	90, 	4, 		6, 		50, 	3,		1));
+	weapons.push(new OneH("Spiked Shield", 		"shield", 	"A shield with weighty metal spikes that give it extra puncturing power. Gives 20% Block Chance.",   	1,		25, 	90, 	6, 		12, 	70, 	6,		1)); 	
+	weapons.push(new OneH("Shield", 			"shield", 	"A tall shield that offers greater protection to its user. Gives 40% Block Chance.",   		 			1,		50, 	90, 	4, 		8, 		50, 	6,		1));
+	weapons.push(new OneH("Eel Shield", 		"shield", 	"Made from the hide of an electric eel. Gain 2 Static stacks when attacked. Gives 20% Block Chance.",   1,		75, 	90, 	4, 		8, 		50, 	6,		1, 		false));
 	//Ranged
-	weapons.push(new Weapon("Staff Sling", 			"ranged",
-																	2, 		2,		50, 	70,		8,		12,		80,		3,		3));
-	weapons.push(new Weapon("Longbow", 				"ranged",
-																	2, 		2,		50, 	80,		8,		14,		20,		6,		5));
-	weapons.push(new Weapon("Crossbow", 			"ranged",
-																	2, 		1,		50, 	90,		12,		16,		30,		6,		5));
-	weapons.push(new Weapon("Repeating Crossbow", 	"ranged",
-																	2, 		4,		50, 	70,		4,		8,		0,		3,		5));
+	weapons.push(new TwoH("Staff Sling", 		"ranged", 	"A long pole with a sling on its end.",   		 		 		 		 		 		 		 		2,		50, 	70,		8,		12,		80,		3,		3));
+	weapons.push(new TwoH("Longbow", 			"ranged", 	"A powerful bow thats almost as tall as its user.",   		 		 		 		 		 		 	2,		50, 	80,		8,		14,		20,		6,		5));
+	weapons.push(new TwoH("Crossbow", 			"ranged", 	"A slow-loading crossbow that offers good damage and penetration.",   		 		 		 		 	1,		50, 	90,		12,		16,		30,		6,		5));
+	weapons.push(new TwoH("Repeating Crossbow", "ranged", 	"A variant of the crossbow that can quickly load its bolts, at the cost of power.",  		 		 	4,		50, 	70,		4,		8,		0,		3,		5));
+	weapons.push(new TwoH("Hand Cannon", 		"ranged", 	"A heavy weapon from far east. Its shots pass through enemies, but carrying it slows you down.",  		1,		100, 	40,		26,		32,		50,		12,		3));
+	
 	
 	//Item(				name, 					type, 		value, stack = 1)
 	items.push(new Item("Health Potion", 		"potion", 	15, 	"Restores 30 HP over time."));
@@ -484,8 +449,8 @@ function initItems() {
 	items.push(new Item("Crook", 				"staff",	100,	"Your healing spells heal +2 HP. Heals you receive are increased by +1 HP"));
 	items.push(new Item("Coral Staff", 			"staff",	100,	"A colorful staff, sturdy and well-formed. Your damaging spells afflict bleeding. +4 Physical & +4 Magical Armor", false));
 	items.push(new Item("Blood Staff", 			"staff",	100,	"A staff wrought of bone and inset with crystals of angelic blood. Heal +6 HP per turn. You're immune to Poison.", false));
-	items.push(new Item("Driftwood Staff",		"staff",	100,	"A smooth wooden staff, greyed by centuries submerged in the swamp. Your damaging spells afflict poison. For every 3 Poison Stacks on your enemies, heal +1 HP.", false));
-	items.push(new Item("Rotten Staff",			"staff",	100,	"Mushrooms sprout from this ancient staff, and insects stir within it. Whenever an enemy dies, deal 4 true damage to all other enemies.", false));
+	items.push(new Item("Driftwood Staff",		"staff",	100,	"Your damaging spells afflict poison. For every 3 Poison Stacks on your enemies, heal +1 HP.", false));
+	items.push(new Item("Rotten Staff",			"staff",	100,	"Mushrooms sprout from this ancient staff. When an enemy dies, deal 4 true damage to all other enemies.", false));
 	items.push(new Item("Staff",				"staff",	100,	"Adds +1 Damage to your spells."));
 	items.push(new Item("Scepter",				"staff",	100,	"Spells have a 20% Chance to not use AP."));
 	
@@ -493,51 +458,46 @@ function initItems() {
 	items.push(new Item("Old Fishing Pole",		"pole",		40,		"One of Gout's handmade fishing poles which have seen better days. The handle is cracked, but it still works."));
 	items.push(new Item("Fishing Pole",			"pole",		60,		"A strong fishing pole, hand-crafted by Gout. It's sleek and reliable, and capable of catching most fish."));
 	items.push(new Item("Masterwork Pole",		"pole",		80,		"A fishing pole wrought of dark wood as solid as steel. Its unbreakable line shimmers like gold in the sun."));
-	//Freshwater Fish
-	items.push(new Item("Minnow",				"fish",		0,		"A tiny, silvery-green fish about the size of your pinky finger. It's more like bait than a catch."));
-	items.push(new Item("Crawdad",				"fish",		0,		"A small brown crustacean, long of body like a shrunken lobster."));
-	items.push(new Item("Crappie",				"fish",		0,		"A short, fat fish; dark green with translucent fins and a sour expression."));
-	items.push(new Item("Carp",					"fish",		0,		"A dull, largely unremarkable fish of middling size."));
-	items.push(new Item("Trout",				"fish",		0,		"A plump, speckled green fish with vibrant orange fins and a soft white underbelly."));
-	items.push(new Item("Perch",				"fish",		0,		"A black-striped yellow fish with thick, spiny fins."));
-	items.push(new Item("Grindle",				"fish",		0,		"A green sharp-toothed fish fringed in long spotted fins."));
-	items.push(new Item("Salmon",				"fish",		0,		"A long, bright red fish with a green head; prized for the taste of its flesh."));
-	items.push(new Item("Bluegill",				"fish",		0,		"A small blue-green fish with an orange underbelly and striking red eyes."));
-	items.push(new Item("Shad",					"fish",		0,		"A fair-sized fish wreathed faintly colorful scales that shimmer in the light."));
-	items.push(new Item("Catfish",				"fish",		0,		"A flat, fat fish with small wideset eyes and long flowing whiskers."));
-	items.push(new Item("Bass",					"fish",		0,		"A strong, medium-sized black-striped with dark green fins and a pale underbelly."));
-	items.push(new Item("Freshwater Eel",		"fish",		0,		"A black, oily serpentine creature that dwells in rivers and streams."));
-	items.push(new Item("Freshwater Sunfish",	"fish",		0,		"A small, bright fish, yellow and gold like the sunset from which its name is derived."));
-	items.push(new Item("Pike",					"fish",		0,		"A heavy fish, dark with pale spots. Its long face boasts a blissful ignorance."));
-	items.push(new Item("Gar",					"fish",		0,		"A large slender fish with vibrant splotches and a long, toothy snout."));
-	items.push(new Item("Sturgeon",				"fish",		0,		"A large lethargic fish covered in heavy grey plated scales."));
+	
+	//Freshwater Fish										HP Restore
+	items.push(new Item("Minnow",				"fish",		1,		"A tiny, silvery-green fish about the size of your pinky finger. It's more like bait than a catch."));
+	items.push(new Item("Crawdad",				"fish",		1,		"A small brown crustacean, long of body like a shrunken lobster."));
+	items.push(new Item("Crappie",				"fish",		5,		"A short, fat fish; dark green with translucent fins and a sour expression."));
+	items.push(new Item("Carp",					"fish",		5,		"A dull, largely unremarkable fish of middling size."));
+	items.push(new Item("Trout",				"fish",		5,		"A plump, speckled green fish with vibrant orange fins and a soft white underbelly."));
+	items.push(new Item("Perch",				"fish",		5,		"A black-striped yellow fish with thick, spiny fins."));
+	items.push(new Item("Salmon",				"fish",		5,		"A long, bright red fish with a green head; prized for the taste of its flesh."));
+	items.push(new Item("Bluegill",				"fish",		4,		"A small blue-green fish with an orange underbelly and striking red eyes."));
+	items.push(new Item("Shad",					"fish",		6,		"A fair-sized fish wreathed faintly colorful scales that shimmer in the light."));
+	items.push(new Item("Catfish",				"fish",		6,		"A flat, fat fish with small wideset eyes and long flowing whiskers."));
+	items.push(new Item("Bass",					"fish",		6,		"A strong, medium-sized black-striped with dark green fins and a pale underbelly."));
+	items.push(new Item("Freshwater Eel",		"fish",		8,		"A black, oily serpentine creature that dwells in rivers and streams."));
+	items.push(new Item("Pike",					"fish",		8,		"A heavy fish, dark with pale spots. Its long face boasts a blissful ignorance."));
+	items.push(new Item("Gar",					"fish",		8,		"A large slender fish with vibrant splotches and a long, toothy snout."));
+	items.push(new Item("Sturgeon",				"fish",		8,		"A large lethargic fish covered in heavy grey plated scales."));
 	//Ocean Fish
-	items.push(new Item("Shrimp",				"fish",		0,		"A pink critter with many legs and long attennae that flow behind its body."));
-	items.push(new Item("Sardine",				"fish",		0,		"A miniscule silvery blue fish that travels in large schools."));
-	items.push(new Item("Grunion",				"fish",		0,		"A small, thin fish that buries itself in the sand."));
-	items.push(new Item("Crab",					"fish",		0,		"A pale red crustacean with a solid shell and two large pincers."));
-	items.push(new Item("Jack",					"fish",		0,		"A pale fish with a large mouth and an awkward body, and bright yellow fins."));
-	items.push(new Item("Porgy",				"fish",		0,		"A short, large-eyed fish with spiny fins and dull coloration."));
-	items.push(new Item("Common Snook",			"fish",		0,		"A drab yellow fish with a single black stripe along its sides."));
-	items.push(new Item("Squid",				"fish",		0,		"A small tentacled creature, with a long head and a curious look in its black eyes."));
-	items.push(new Item("Mackerel",				"fish",		0,		"A medium-sized fish with a white underbelly and a green and blue back that shimmers iridescently in the light."));
-	items.push(new Item("Hake",					"fish",		0,		"A drab fish with long fins along its back and stomach, that give it an almost eel-like appearance."));
-	items.push(new Item("Flying Fish",			"fish",		0,		"A small fish with colorful wings, known to hop out of the water and glide."));
-	items.push(new Item("Snapper",				"fish",		0,		"A heavy pink fish with red highlights on its fins."));
-	items.push(new Item("Pufferfish",			"fish",		0,		"A spiny, wide-eyed fish, colorful and capable of inflating itself into a ball."));
-	items.push(new Item("Catshark",				"fish",		0,		"A small, dark-bodied shark speckled with black and white spots."));
-	items.push(new Item("Cod",					"fish",		0,		"A plump-bellied fish, yellow and red with a white stripe along its side."));
-	items.push(new Item("Sunfish",				"fish",		0,		"A large and largely thoughtless fish. Its body is flat, balanced by two prominent vertical fins."));
-	items.push(new Item("Grouper",				"fish",		0,		"A huge fish, brown and wrinkled with a sour expression."));
+	items.push(new Item("Shrimp",				"fish",		1,		"A pink critter with many legs and long attennae that flow behind its body."));
+	items.push(new Item("Sardine",				"fish",		1,		"A miniscule silvery blue fish that travels in large schools."));
+	items.push(new Item("Crab",					"fish",		2,		"A pale red crustacean with a solid shell and two large pincers."));
+	items.push(new Item("Common Snook",			"fish",		3,		"A drab yellow fish with a single black stripe along its sides."));
+	items.push(new Item("Squid",				"fish",		4,		"A small tentacled creature, with a long head and a curious look in its black eyes."));
+	items.push(new Item("Mackerel",				"fish",		4,		"A medium-sized fish with a white underbelly and a green and blue back that shimmers iridescently in the light."));
+	items.push(new Item("Hake",					"fish",		5,		"A drab fish with long fins along its back and stomach, that give it an almost eel-like appearance."));
+	items.push(new Item("Flying Fish",			"fish",		6,		"A small fish with colorful wings, known to hop out of the water and glide."));
+	items.push(new Item("Snapper",				"fish",		6,		"A heavy pink fish with red highlights on its fins."));
+	items.push(new Item("Pufferfish",			"fish",		7,		"A spiny, wide-eyed fish, colorful and capable of inflating itself into a ball."));
+	items.push(new Item("Cod",					"fish",		8,		"A plump-bellied fish, yellow and red with a white stripe along its side."));
+	items.push(new Item("Sunfish",				"fish",		8,		"A large and largely thoughtless fish. Its body is flat, balanced by two prominent vertical fins."));
+	items.push(new Item("Grouper",				"fish",		8,		"A huge fish, brown and wrinkled with a sour expression."));
 	//Rare Ocean Fish
-	items.push(new Item("Jellyfish",			"fish",		0,		"A colorful flow of dangerous tentacles that drift behind the creatures domed head."));
-	items.push(new Item("Ray",					"fish",		0,		"A flat grey creature with a long tail that glides elegantly through the water."));
-	items.push(new Item("Stonefish",			"fish",		0,		"A spiny and lethargic creature, colorful, but bearing a stupid expression."));
-	items.push(new Item("Eel",					"fish",		0,		"A sleek, sharp-toothed creature, cautious, but capable of moving with great speed."));
-	items.push(new Item("Octopus",				"fish",		0,		"A tentacled creature, colorful and dextrous with intelligent eyes."));
-	items.push(new Item("Tuna",					"fish",		0,		"A large symmetrical fish, deep blue with a crescent tailfin and thornlike spikes along its body."));
-	items.push(new Item("Wahoo",				"fish",		0,		"A large fish with a pointed mouth and vertical cyan stripes along its sides."));
-	items.push(new Item("Swordfish",			"fish",		0,		"A large slender fish with long flowing fins and a sharp, needlelike protrusion on its snout."));
+	items.push(new Item("Jellyfish",			"fish",		2,		"A colorful flow of dangerous tentacles that drift behind the creatures domed head."));
+	items.push(new Item("Ray",					"fish",		4,		"A flat grey creature with a long tail that glides elegantly through the water."));
+	items.push(new Item("Stonefish",			"fish",		4,		"A spiny and lethargic creature, colorful, but bearing a stupid expression."));
+	items.push(new Item("Eel",					"fish",		5,		"A sleek, sharp-toothed creature, cautious, but capable of moving with great speed."));
+	items.push(new Item("Octopus",				"fish",		5,		"A tentacled creature, colorful and dextrous with intelligent eyes."));
+	items.push(new Item("Tuna",					"fish",		6,		"A large symmetrical fish, deep blue with a crescent tailfin and thornlike spikes along its body."));
+	items.push(new Item("Wahoo",				"fish",		8,		"A large fish with a pointed mouth and vertical cyan stripes along its sides."));
+	items.push(new Item("Swordfish",			"fish",		10,		"A large slender fish with long flowing fins and a sharp, needlelike protrusion on its snout."));
 
 	
 	//Phys										//  P       M       AP
@@ -557,6 +517,11 @@ function initItems() {
 	armor.push(new Armor("Warded Cloak",			1,		6,		2,	60, "This was left at the tavern by a travelling mage. He never returned for it."));
 	armor.push(new Armor("Amethyst Tunic",			2,		8,		3,	90, "An brilliant piece of apparel made of shining, fibrous amethyst."));
 	armor.push(new Armor("Drakeskin Cloak",			2,		10,		4,  100, "A cloak made of the processed hide of a drake.", false));
+	
+	armor.push(new Armor("Drowned Armor",			5,		4,		3,  100, "Black armor that reeks of rust and salt. -20 Max HP. +25% Damage Dealt.", false));
+	armor.push(new Armor("Anchor Armor",			14,		8,		12, 100, "Immense armor forged from the anchors of sunken ships.", false));
+	armor.push(new Armor("Fishnet Stockings",		0,		0,		0,  100, "They don't offer much protection, but damn do your legs look good.", false));
+	armor.push(new Armor("Haunted Hookscale",		3,		3,		0,  100, "The hooks hunger. Each turn, take 6 damage and deal 8 damage to all enemies.", false));
 	
 	for (let i = 0; i < weapons.length; i++) {
 		items.push(weapons[i]);
@@ -584,21 +549,21 @@ function allSpell(name, school, description, number, AP, HP = 0, Range = 6) {
 
 function initSpells() {
 	// - Single-Target // Tome of the Duelist
-	//		 Name				School		Description																										#, AP, HP, Range
-	addSpell("Arcane Strike",	"duelist",	"Deal 8 Damage to an enemy.",																					1, 6);
-	addSpell("Spear", 			"duelist",	"Deal 10-16 Damage to an enemy on your row.", 																	1, 6, 0, 1);
-	addSpell("Siphon", 			"duelist",	"Deal 4-8 Damage and Heal 4 HP.", 																				1, 6);
-	addSpell("Pierce", 			"duelist",	"Deal 4 True Damage to an enemy.", 																				1, 4);
-	addSpell("Hemic Strike",	"duelist",	"Lose 5 HP. Deal 12-18 Damage to an enemy.",																	1, 9, 5);
-	addSpell("Lightning",		"duelist",	"Deal 3 damage to an enemy. Deals +1 damage this turn.",														1, 3);
+	//		 Name				School		Description									#, AP, HP, Range
+	addSpell("Arcane Strike",	"duelist",	"Deal 8 Damage to an enemy.",				1, 6);
+	addSpell("Spear", 			"duelist",	"Deal 10-16 Damage to an enemy on your row.", 1, 6, 0, 1);
+	addSpell("Siphon", 			"duelist",	"Deal 4-8 Damage and Heal 4 HP.", 			1, 6);
+	addSpell("Pierce", 			"duelist",	"Deal 4 True Damage to an enemy.", 			1, 4);
+	addSpell("Hemic Strike",	"duelist",	"Lose 5 HP. Deal 12-18 Damage to an enemy.",1, 9, 5);
+	addSpell("Lightning",		"duelist",	"Deal 2 damage to an enemy. Gain a stack of static.",															1, 2);
 	addSpell("Swamp Strike",	"wild",		"Deal 3-6 damage to a target and afflict as many stacks of poison.",											1, 6);
 	
 	// - Self-Buffs // Tome of Strength
-	//		 Name				School		Description																										#, AP, HP, Range
-	addSpell("Meditation",		"strength",	"Gain 9 Stamina.",																								0, 3);
-	rowSpell("Blink",			"strength",	"Teleport to a targeted row",																					1, 4);
+	//		 Name				School		Description									#, AP, HP, Range
+	addSpell("Meditation",		"strength",	"Gain 9 Stamina.",							0, 3);
+	rowSpell("Blink",			"strength",	"Teleport to a targeted row",				1, 4);
 	addSpell("Stoneskin",		"strength",	"+8 Physical Armor +4 Magical Armor for 3 turns.",																0, 6);
-	addSpell("Preparation",		"strength",	"Gain 4 AP a turn. Lasts 3 turns.",																				0, 6);
+	addSpell("Preparation",		"strength",	"Gain 4 AP a turn. Lasts 3 turns.",			0, 6);
 	addSpell("Ferocity", 		"strength",	"Your damaging spells do +2 DMG per instance this turn.", 														0, 3);
 	addSpell("Endure", 			"strength",	"Increase the duration of your buffs by 1 turn.", 																0, 12);
 	addSpell("Roots", 			"wild",		"Root yourself for 3 turns. Heal 6 HP per turn for 3 turns.", 													0, 6);
@@ -606,36 +571,36 @@ function initSpells() {
 	addSpell("Ignite", 			"wild",		"For each Ember you have, lose 1 HP and deal damage equal to half your total number of Embers.",				1, 9);
 	
 	// - Summoner // Tome of Summoning
-	//		 Name				School		Description																										#, AP, HP, Range
-	rowSpell("Summon Bees",		"wild",		"Lose 2 HP. Summon a Swarm of Bees.",																			1, 6, 2);
-	rowSpell("Summon Zombie",	"summoning","Lose 6 HP. Summon a Zombie.",																					1, 6, 6);
-	rowSpell("Summon Specter",	"wild",		"Lose 6 HP. Summon an Apparition.",																				1, 9, 6);
-	rowSpell("Summon Spores",	"wild",		"Lose 6 HP. Summon 3-5 Living Spores.",																			1, 9, 6);
-	rowSpell("Summon Mushroom",	"wild",		"Lose 6 HP. Summon a Toxic Mushroom.",																			1, 9, 6);
-	rowSpell("Summon Anemone",	"wild",		"Lose 3 HP. Summon a Giant Anemone.",																			1, 6, 3);
-	rowSpell("Summon Coral",	"wild",		"Lose 3 HP. Summon a Coral Shard.",																				1, 6, 3);
-	rowSpell("Summon Archer",	"summoning","Lose 8 HP. Summon an archer.",																					1, 9, 8);
-	rowSpell("Summon Warrior",	"summoning","Lose 10 HP. Summon a warrior.",																				1, 12, 10);
-	rowSpell("Summon Beast",	"summoning","Lose 20 HP. Summon a random animal.",																			1, 12, 20);
+	//		 Name				School		Description									#, AP, HP, Range
+	rowSpell("Summon Bees",		"wild",		"Lose 2 HP. Summon a Swarm of Bees.",		1, 6, 2);
+	rowSpell("Summon Zombie",	"summoning","Lose 6 HP. Summon a Zombie.",				1, 6, 6);
+	rowSpell("Summon Specter",	"wild",		"Lose 6 HP. Summon an Apparition.",			1, 9, 6);
+	rowSpell("Summon Spores",	"wild",		"Lose 6 HP. Summon 3-5 Living Spores.",		1, 9, 6);
+	rowSpell("Summon Mushroom",	"wild",		"Lose 6 HP. Summon a Toxic Mushroom.",		1, 9, 6);
+	rowSpell("Summon Anemone",	"wild",		"Lose 3 HP. Summon a Giant Anemone.",		1, 6, 3);
+	rowSpell("Summon Coral",	"wild",		"Lose 3 HP. Summon a Coral Shard.",			1, 6, 3);
+	rowSpell("Summon Archer",	"summoning","Lose 8 HP. Summon an archer.",				1, 9, 8);
+	rowSpell("Summon Warrior",	"summoning","Lose 10 HP. Summon a warrior.",			1, 12, 10);
+	rowSpell("Summon Beast",	"summoning","Lose 20 HP. Summon a random animal.",		1, 12, 20);
 	allSpell("Maintain",		"summoning","Refresh the Fading effect of a creature, keeping them around for 3 more turns.",								1, 6);
 	addSpell("Empower",			"summoning","Your currently summoned creatures deal +3 Damage per attack for 3 turns.",										0, 6);
-	addSpell("Shepherd", 		"summoning","Heal your summoned creatures 4-8 HP.",																			0, 6);
+	addSpell("Shepherd", 		"summoning","Heal your summoned creatures 4-8 HP.",		0, 6);
 	addSpell("Compensation", 	"summoning","Heal 8 HP when an ally is struck down. Lasts until the end of combat",											0, 6);
 	
 	// - Debuffs // Tome of Affliction
-	//		 Name				School			Description																										#, AP, HP, Range
-	addSpell("Redirection",		"affliction",	"Transfer your debuffs to an enemy.",																			1, 9);
+	//		 Name				School			Description									#, AP, HP, Range
+	addSpell("Redirection",		"affliction",	"Transfer your debuffs to an enemy.",		1, 9);
 	addSpell("Peel",			"affliction",	"Reduce an enemy's Physical & Magical Armor by 1.",																1, 3);
 	addSpell("Expose",			"affliction",	"Increase the damage an enemy takes by 20% this turn.",															1, 6);
-	addSpell("Bind",			"wild",			"Root an enemy for 3 turns.",																					1, 6);
-	addSpell("Envenom",			"wild",			"Afflict an enemy with venom for 6 turns.", 																	1, 4);
-	rowSpell("Gale",			"affliction",	"Push a row of enemies back one row.",																			1, 5);
+	addSpell("Bind",			"wild",			"Root an enemy for 3 turns.",				1, 6);
+	addSpell("Envenom",			"wild",			"Afflict an enemy with venom for 6 turns.", 1, 4);
+	rowSpell("Gale",			"affliction",	"Push a row of enemies back one row.",		1, 5);
 	rowSpell("Disperse",		"affliction",	"Teleport every enemy on your row to a random row, at least 2 rows away from you.",								0, 4, 0, 1);
-	addSpell("Freeze",			"affliction",	"Deal 2-4 damage to an enemy and stun them.",																	1, 6);
+	addSpell("Freeze",			"affliction",	"Deal 2-4 damage to an enemy and stun them.",1, 6);
 	
 	// - AoE Damage // Tome of Destruction
-	//		 Name				School			Description																										#, AP, HP, Range
-	rowSpell("Wall of Fire",	"destruction",	"Deal 3-6 Damage to every enemy in a row.", 																	1, 9);
+	//		 Name				School			Description									#, AP, HP, Range
+	rowSpell("Wall of Fire",	"destruction",	"Deal 3-6 Damage to every enemy in a row.", 1, 9);
 	rowSpell("Radiance", 		"destruction",	"Deal 6-10 Damage to all enemies on your row.", 																0, 9, 0, 1);
 	addSpell("Reap",			"destruction",	"Lose 10 HP. Deal 4-6 Damage to all enemies, healing 1 HP per target.",											0, 9, 10);
 	addSpell("Blizzard",		"destruction",	"Deal 2-4 damage to every enemy and slow them.",																0, 6);
@@ -644,17 +609,17 @@ function initSpells() {
 	addSpell("Holy Flame",		"destruction",	"Deal 1 damage per 2 AP you have to each enemy, costs all of your AP.",											0, 0);
 	
 	// - Healing & Buffs // Tome of the Guardian
-	//		 Name				School			Description																							#, AP, HP, Range
+	//		 Name				School			Description						#, AP, HP, Range
 	addSpell("Protection",		"guardian",		"+2 Physical Armor +2 Magical Armor for your allies 3 turns.",													0, 9);
-	allSpell("Heal",			"guardian",		"Heal an ally 4-6 HP.",																							1, 4);
-	addSpell("Rally",			"guardian",		"All allies gain 6 Stamina.",																					0, 4);
-	addSpell("Guidance",		"wild",			"Heal all allies 3 HP.",																						0, 5);
-	allSpell("Transfer Life",	"guardian",		"Lose 5 HP. Heal an ally for 8-10 HP.",																			1, 6, 5);
-	allSpell("Purify",			"guardian",		"Remove all debuffs from an ally.",																				1, 5);
+	allSpell("Heal",			"guardian",		"Heal an ally 4-6 HP.",						1, 4);
+	addSpell("Rally",			"guardian",		"All allies gain 6 Stamina.",				0, 4);
+	addSpell("Guidance",		"wild",			"Heal all allies 3 HP.",					0, 5);
+	allSpell("Transfer Life",	"guardian",		"Lose 5 HP. Heal an ally for 8-10 HP.",		1, 6, 5);
+	allSpell("Purify",			"guardian",		"Remove all debuffs from an ally.",			1, 5);
 	allSpell("Deliverance",		"guardian",		"Lose 2 HP. Give an ally a stack of deliverance, which will save them from death one time.",					1, 4, 2);
 	
 	//Special Spells
-	//		 Name				School		Description																										#, AP, HP, Range
+	//		 Name				School		Description									#, AP, HP, Range
 	addSpell("Gamble",			"wild",		"Spend 3 gold. Deal 10 damage to a target. There's a small chance to hit a Jackpot!",							1, 6);
 	
 }
@@ -771,7 +736,7 @@ function initEnemies() {
 	//						Name, 				HP, 	Phys, 	Magic, 	Diff	Zones	MOVES
 	enemies.push(new Enemy("Swarm of Bees", 	2, 		100,	100,	5, 		[], 	4,		"animal", "A pesky swarm of enlarged, stinging insects")); //Phys
 	enemies.push(new Enemy("Egg Sac", 			5,		0,		0,		25,		[],		0,		"", "A vast bundle of silk. Something is crawling around within it."));
-	enemies.push(new Enemy("Web", 				5,		10,		10,		0,		[],		0,		"construction", "A hastily strewn web of sturdy white spider silk that traps creatures that pass through it."));
+	enemies.push(new Enemy("Web", 				8,		10,		10,		0,		[],		0,		"construction", "A hastily strewn web of sturdy white spider silk that traps creatures that pass through it."));
 	enemies.push(new Enemy("Baby Spider", 		10,		0,		0,		5,		[],		3,		"animal", "A squat spider, about the size of a house cat. It scuttles about frantically."));
 	enemies.push(new Enemy("Living Spore",		5,		0,		0,		1,		[],		2,		"plant",  "A tiny spore that glows in the dim light. It sways on the breeze, seeking to nestle into a rotten patch to sprout."));
 	enemies.push(new Enemy("Servant",			40,		1,		1,		20,		[],		2,		"servant", "A well-kept and well-dressed servant, carrying a dark mahogany baton. They're undyingly loyal to the noble they serve."));
@@ -870,10 +835,10 @@ function initEnemies() {
 			enemies[i].LOOT.push(new Drop("Scroll: Feed Flame", 25));
 		}
 		if (enemies[i].NAME == "Ogre") {
-			enemies[i].LOOT.push(new Drop("Ogre Club", 25));
+			enemies[i].LOOT.push(new Drop("Ogre Club", 15));
 		}
 		if (enemies[i].NAME == "Ephemeral Warrior") {
-			enemies[i].LOOT.push(new Drop("Ephemeral blade", 25));
+			enemies[i].LOOT.push(new Drop("Ephemeral blade", 15));
 		}
 		if (enemies[i].NAME == "Living Vine") {
 			enemies[i].LOOT.push(new Drop("Scroll: Bind", 40));
@@ -906,6 +871,9 @@ function initEnemies() {
 		}
 		if (enemies[i].NAME == "Zombie") {
 			enemies[i].LOOT.push(new Drop("Death Mark", 2));
+		}
+		if (enemies[i].NAME == "Lost Angel") {
+			enemies[i].LOOT.push(new Drop("Sweeping Sword", 20));
 		}
 		if (enemies[i].NAME == "Lich") {
 			enemies[i].LOOT.push(new Drop("Blood Staff", 30));
@@ -1034,7 +1002,7 @@ function initEffects() {
 		new Effect("Fading", 				"buff",		"This creature will vanish.",									false),
 		new Effect("Stronger", 				"buff",		"Deal +3 Damage per Attack",									false),
 		new Effect("Compensation", 			"buff",		"Heal 8 HP when an ally is killed.",							false),
-		new Effect("Lightning", 			"buff",		"Lightning gains +1 Damage this turn.",							true),
+		//new Effect("Lightning", 			"buff",		"Lightning gains +1 Damage this turn.",							true),
 		new Effect("Stoneskin", 			"buff",		"+8 Physical Armor. +4 Magical Armor",							false),
 		new Effect("Preparation", 			"buff",		"+4 AP per turn.",												false),
 		new Effect("Ferocity", 				"buff",		"Your spells deal +2 DMG",										false),

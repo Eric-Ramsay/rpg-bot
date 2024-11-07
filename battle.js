@@ -15,13 +15,14 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 			let startHP = C.HP;
 			let aName = Prettify(Name(C));
 			let healing = 0;
+			if (isEquipped(C, "Hand Cannon")) {
+				msg += AddEffect(C, "Slowed", 1);
+			}
 			if (hasRune(C, "jade")) {
 				AddEffect(C, "jade", 999);
 			}
 			if (hasRune(C, "static")) {
-				for (let i = 0; i < 3; i++) {
-					AddEffect(C, "static", 999);
-				}
+				AddEffect(C, "static", 999, null, null, 4);
 			}
 			let invincible = hasEffect(C, "invincible");
 			let shock = hasEffect(C, "static");
@@ -37,6 +38,13 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 			//Runic Effects
 			if (hasRune(C, "cultivation") && C.HP < MaxHP(C)) {
 				healing += 4;
+			}
+			if (isEquipped(C, "Haunted Hookscale")) {
+				C.HP -= 6;
+				msg += tag + "*RED*Hooks burst out from your armor, looking for flesh to dig into!\n";
+				for (let j = 0; j < enemies.length; j++) {
+					msg += DealDamage(new P_Attack(8, 100), allies, C, enemies, enemies[j])[0] + "\n";
+				}
 			}
 			if (hasRune(C, "sunset")) {
 				msg += tag + "*YELLOW*Your enemies are burned by Sunset!\n";
@@ -112,6 +120,7 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 				C.CASTS = 0;
 				C.ENDED = false;
 				C.BRACING = false;
+				RemoveEffect(C, "guarding")
 				for (let j = 0; j < C.INVENTORY.length; j++) {
 					if (C.INVENTORY[j].type == "weapon") {
 						C.INVENTORY[j].attacks[0] = C.INVENTORY[j].attacks[1];
@@ -273,6 +282,9 @@ function StartBattle(battle) {
 			let locationNames = ["Haunted Crypts", "Acrid Swamp", "Wilted Woods", "Stony Island"];
 			msg += "*CYAN*You've enraged the " + locationNames[battle.zone] + "!\n\n";
 			rating *= 1.5;
+			for (let i = 0; i < battle.allies.length; i++) {
+				RemoveEffect(battle.allies[i], "Coward's Haste");
+			}
 		}
 		
 		console.log("Combat Difficulty: " + rating);
@@ -611,6 +623,9 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 			dmg *= 1.25;
 		}
 	}
+	if (weapon.name == "Coral Axe" && hasEffect(enemy, "bleed")) {
+		dmg *= 1.25;
+	}
 	if (hasWeaponRune(weapon, "powerful")) {
 		dmg *= 1.20;
 	}
@@ -679,6 +694,33 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		}
 	}
 	
+	if (weapon.name == "Hand Cannon" && depth == 0) {
+		let firingRight = true;
+		if (enemy.ROW < C.ROW) {
+			firingRight = false;
+		}
+		let rows = [[], [], [], [], []];
+		for (let i = 0; i < Battle.enemies.length; i++) {
+			rows[Battle.enemies[i].ROW] += i;
+		}
+		if (firingRight) {
+			for (let i = C.ROW; i < 5; i++) {
+				if (i != enemy.ROW && rows[i].length > 0) {
+					let enemyIndex = rows[i][rand(rows[i].length)];
+					msg += AllyAttack(Battle, C, enemyIndex, weaponIndex, 1);
+				}
+			}
+		}
+		else {
+			for (let i = C.ROW; i >= 0; i--) {
+				if (i != enemy.ROW && rows[i].length > 0) {
+					let enemyIndex = rows[i][rand(rows[i].length)];
+					msg += AllyAttack(Battle, C, enemyIndex, weaponIndex, 1);
+				}
+			}
+		}
+	}
+	
 	//PROC ON HIT EFFECTS -------------------------
 	if (result[1] > 0) {
 		if (weapon.subclass == "polearm") {
@@ -693,9 +735,12 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		if (weapon.name == "Vampire Fang") {
 			msg += Heal(C, Math.ceil(result[1]/2));
 		}
+		if (weapon.name == "Coral Axe") {
+			msg += AddEffect(enemy, "bleed");
+		}
 		if (hasWeaponRune(weapon, "peel")) {
 			msg += "You peel away the armor of the " + enemy.NAME + "!\n"
-			enemy.ARMOR[0]--;
+			enemy.ARMOR[0] = Math.max(0, enemy.ARMOR[0] - 1);
 		}
 		if (enemy.HP > 0) {
 			if (hasWeaponRune(weapon, "affliction")) {
@@ -721,6 +766,9 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		if (weapon.subclass == "blunt") {
 			sweepDmg += 2 + Math.floor(dmg/10);
 		}
+		if (weapon.name == "Sweeping Sword") {
+			sweepDmg += dmg;
+		}
 		if (hasWeaponRune(weapon, "sweeping") && result[1] > 0) {
 			sweepDmg += Math.max(1, Math.round(dmg * .2));
 		}
@@ -737,7 +785,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		if (sweepDmg > 0 && !bossKill) {
 			for (let i = 0; i < Battle.enemies.length; i++) {
 				if (i != enemyIndex && Battle.enemies[i].ROW == targetRow) {
-					msg += DealDamage(new P_Attack(sweepDmg), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
+					msg += DealDamage(new P_Attack(sweepDmg, 100, weapon.pen), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
 				}
 			}
 		}

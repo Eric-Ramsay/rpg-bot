@@ -107,6 +107,12 @@ function Mitigate(attacker, target, dmg, pen = 0, type = 0) {
 				return -1;
 			}
 		}
+		else if (isEquipped(target, "eel shield")) {
+			ran = rand(100);
+			if (ran <= 20) {
+				return -1;
+			}
+		}
 		else if (isEquipped(target, "buckler")) {
 			if (ran <= 20) {
 				return -1;
@@ -390,6 +396,9 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 			damage += numBuffs(attacker);
 		}
 	}
+	if (isEquipped(attacker, "Drowned Armor")) {
+		damage *= 1.25;
+	}
 	if (hasEffect(attacker, "weakened")) {
 		damage *= .75;
 	}
@@ -436,6 +445,9 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 	}
 	
 	if (damage > 0) {
+		if (isEquipped(target, "eel shield")) {
+			msg += AddEffect(target, "static", 999, null, null, 2);
+		}
 		if (hasRune(attacker, "cascade")) {
 			damage++;
 		}
@@ -575,7 +587,7 @@ function SpellDamage(attack, allies, C, targets, target) {
 			result[0] += AddEffect(target, "poison", 1, C);
 		}
 		if (hasRune(C, "tar")) {
-			msg += AddEffect(target, "Weakened", 1, C);
+			result[0] += AddEffect(target, "Weakened", 1, C);
 		}
 		if (hasRune(C, "cinnabar")) {
 			target.ARMOR[1] = Math.max(0, target.ARMOR[1] - 1);
@@ -675,10 +687,11 @@ function Cast(C, spell, allies, enemyList, targets) {
 				msg += CastMessage("Beads of blood draw themselves from your palm, forming the sillhouette of your target", t + n);
 				msg += SpellDamage(new M_Attack(12 + rand(7)), allies, C, enemyList, enemyList[index])[0];
 			}
-			else if (spellName == "lightning") { //Deal 4 damage to a target. Deals +1 damage this turn
-				msg += CastMessage("A shifting bolt of lightning arcs out from your hand towards your foe!", t + n);
-				msg += SpellDamage(new M_Attack(3 + countEffect(C, "lightning")), allies, C, enemyList, enemyList[index])[0];
-				AddEffect(C, "Lightning", 0);
+			else if (spellName == "lightning") { //Deal 2 damage. Gain 1 static
+				msg += CastMessage("A crescent of thin, shimmering lightning arcs towards your foe!", t + n);
+				msg += SpellDamage(new M_Attack(2), allies, C, enemyList, enemyList[index])[0];
+				msg += AddEffect(C, "static", 999);
+				//AddEffect(C, "Lightning", 0);
 			}
 			else if (spellName == "meditation") { //Gain 8 Stamina
 				msg += CastMessage("You rest for a moment, and feel at peace.", t + n);
@@ -949,11 +962,11 @@ function Cast(C, spell, allies, enemyList, targets) {
 					}
 				}
 			}
-			else if (spellName == "exploit") { //Deal 2 damage to every enemy per debuff they have
+			else if (spellName == "exploit") { //Deal damage to every enemy per debuff they have
 				msg += CastMessage("You prey upon the weaknesses of your enemies.", t + n);
 				for (let i = 0; i < enemyList.length; i++) {
 					let debuffs = numDebuffs(enemyList[i]);
-					msg += SpellDamage(new M_Attack(3 * numDebuffs), allies, C, enemyList, enemyList[i])[0];
+					msg += SpellDamage(new M_Attack(3 * debuffs), allies, C, enemyList, enemyList[i])[0];
 				}
 			}
 			else if (spellName == "protection") { //+2 Physical Armor +2 Magical Armor for your allies 3 turns
@@ -1025,12 +1038,15 @@ function Prettify(string) {
 	return val;
 }
 
-function shitSort(list, property) {
+function shitSort(list, property, flip = false) {
 	let sorted = [];
 	while (list.length > 0) {
 		let max = 0;
 		for (let i = 1; i < list.length; i++) {
-			if (list[i][property] > list[max][property]) {
+			if (flip && list[i][property] < list[max][property]) {
+				max = i;
+			}
+			else if (list[i][property] > list[max][property]) {
 				max = i;
 			}
 		}
@@ -1113,8 +1129,15 @@ client.on('messageCreate', (rec) => {
 					CHARACTER: null
 				}
 			}
-			if (data[id].CHARACTER  && ! data[id].CHARACTER.DIALOGUE) {
-				data[id].CHARACTER.DIALOGUE = new DialogueHandler()
+			if (data[id].CHARACTER) {
+				if (!data[id].CHARACTER.DIALOGUE) {
+					data[id].CHARACTER.DIALOGUE = new DialogueHandler()
+				}
+				if (!data[id].CHARACTER.FISH) {
+					data[id].CHARACTER.FISH = [];
+					data[id].CHARACTER.FISH_REWARDS = [];
+					data[id].CHARACTER.REWARDED = false;
+				}
 			}
 			if (rec.content.startsWith("!")) {
 				let msg = Command(rec);
@@ -1187,9 +1210,16 @@ function ItemDescription(C, item) {
 	let max = maxRunes(item);
 	if (item.type == "weapon") {
 		msg += "*RED*" + item.name + "*BLACK* | *CYAN*" + item.hands + "H*BLACK* | *PINK*" + item.chance + "%*BLACK* | *YELLOW*" + item.value + "G*GREY*\n";
+		msg += item.description+"\n\n";
 		let mult = 1 + (.05 * C.STATS[WEP]);
 		if (hasWeaponRune(item, "powerful")) {
 			mult *= 1.2;
+		}
+		if (isEquipped(C, "Drowned Armor")) {
+			mult *= 1.25;
+		}
+		if (hasWeaponRune(item, "lethality")) {
+			mult *= 1.15;
 		}
 		if (hasWeaponRune(item, "decisive")) {
 			mult *= 1.25;
@@ -1202,7 +1232,7 @@ function ItemDescription(C, item) {
 	}
 	else if (item.type == "armor") {
 		msg += "*RED*" + item.name + "*BLACK* | *CYAN*⛊*GREY*" + item.armor[0] + " *CYAN*✱*GREY*" + item.armor[1] + "*BLACK* | *YELLOW*" + item.value + "G*GREY*\n";
-		msg += item.description+"\n";
+		msg += item.description+"\n\n";
 		if (item.AP > 0) {
 			msg += "*RED*Reduces*GREY* your *GREEN*AP*GREY* by *RED*" + item.AP
 			if (C.CLASS != "warrior") {
@@ -1648,7 +1678,6 @@ function StackStrings(left, right, spaces, newLines = true, separator = " ") {
 	let msg = "";
 
 	let len = Math.max(leftRows.length, rightRows.length);
-
 	for (let i = 0; i < len; i++) {
 		let num = 0;
 		if (i < leftRows.length) {
@@ -1909,27 +1938,24 @@ function DrawTrade(C) {
 		console.log("Error Trading in DrawTrade");
 		return "";
 	}
-	let priceStr = "";
-	let itemStr = "";
-	let descStr = "";
-	let maxName = 0;
-	let maxDesc = 0;
 	if (NPC.INDEX >= NPC.CONVERSATIONS.length) {
 		NPC.INDEX = 0;
 	}
+	let strings = ["", "", "", ""];
+	let lengths = [0, 0, 0, 0];
 	msg += "*GREY*" + NPC.DESCRIPTION + "\n\n";
 	msg += "*YELLOW*" + NPC.CONVERSATIONS[NPC.INDEX++] + "\n\n";
 	let i = 0;
+	NPC.ITEMS = shitSort(NPC.ITEMS, "type"	);	
 	for (const item of NPC.ITEMS) {
-		let str = "";
+		let tempStrings = ["", "", "", ""];
 		let num = (++i).toString().padStart(2, '0');
-		let line = "";
-		str += "*PINK*" + num + ") *GREY*" + item.name;
+		tempStrings[0] = "*PINK*" + num + ") *GREY*" + item.name;
 		if (item.type == "weapon") {
-			let hands = "*CYAN*" + item.hands + "H " + Prettify(item.subclass);
+			let hands = "*PINK*" + item.hands + "H " + Prettify(item.subclass);
 			let atks = "*YELLOW*" + item.attacks[1] + " ATKs";
-			atks = StackStrings(atks, "*GREEN*" + item.AP + " AP", 8);
-			line = StackStrings(hands, atks, 12);
+			atks = atks + "*GREEN* " + item.AP + " AP";
+			tempStrings[2] = StackStrings(hands, atks, 11);
 		}
 		else if (item.type == "armor") {
 			let armor = "*CYAN*⛊*GREY*" + item.armor[0] + " *CYAN*✱*GREY*" + item.armor[1];
@@ -1937,9 +1963,9 @@ function DrawTrade(C) {
 			if (item.AP > 0) {
 				APStr = "*RED*-" + item.AP + " AP";
 			}
-			line = StackStrings(armor, APStr, 15);
+			tempStrings[2] = StackStrings(armor, APStr, 10);
 		}
-		else if (item.type == "rune" || item.type == "staff" || item.type == "scroll" || item.type == "spellbook") {
+		else if (item.description) {
 			let color = " *CYAN*";
 			if (item.type == "staff") {
 				color = " *RED*";
@@ -1947,16 +1973,20 @@ function DrawTrade(C) {
 			if (item.type == "scroll" || item.type == "spellbook") {
 				color = " *PINK*";
 			}
-			line = color + item.description;
+			tempStrings[1] = color + item.description;
 		}
-		maxDesc = Math.max(maxDesc, measureText(line));
-		maxName = Math.max(maxName, measureText(str));
-		descStr += line + "\n";
-		itemStr += str + "\n";
-		priceStr += "*YELLOW*" + item.value + "\n";
+		tempStrings[3] += "*YELLOW*" + item.value;
+		for (let i = 0; i < strings.length; i++) {
+			lengths[i] = Math.max(lengths[i], measureText(tempStrings[i]));
+			strings[i] += tempStrings[i] + "\n";
+		}
 	}
-	itemStr = StackStrings(itemStr, descStr, maxName + 5);
-	itemStr = StackStrings(itemStr, priceStr, maxName + maxDesc + 10);
+	let itemStr = strings[0];
+	let len = lengths[0] + 2;
+	for (let i = 1; i < strings.length; i++) {
+		itemStr = StackStrings(itemStr, strings[i], len);
+		len += (5 + lengths[i]);
+	}
 	msg += itemStr;
 	msg += "\n*GREY*Your Gold: *YELLOW*" + C.GOLD;
 	return msg;
@@ -2050,7 +2080,7 @@ function Command(message) {
 	let index = -1;
 	let numRepeat = 1;
 	
-	let requireCharacter = ["servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "enchant", "level", "stop", "move", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "read", "learn", "order", "buy", "sell", "spells"];
+	let requireCharacter = ["servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "enchant", "level", "stop", "move", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "eat", "read", "learn", "order", "buy", "sell", "spells"];
 	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "guard", "brace"];
 	
 	for (let i = 0; i < requireBattle.length; i++) {
@@ -2437,7 +2467,7 @@ function Command(message) {
 		else if (keyword == "spells") {
 			msg += CommandSpells(C);
 		}
-		else if (keyword == "drink") {
+		else if (keyword == "drink" || keyword == "eat") {
 			msg += CommandDrink(COPY(words), C);
 		}
 		else if (keyword == "classes") {
@@ -2511,6 +2541,16 @@ function Command(message) {
 		else if (keyword == "normal") {
 			let colors = ["*RED*", "*BLUE*", "*PINK*", "*GREEN*", "*YELLOW*"];
 			msg += colors[rand(colors.length)] + "" + genName(rand(2)) + "\n";
+		}
+		else if (keyword == "row") {
+			let num = parseInt(words[words.length - 1]);
+			if (num && num > 0 && num < 6) {
+				msg = "*CYAN*You'll start spawning in row " + (num) + ".\n";
+				C.ROW_PREFERENCE = (num - 1);
+			}
+			else {
+				return "*RED*Invalid row entered.\n";
+			}
 		}
 		else if (keyword == "name") {
 			words = words.slice(1, words.length);
@@ -2660,6 +2700,21 @@ function Command(message) {
 		else if (keyword == "fish") {
 			msg += CommandFish(C, message);
 		}
+		else if (keyword == "fishing") {
+			msg += "*CYAN*You've caught " + C.FISH.length + " types of fish so far.\n\n";
+			msg += "*YELLOW*There are " + (numFish - C.FISH.length) + " types of fish left to be caught, at the following locations:*GREY*\n";
+			for (const location of locations) {
+				let hasFish = false;
+				for (const fish of location.fish) {
+					if (C.FISH.indexOf(fish.name) == -1) {
+						hasFish = true;
+					}
+				}
+				if (hasFish) {
+					msg += location.id + "\n";
+				}
+			}
+		}
 		else if (keyword == "reel") {
 			msg += CommandReel(C, message);
 		}
@@ -2677,3 +2732,11 @@ initItems();
 initEnemies();
 initLocations();
 initEffects();
+
+let numFish = 0;
+for (let i = 0; i < items.length; i++) {
+	if (items[i].type == "fish") {
+		numFish++;
+	}
+}
+console.log("Number of Fish: " + numFish);

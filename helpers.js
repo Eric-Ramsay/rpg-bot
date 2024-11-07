@@ -37,6 +37,9 @@ function Equip(C, invIndex) {
 			return "*RED*Only mages can equip staves!\n";
 		}
 	}
+	if (C.INVENTORY[invIndex].name == "Drowned Armor" && C.HP <= 20) {
+		return "*RED*You don't have enough HP to equip this.\n";
+	}
 	if (C.INVENTORY[invIndex].type == "weapon" || C.INVENTORY[invIndex].type == "armor" || C.INVENTORY[invIndex].type == "staff" || C.INVENTORY[invIndex].type == "pole") {
 		let index = BattleIndex(C.ID);
 		if (C.INVENTORY[invIndex].type == "armor") {
@@ -364,6 +367,16 @@ function maxRunes(item) {
 		max = 4;
 		if (item.name.toLowerCase() == "wand") {
 			max = 1;
+		}
+	}
+	if (item.name == "Fishnet Stockings") {
+		max += 2;
+	}
+	if (item.runes) {
+		for (const rune of item.runes) {
+			if (rune.name.toLowerCase() == "tackle box") {
+				max += 3;
+			}
 		}
 	}
 	return max;
@@ -697,6 +710,9 @@ function MaxHP(C) {
 	let bonus = 0;
 	if (hasRune(C, "stout")) {
 		bonus = 15;
+	}
+	if (isEquipped(C, "Drowned Armor")) {
+		bonus = -20;
 	}
 	return bonus + 30 + C.STATS[VIT] * 10;
 }

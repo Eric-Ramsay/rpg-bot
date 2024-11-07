@@ -22,7 +22,7 @@ function ListCommands(index) {
 		msg += "*GREEN*!suicide *GREY*- Kills you.\n";
 		msg += "*CYAN*!classes *GREY*- Lists the available classes.\n";
 		msg += "*GREEN*!haircut DESCRIPTION *GREY*- You must be in the barbershop, allows you to set a description.\n";
-		msg += "*CYAN*!fish *GREY*- You must be at a location with fish, with a fishing pole equipped.\n";
+		msg += "*CYAN*!fish *GREY*- You must be at a location with fish, with a fishing pole equipped. Fish can be eaten.\n";
 		msg += "*GREEN*!retire *GREY*- Retire your character to the guild hall. They can be played later.\n";
 		msg += "*CYAN*!play as NAME*GREY* - Play as any retired character.\n";
 		msg += "*GREEN*!order [Item Name or Index] *GREY*- Moves an item to the bottom of your inventory.\n";
@@ -38,9 +38,10 @@ function ListCommands(index) {
 		msg += "*CYAN*!end *GREY*- Ends your turn.\n\n";
 		msg += "*GREEN*!move LEFT/RIGHT *GREY*- Moves left or right a row. Costs 3 AP.\n\n";
 		msg += "*CYAN*!drink POTION *GREY*- Drinks a potion.\n\n";
-		msg += "*GREEN*!effects *GREY*- Lists effects on you.\n\n";
-		msg += "*CYAN*!guard TARGET *GREY*- Costs 6 AP per turn. Guard a target on your row; redirecting damage they would taket to yourself.\n\n";
-		msg += "*GREEN*!brace *GREY*- Costs 3 AP. You brace yourself, giving yourself a 50% chance to dodge the next damage that comes your way.\n\n";
+		msg += "*GREEN*!eat POTION *GREY*- Eats a fish.\n\n";
+		msg += "*CYAN*!effects *GREY*- Lists effects on you.\n\n";
+		msg += "*GREEN*!guard TARGET *GREY*- Costs 6 AP per turn. Guard a target on your row; redirecting damage they would taket to yourself.\n\n";
+		msg += "*CYAN*!brace *GREY*- Costs 3 AP. You brace yourself, giving yourself a 50% chance to dodge the next damage that comes your way.\n\n";
 	}
 
 	return msg;
@@ -197,6 +198,9 @@ function CommandDelve(C) {
 	}
 	C.AP = MaxAP(C);
 	C.ROW = 0;
+	if (C.ROW_PREFERENCE) {
+		C.ROW = C.ROW_PREFERENCE;
+	}
 	C.ENDED = false;
 	msg += RoomDescription(C);
 
@@ -437,7 +441,7 @@ function CommandGuard(words, C, battleIndex) {
 		}
 	}
 	AddEffect(C, "guarding", 999, null, battle.allies[index]);
-	msg += "*CYAN*You begin guarding your ally, " + Name(battle.allies[index]) + ".\n";
+	msg += "*CYAN*You guard your ally, " + Name(battle.allies[index]) + ".\n";
 	return msg;
 }
 
@@ -972,10 +976,10 @@ function CommandDrink(words, C) {
 		return "*RED*Can't find item '" + args + "'";
 	}
 	if (hasEffect(C, "parched")) {
-		return "*RED*You can't drink anything!\n";
+		return "*RED*You can't eat drink anything!\n";
 	}
-	if (C.INVENTORY[invIndex].type != "potion" && C.INVENTORY[invIndex].type != "drink") {
-		return "*RED*You can't drink that.";
+	if (C.INVENTORY[invIndex].type != "fish" && C.INVENTORY[invIndex].type != "potion" && C.INVENTORY[invIndex].type != "drink") {
+		return "*RED*You can't eat or drink that.";
 	}
 	let name = C.INVENTORY[invIndex].name.toLowerCase();
 	if (name == "health potion") {
@@ -990,13 +994,25 @@ function CommandDrink(words, C) {
 		msg += AddEffect(C, "enraged", 2);
 		msg += AddEffect(C, "vulnerable", 2);
 	}
+	if (C.INVENTORY[invIndex].type == "fish") {
+		let ran = rand(40);
+		if (ran == 0) {
+			msg = "*RED*Disgusting! You feel something writhing in your mouth and see the fish was full of worms!\n";
+			msg += AddEffect(targets[index], "Infested", 999, null, 3);
+		}
+		else {
+			let dialogue = ["Delicious!", "Delectable!", "Scrumptious!", "Sumptuous!", "Delightful!"];
+			msg += dialogue[rand(dialogue.length)] + " ";
+			msg += Heal(C, C.INVENTORY[invIndex].value);
+		}
+	}
 	if (name == "warp potion") {
 		let spot = rand(locations.length);
 		C.LOCATION = locations[spot].id;
 		let index = BattleIndex(C.ID);
 		if (index > -1) {
 			if (battles[index].level == 4) {
-				return "*RED*You drink the potion, but it has no effect!\n";
+				msg = "*RED*You drink the potion, but it has no effect!\n";
 			}
 			let battle = battles[index];
 			for (let a = battle.allies.length - 1; a >= 0; a--) {
@@ -1188,6 +1204,9 @@ function CommandSell(words, C) {
 	}
 
 	let gold = C.INVENTORY[invIndex].value;
+	if (C.INVENTORY[invIndex].type == "fish") {
+		gold = 0;
+	}
 	if (C.INVENTORY[invIndex].type == "weapon" || C.INVENTORY[invIndex].type == "armor" || C.INVENTORY[invIndex].type == "staff") {
 		for (let i = 0; i < C.INVENTORY[invIndex].runes.length; i++) {
 			gold += C.INVENTORY[invIndex].runes[i].value;
@@ -1402,7 +1421,7 @@ function CommandEnchant(words, C) {
 		}
 		let rune = C.INVENTORY[r];
 		let item = C.INVENTORY[i];
-		if (rune.type != "rune" || rune.target != item.type) {
+		if (rune.type != "rune" || (rune.target != item.type && rune.target != "any")) {
 			return "*RED*Invalid Enchantment.\n";
 		}
 		if (item.runes.length >= maxRunes(item)) {
@@ -1458,11 +1477,18 @@ function CommandEnchant(words, C) {
 
 function CommandFish(C, message) {
 	let msg = "";
+	if (C.INVENTORY.length >= 5 && !(C.BACKPACK || C.INVENTORY.LENGTH >= 15)) {
+		return "*RED*You need to clear up some inventory space to be able to fish.\n";
+	}
 	let event = data[message.author.id].CATCH;
-	if (event) {
-		if (event.valid) {
-			return "*RED*You're already fishing!\n";
-		}
+	if (C.FISH.length >= numFish && C.FISH_REWARDS.indexOf("Tackle Box") == -1) {
+		C.FISH_REWARDS.push("Tackle Box");
+		C.INVENTORY.push(new Rune("Tackle Box", 200, "any", "Gain +3 Rune Slots. You can enchant any item with this."));
+		data[message.author.id].CATCH.valid = false;
+		return "*CYAN*Congratulations! You've caught every fish! A runic reward has been added into your inventory. . .\n\n";
+	}
+	if (event && event.valid) {
+		return "*RED*You're already fishing!\n";
 	}
 	let location = findLocation(C.LOCATION);
 	let poleTier = GetPoleTier(C);
@@ -1540,16 +1566,13 @@ function CommandReel(C, message) {
 		let delay = 3 + rand(10 - poleTier);
 		let date = new Date();
 		let seconds = (date.getTime() - startDate.getTime()) / 1000;
-		let threshold = 1.75 + .5 * rand(3);
-		/*if (message.author.id == "388524907450990603") {
-			threshold += .5;
-		}*/
+		let threshold = 2 + .5 * rand(3);
 		if (seconds > 0 && seconds < threshold) {
 			if (data[message.author.id].CATCH.caught) {
 				data[message.author.id].CATCH.valid = false;
 				let fish = event.fish;
 				msg += "*GREEN*You caught a fish! *GREY*It's " + an(fish.name) + " *YELLOW*" + fish.name + "*GREY*!\n";
-				if (fish.value > poleTier * 8) {
+				if (fish.value * 4 > poleTier * 8) {
 					if (8 - (2 * poleTier) > rand(14)) {
 						return "*RED*Your line breaks! The " + fish.name + " gets away!\n";
 					}
@@ -1558,7 +1581,32 @@ function CommandReel(C, message) {
 				if (!CanTake(C, fish)) {
 					return "*RED*You don't have room in your inventory for the fish! It gets away!\n";
 				}
-				C.INVENTORY.push(fish);
+				let fishing_drops = ["Coral Axe", "Swordfish Spear", "Eel Shield", "Fishnet Stockings", "Haunted Hookscale", "Drowned Armor", "Anchor Armor", "Coral Staff"];
+				let newDrops = [];
+				for (let i = 0; i < fishing_drops.length; i++) {
+					if (C.FISH_REWARDS.indexOf(fishing_drops[i]) == -1) {
+						newDrops.push(fishing_drops[i]);
+					}
+				}
+				fishing_drops = newDrops;
+				console.log(fishing_drops);
+				let ranDrop = rand(15);
+				console.log(fishing_drops.length);
+				console.log(ranDrop);
+				if (!C.FISH.includes(fish.name)) {
+					C.FISH.push(fish.name);
+					msg += "*CYAN*You've never caught this type of fish before! There are " + (numFish - C.FISH.length) + " more types of fish to catch!\n";
+				}
+				if (fishing_drops.length > 0 && ranDrop == 0) {
+					let reward = startItem(fishing_drops[rand(fishing_drops.length)]);
+					console.log(reward);
+					msg += "*YELLOW*Wait, there's something else on the line. . . The fish gets away, but you found " + reward.name + "!\n";
+					C.FISH_REWARDS.push(reward.name);
+					C.INVENTORY.push(reward);
+				}
+				else {
+					C.INVENTORY.push(fish);
+				}
 			}
 			else {
 				msg += "*GREEN*You reel your line in a little. Wait for the next bite!\n";

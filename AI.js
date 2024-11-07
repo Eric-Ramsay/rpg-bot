@@ -467,12 +467,12 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				ran = rand(2);
 				if (ran == 0) {
 					msg += "*CYAN*" + Prettify(Name(enemy)) + " stabs " + Name(targets[index]) + "!\n";
-					msg += DealDamage(new M_Attack(12 + rand(9), 50), allies, enemy, targets, targets[index])[0];
+					msg += DealDamage(new P_Attack(12 + rand(9), 90, 50), allies, enemy, targets, targets[index])[0];
 				}
 				else {
 					msg += "*CYAN*" + Prettify(Name(enemy)) + " slashes " + Name(targets[index]) + "!\n";
 					for (let i = 0; i < 2; i++) {
-						msg += DealDamage(new M_Attack(8 + rand(7), 30), allies, enemy, targets, targets[index])[0];
+						msg += DealDamage(new P_Attack(8 + rand(7), 90, 30), allies, enemy, targets, targets[index])[0];
 					}
 				}
 			}

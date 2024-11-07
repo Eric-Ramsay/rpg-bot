@@ -14,7 +14,7 @@ Enemy Ideas
 
 Rune Ideas
 ==========
-
+Death Mark should be a debuff rather than a proc
 
 
 Other Ideas
