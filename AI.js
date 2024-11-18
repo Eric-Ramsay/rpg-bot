@@ -210,7 +210,7 @@ function moveAttack(enemies, enemy, targets, attack, type = "random") {
 	return [msg, target]
 }
 
-function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
+function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets = []) {
 	let enemy = allies[enemyIndex];
 	//console.log("Attacking: " + Name(enemy));
 	let msg = "";
@@ -247,7 +247,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				msg += AddEffect(enemy, "disorganized", 999);
 			}
 		}
-		if (enemy.TYPE != "boss" && hasEffect(enemy, "terrified")) {
+		if (enemy.TYPE != "boss" && hasEffect(enemy, "terrified") && enemy.MOVES > 0) {
 			if (enemy.ROW == 4) {
 				msg += "*PINK*" + Prettify(Name(enemy)) + " flees the battle!\n";
 				allies.splice(enemyIndex, 1);
@@ -338,6 +338,169 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					}
 				}
 			}
+		}
+		else if (enemy.NAME == "Mechanical Gunman") {
+			if (enemy.PHASE % 2 == 0) {
+				let playerIndices = [];
+				for (let i = 0; i < targets.length; i++) {
+					if (targets[i].TYPE == "player") {
+						playerIndices.push(i);
+					}
+				}
+				let index = 0;
+				if (playerIndices.length > 0) {
+					index = playerIndices[rand(playerIndices.length)];
+				}
+				else {
+					index = findVictim(enemy.ROW, targets, 6, "strongest");
+				}
+				if (index > -1) {
+					msg += "*PINK*The Mechanical Gunman aims and fires!\n";
+					msg += DealDamage(new P_Attack(40 + rand(21), 75, 50), allies, enemy, targets, targets[index])[0];
+				}
+			}
+			else {
+				msg += "*PINK*The Mechanical Gunman reloads . . .\n";
+			}
+			enemy.PHASE++;
+		}
+		else if (enemy.NAME == "Mechanical Guardsman") {
+			let masterFound = false;
+			if (enemy.PHASE == 0) {
+				for (let i = 0; i < allies.length; i++) {
+					if (allies[i].NAME == "Grand Architect") {
+						if (enemy.ROW == allies[i].ROW) {
+							msg += AddEffect(enemy, "guarding", 999, null, allies[i]);
+						}
+						else {
+							msg += moveToRow(enemy, allies[i].ROW);
+						}
+						masterFound = true;
+						break;
+					}
+				}
+				if (!masterFound) {
+					enemy.PHASE++;
+				}
+				else {
+				let indexOne = findVictim(enemy.ROW, targets, 1);
+					if (indexOne > -1) {
+						msg += "*PINK*The Mechanical Guardsman slams into " + Name(targets[indexOne]) + " with their shield!\n";
+						let result = DealDamage(new P_Attack(14 + rand(7), 100, 50), allies, enemy, targets, targets[indexOne]);
+						msg += result[0];
+						if (result[1] > 0) {
+							for (let i = 0; i < 3; i++) {
+								msg += PushTarget(enemy, targets[indexOne]);
+							}
+						}
+					}
+				}
+			}
+			if (enemy.PHASE == 1) {
+				msg += "*RED*The Mechanical Guardsman drops their shield, and draws a massive axe.\n";
+				enemy.PHASE++;
+			}
+			if (enemy.PHASE == 2) {
+				let indexOne = findVictim(enemy.ROW, targets, 1);
+				let indexThree = findVictim(enemy.ROW, targets, 3);
+				if (indexOne > -1) {
+					msg += "*PINK*The Mechanical Guardsman unleashes a flurry of powerful slashes!\n";
+					for (let i = 0; i < 3; i++) {
+						msg += DealDamage(new P_Attack(17 + rand(6), 85, 30), allies, enemy, targets, targets[indexOne]);
+					}
+				}
+				else if (indexOne > -1) {
+					msg += "*PINK*The Mechanical Guardsman rushes forward!\n";
+					msg += moveToRow(enemy, targets[indexThree].ROW);
+					if (enemy.ROW == targets[indexThree.ROW]) {
+						msg += "*PINK*The Mechanical Guardsman hacks brutally at " + Name(targets[indexThree]) + "!\n";
+						let result = DealDamage(new P_Attack(17 + rand(6), 85, 30), allies, enemy, targets, targets[indexThree]);
+						msg += result[0];
+						if (result[1] > 0) {
+							msg += AddEffect(targets[indexThree], "bleed");
+						}
+					}
+				}
+			}
+		}
+		else if (enemy.NAME == "Warding Shield") {
+			/*let allyConstructs = ["Mechanical Gunman", "Mechanical Guardsman", "Grand Architect", "Wandering Moon"]
+			msg += "*CYAN*The Warding Shield guards the constructions sheltering behind it!\n";
+			for (let i = 0; i < allies.length; i++) {
+				if (allyConstructs.includes(allies[i].NAME)) {
+					if (enemy.ROW == allies[i].ROW) {
+						 AddEffect(enemy, "guarding", 999, null, allies[i]);
+					}
+				}
+			}*/
+		}
+		else if (enemy.NAME == "Grand Architect") {
+			let wallRow = enemy.ROW;
+			for (let i = 0; i < allies.length; i++) {
+				if (allies[i].NAME == "Warding Shield" && allies[i].ROW != enemy.ROW) {
+					msg += moveToRow(enemy, allies[i].ROW);
+				}
+			}
+			let ran = rand(5);
+			let lines = [
+				"*CYAN*Grand Architect*GREY*: Disgusting Flesh Creatures. Leave my sight and I might spare you.\n",
+				"*CYAN*Grand Architect*GREY*: Go forth, my creations.\n",
+				"*CYAN*Grand Architect*GREY*: Fools. I will integrate your designs.\n",
+				"*CYAN*Grand Architect*GREY*: Cower you wretched things!\n",
+			];
+			if (enemy.PHASE % 2 == 0 && enemy.PHASE/2 < lines.length) {
+				msg += lines[enemy.PHASE/2];
+			}
+			if (enemy.PHASE < 3) {
+				msg += "*PINK*The Grand Architect constructs a Mechanical Gunman!\n";
+				allies.push(summon("Mechanical Gunman", enemy.ROW));
+			}
+			else if (enemy.PHASE == 3) {
+				msg += "*PINK*The Grand Architect deploys a swarm of Wandering Moons!\n";
+				for (let i = 0; i < 4; i++) {
+					allies.push(summon("Wandering Moon", 0));
+				}
+			}
+			else {
+				let numConstructs = 0;
+				for (let i = 0; i < allies.length; i++) {
+					if (allies[i].TYPE == "construction") {
+						numConstructs++;
+					}
+				}
+				let ran = rand(3);
+				if (numConstructs < 2) {
+					ran = 1;
+				}
+				if (ran == 0) {
+					msg += "*CYAN*The Grand Architect supercharges its constructs!\n";
+					for (let i = 0; i < allies.length; i++) {
+						if (allies[i].TYPE == "construction" && allies[i].NAME != "Grand Architect") {
+							Heal(allies[i], 50);
+							if (allies[i].NAME == "Warding Shield") {
+								Heal(allies[i], 100);
+								AddEffect(allies[i], "resilient", 1);
+							}
+							else {
+								AddEffect(allies[i], "enraged", 1);
+							}
+						}
+					}
+				}
+				else {
+					msg += "*RED*The Grand Architect unleashes a bolt of lightning from a cannon embedded in its palm!\n";
+					let max = 0;
+					let maxDmg = 0;
+					for (let i = 0; i < targets.length; i++) {
+						if (targets[i].REPORT.damage > maxDmg) {
+							maxDmg = targets[i].REPORT.damage;
+							max = i;
+						}
+					}
+					msg += DealDamage(new M_Attack(40 + rand(21), 20), allies, enemy, targets, targets[max])[0];
+				}
+			}
+			enemy.PHASE++;
 		}
 		else if (enemy.NAME == "Hungry Ghoul") {
 			let ran = 0;
@@ -533,18 +696,14 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			else {
 				let index = rand(targets.length);
 				msg += "*PINK*" + Prettify(Name(enemy)) + " charges!\n";
-				let startRow = enemy.ROW;
 				msg += moveToRow(enemy, targets[index].ROW);
 				if (enemy.ROW == targets[index].ROW) {
 					let result = DealDamage(new P_Attack(14 + rand(7), 100, 50), allies, enemy, targets, targets[index]);
 					msg += result[0];
 					if (result[1] > 0) {
-						let tempRow = enemy.ROW;
-						enemy.ROW = startRow;
 						for (let i = 0; i < 5; i++) {
 							msg += PushTarget(enemy, targets[index]);
 						}
-						enemy.ROW = tempRow;
 					}
 				}
 			}
@@ -561,6 +720,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					if (enemy.PHASE == 0) {
 						msg += AddEffect(enemy, "resilient", 5);
 					}
+					msg += Heal(enemy, 77);
 				}
 				else {
 					msg += "*PINK*" + Prettify(Name(enemy)) + " swings its blade, and the ground sinks beneath the unrighteous!\n";
@@ -596,7 +756,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				for (let i = 0; i < ran; i++) {
 					let index = rand(targets.length);
 					if (targets[index].HP > 0) {
-						msg += DealDamage(new M_Attack(8 + rand(9), 50), allies, enemy, targets, targets[index])[0];
+						msg += DealDamage(new M_Attack(8 + rand(13), 50), allies, enemy, targets, targets[index])[0];
 						msg += AddEffect(targets[index], "Blinded", 1, enemy);
 					}
 				}
@@ -610,7 +770,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					msg += "*PINK*" + Prettify(Name(enemy)) + " unleashes a sweeping blow!\n";
 					for (let i = 0; i < targets.length; i++) {
 						if (targets[i].ROW == enemy.ROW) {
-							msg += DealDamage(new P_Attack(8 + rand(9), 100, 25), allies, enemy, targets, targets[i])[0];
+							msg += DealDamage(new P_Attack(16 + rand(7), 100, 25), allies, enemy, targets, targets[i])[0];
 						}
 					}
 				}
@@ -1141,7 +1301,11 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				msg += Heal(enemy, HPSteal);
 			}
 			else {
-				msg += moveAttack(allies, enemy, targets, new Attack("strikes", 8 + rand(9), 90, 0, 3, 1, 30), "strong")[0];
+				/*function P_Move(damage, hitChance, pen, verb, range = 1, number = 1){
+					return new Attack(verb, damage, hitChance, 0, number, range, pen);
+				}
+				*/
+				msg += moveAttack(allies, enemy, targets, new P_Move(12 + rand(9), 30, "stabs", 1, 3), "strong")[0];
 			}
 		}
 		else if (enemy.NAME == "Mossy Statue") {
@@ -1291,7 +1455,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					ran = rand(2);
 				}
 				if (ran == 0 || numCultists == 0) {
-					msg += moveAttack(allies, enemy, targets, new Attack("stabs", 12 + rand(11), 85, 0, 2))[0];
+					msg += moveAttack(allies, enemy, targets, new Attack("stabs", 12 + (5 * enemy.PHASE) + rand(11), 85, 0, 2))[0];
 				}
 				else if (ran == 1) {
 					msg += "*PINK*" + Prettify(Name(enemy)) + " inspires his Cult!\n";
@@ -1306,12 +1470,13 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 					for (let i = 0; i < allies.length; i++) {
 						if (allies[i].NAME == "Cultist") {
 							allies[i].HP = 0;
-							msg += Heal(enemy, 10, true);
+							msg += Heal(enemy, 25, true);
+							enemy.PHASE++;
 						}
 					}
 				}
 			}
-			msg += moveAttack(allies, enemy, targets, new Attack("shanks", 4 + rand(5), 85, 0, 4))[0];
+			msg += moveAttack(allies, enemy, targets, new Attack("shanks", 4 + (2 * enemy.PHASE) + rand(5), 85, 0, 4))[0];
 		}
 		else if (enemy.NAME == "Fumous Fiend") {
 			let ran = rand(3);
@@ -1385,8 +1550,9 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 				let result = DealDamage(new P_Attack(12 + rand(11), 90), allies, enemy, targets, targets[indexThree]);
 				msg += result[0];
 				if (result[1] > 0) {
-					msg += AddEffect(targets[indexThree], "slowed", 3, enemy);
-					msg += AddEffect(targets[indexThree], "weakened", 3, enemy);
+					msg += AddEffect(targets[indexThree], "coated in honey", 1, enemy);
+					msg += AddEffect(targets[indexThree], "slowed", 1, enemy);
+					msg += AddEffect(targets[indexThree], "weakened", 1, enemy);
 				}
 			}
 			else {
@@ -1781,7 +1947,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			}
 		}
 		else if (enemy.NAME == "Slugbeast") {
-			msg += moveAttack(allies, enemy, targets, new Attack("chomps", 16 + rand(11), 20, 1), "strong")[0];
+			msg += moveAttack(allies, enemy, targets, new Attack("chomps", 22 + rand(11), 33, 1), "strong")[0];
 			for (let i = 0; i < targets.length; i++) {
 				if (targets[i].ROW == enemy.ROW) {
 					msg += "*PINK*" + Prettify(Name(targets[i])) + " is slowed by the Slugbeasts's slime!\n";
@@ -2480,11 +2646,11 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies, deadTargets) {
 			let ran = rand(3);
 			if (indexOne > -1) {
 				msg += "*PINK*" + Prettify(Name(enemy)) + " bites " + Name(targets[indexOne]) + "!\n";
-				msg += DealDamage(new P_Attack(16 + rand(9), 80, 35), allies, enemy, targets, targets[indexOne])[0];
+				msg += DealDamage(new P_Attack(16 + rand(11), 80, 35), allies, enemy, targets, targets[indexOne])[0];
 			}
 			else if (indexThree > -1 && ran != 0) {
 				msg += "*PINK*" + Prettify(Name(enemy)) + " spits acid at " + Name(targets[indexThree]) + "!\n";
-				msg += DealDamage(new P_Attack(6 + rand(5), 75, 100), allies, enemy, targets, targets[indexThree])[0];
+				msg += DealDamage(new P_Attack(9 + rand(7), 75, 100), allies, enemy, targets, targets[indexThree])[0];
 			}
 			else {
 				msg += moveInRange(enemy, targets, 1);

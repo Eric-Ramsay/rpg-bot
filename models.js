@@ -9,8 +9,9 @@ function Report() {
 function DialogueHandler() {
 	this.RELATIONS = [];
 	this.EVENTS = [];
-	this.EVENT = null;
-	this.STEP = null;
+	this.EVENT = "";
+	this.STEP = "";
+	this.ACTIVE = false;
 }
 
 function Character() {
@@ -57,12 +58,17 @@ function Character() {
 	this.CURSED = false;
 	
 	this.RETIRED = false;
-	this.DIALOGUE = new DialogueHandler();
+	
+	this.EVENTS = [];
+	this.EVENT = null;
 	
 	this.FISH = [];
 	this.FISH_REWARDS = [];
 	
 	this.ROW_PREFERENCE = 0;
+	
+	this.DIED = false;
+	this.TARGET_ID = "";
 }
 
 function Effect(name, type, description, stackable = false) {
@@ -91,14 +97,15 @@ function Battle(parent) {
 	this.parent = parent;
 }
 
-function Item(name, type, value, description, canDrop = true) {
+function Item(name, type, value, description, rare = false) {
 	this.name = name;
+	this.displayName = name;
 	this.type = type;
 	this.value = value;
 	this.equipped = false;
 	this.runes = [];
 	this.description = description;
-	this.canDrop = canDrop;
+	this.rare = rare;
 }
 
 function NPC(name, merch, desc) {
@@ -132,13 +139,14 @@ function Building(id, description) {
 	this.prosperity = 0;
 }
 
-function Weapon(name, weaponType, description, hands, attacks, value, chance, min, max, pen, AP, range, canDrop = true) {
+function Weapon(name, weaponType, description, hands, attacks, value, chance, min, max, pen, AP, range, rare = false) {
 	this.type = "weapon";
 	this.subclass = weaponType;
 	this.description = description;
 	this.effect = "";
 	this.runes = [];
 	this.name = name;
+	this.displayName = name;
 	this.hands = hands;	
 	this.value = value;
 	this.attacks = [attacks, attacks];
@@ -149,7 +157,7 @@ function Weapon(name, weaponType, description, hands, attacks, value, chance, mi
 	this.AP = AP;
 	this.range = range;
 	this.equipped = false;
-	this.canDrop = canDrop;
+	this.rare = rare;
 }
 
 function createQuest(){
@@ -256,35 +264,36 @@ function Attack(verb, damage, hitChance, type = 0, number = 1, range = 1, pen = 
 	this.pen = pen;
 }
 
-function Armor(name, physical, magical, AP, value, description, canDrop = true) {
+function Armor(name, physical, magical, AP, value, description, rare = false) {
 	this.type = "armor";
 	this.effect = "";
 	this.name = name;
+	this.displayName = name;
 	this.armor = [physical, magical];
 	this.AP = AP;
 	this.value = value;
 	this.runes = [];
 	this.equipped = false;
 	this.description = description;
-	this.canDrop = canDrop;
+	this.rare = rare;
 }
 
-function FishEvent(fish, date, location, caught = false) {
+function FishEvent(fish, date, location) {
 	this.fish = fish;
+	this.reels = 3;
 	this.date = date;
-	this.caught = caught;
 	this.valid = true;
 	this.location = location;
 }
 
-function Rune(name, value, target, description, canDrop = true) {
+function Rune(name, value, target, description, rare = false) {
 	this.value = value;
 	this.type = "rune";
 	this.target = target;
 	this.name = name;
 	this.description = description;
 	this.equipped = false;
-	this.canDrop = canDrop;
+	this.rare = rare;
 }
 
 function Spell(name, school, description, AP, HP = 0, range = 6, numEnemies = 0, numRows = 0, numAllies = 0) {

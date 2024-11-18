@@ -28,6 +28,8 @@ function ListCommands(index) {
 		msg += "*GREEN*!order [Item Name or Index] *GREY*- Moves an item to the bottom of your inventory.\n";
 		msg += "*CYAN*!forget [Spell name or Index] *GREY*- Removes a spell from your list of known spells.\n";
 		msg += "*GREEN*!name [Name] *GREY*- Renames your character.\n";
+		msg += "*CYAN*!enchant [ITEM] with [RUNE]\n";
+		msg += "*GREEN*!disenchant [RUNE] from [ITEM]\n";
 	}
 	else {
 		msg += "*GREEN*!cast SPELL on TARGET *GREY*- Casts a spell.\n\n";
@@ -41,7 +43,7 @@ function ListCommands(index) {
 		msg += "*GREEN*!eat POTION *GREY*- Eats a fish.\n\n";
 		msg += "*CYAN*!effects *GREY*- Lists effects on you.\n\n";
 		msg += "*GREEN*!guard TARGET *GREY*- Costs 6 AP per turn. Guard a target on your row; redirecting damage they would taket to yourself.\n\n";
-		msg += "*CYAN*!brace *GREY*- Costs 3 AP. You brace yourself, giving yourself a 50% chance to dodge the next damage that comes your way.\n\n";
+		msg += "*CYAN*!brace *GREY*- Costs 6 Stamina. You brace yourself, giving yourself a 50% chance to dodge the next damage that comes your way.\n\n";
 	}
 
 	return msg;
@@ -168,7 +170,7 @@ function CommandStats(C) {
 	msg += "*RED*DEX *GREY*- Dexterity. Every point provides +3 AP per turn.\n";
 	msg += "*BLUE*MAG *GREY*- Magic. Every point lets you learn +2 spells and cast +1 spell.\n";
 	msg += "*RED*WEP *GREY*- Weapons Handling. Every point provides +1 Max Weapon Damage & +5% Base Weapon Damage.\n";
-	msg += "*BLUE*AVD *GREY*- Avoidance. Every point gives +10% chance to flee and +10% chance to dodge.\n";
+	msg += "*BLUE*AVD *GREY*- Avoidance. Every point gives +5% chance to flee, +5% chance to dodge, and +1 AP/turn. Caps at 10.\n";
 	return msg;
 }
 
@@ -462,7 +464,6 @@ function CommandAttack(words, C, battleIndex) {
 	}
 	let weapons = [null, null];
 	let indices = [C.LEFT, C.RIGHT];
-	console.log(indices);
 	if (C.LEFT > -1 && C.LEFT < C.INVENTORY.length) {
 		weapons[0] = C.INVENTORY[C.LEFT];
 	}
@@ -521,19 +522,28 @@ function CommandAttack(words, C, battleIndex) {
 			}
 		}
 	}
+	
+	if (weapons[weapon].type != "weapon") {
+		return "*RED*You can't attack with this item!\n";	
+	}
+	
 	let range = Math.abs(battle.enemies[index].ROW - C.ROW);
 	if (C.AP < weapons[weapon].AP || weapons[weapon].attacks[0] <= 0 || range >= weapons[weapon].range) {
 		weapon = 1 - weapon;
 	}
-	if (C.AP < weapons[weapon].AP) {
+	if (C.AP < w_AP(C, weapons[weapon])) {
 		return "*RED*You don't have enough AP to use your weapon.\n";
 	}
 	if (weapons[weapon].attacks[0] <= 0) {
 		return "*RED*Your weapon is out of attacks.\n";
 	}
-	if (range >= weapons[weapon].range) {
+	if (range >= w_range(C, weapons[weapon])) {
 		return "*RED*That enemy is too far away to attack.\n";
 	}
+	if (C.CLASS == "duelist" && C.TARGET_ID != "" && C.TARGET_ID != battle.enemies[index].ID) {
+		return "*RED*As a duelist, you can only attack one specific enemy each turn!\n";
+	}
+	C.TARGET_ID = battle.enemies[index].ID;
 	
 	msg = AllyAttack(battle, C, index, indices[weapon]);
 	msg += HandleCombat(battle);
@@ -799,7 +809,7 @@ function CommandFlee(C, index) {
 	}
 	C.FLED = true;
 	let ran = rand(10);
-	if (!firstTurn && ran >= 5 + C.STATS[AVD]) {
+	if (!firstTurn && ran >= 5 + .5 * C.STATS[AVD]) {
 		return "*RED*You fail to flee!\n";
 	}
 	let battle = battles[index];
@@ -878,16 +888,31 @@ function CommandCharacter(words, C, authorId) {
 	}
 	else {
 		C.GOLD = 25;
+		if (C.CLASS == "monk") {
+			C.GOLD = 0;
+			C.STATS[VIT] += 2;
+			C.INVENTORY.push(startItem("quarterstaff"));
+			C.INVENTORY.push(startItem("plain cassock"));
+		}
+		if (C.CLASS == "merchant") {
+			C.BACKPACK = true;
+			C.GOLD = 50;
+			C.STATS[END] += 1;
+			C.STATS[AVD] += 1;
+		}
+		if (C.CLASS == "duelist") {
+			C.GOLD = 15;
+			C.STATS[WEP] += 2;
+			C.STATS[DEX] += 1;
+			C.INVENTORY.push(startItem("scimitar"));
+			C.INVENTORY.push(startItem("buckler"));
+		}
 		if (C.CLASS == "rogue") {
 			C.GOLD = 40;
 			C.STATS[AVD] += 2;
 			C.INVENTORY.push(startItem("dagger"));
 			C.INVENTORY.push(startItem("dagger"));
 			C.INVENTORY.push(startItem("plain cloak"));
-			for (let i = 0; i < C.INVENTORY.length; i++) {
-				let msg = Equip(C, i);
-				//console.log(msg);
-			}
 		}
 		if (C.CLASS == "warrior") {
 			C.STATS[VIT]++;
@@ -895,66 +920,39 @@ function CommandCharacter(words, C, authorId) {
 			C.INVENTORY.push(startItem("hatchet"));
 			C.INVENTORY.push(startItem("buckler"));
 			C.INVENTORY.push(startItem("leather cuirass"));
-			
-			for (let i = 0; i < C.INVENTORY.length; i++) {
-				Equip(C, i);
-			}
 		}
 		if (C.CLASS == "peasant") {
 			C.STATS[END] += 2;
 			C.STATS[VIT] += 2;
 			C.GOLD = 0;
 			C.INVENTORY.push(startItem("club"));
-			for (let i = 0; i < C.INVENTORY.length; i++) {
-				Equip(C, i);
-			}
 		}
 		if (C.CLASS == "noble") {
 			C.GOLD = 100;
 			C.INVENTORY.push(startItem("scimitar"));
 			C.INVENTORY.push(startItem("stylish shirt"));
-			for (let i = 0; i < C.INVENTORY.length; i++) {
-				Equip(C, i);
-			}
 		}
 		if (C.CLASS == "ranger") {
 			C.GOLD = 10;
 			C.STATS[AVD] += 1;
 			C.STATS[WEP] += 1;
-			let ran = rand(4);
-			if (ran == 0) {
-				C.INVENTORY.push(startItem("staff sling"));
-			}
-			else if (ran == 1) {
-				C.INVENTORY.push(startItem("crossbow"));
-			}
-			else if (ran == 2) {
-				C.INVENTORY.push(startItem("longbow"));
-			}
-			else {
-				C.INVENTORY.push(startItem("repeating crossbow"));
-			}
-			for (let i = 0; i < C.INVENTORY.length; i++) {
-				Equip(C, i);
-			}
+			let rangedWeapons = ["staff sling", "crossbow", "longbow", "repeating crossbow"];
+			C.INVENTORY.push(startItem(rangedWeapons[rand(rangedWeapons.length)]));
 		}
 		if (C.CLASS == "sorcerer") {
 			C.GOLD = 15;
 			C.STATS[MAG] += 1;
 			C.INVENTORY.push(startItem("quarterstaff"));
 			C.INVENTORY.push(startItem("plain cloak"));
-			for (let i = 0; i < C.INVENTORY.length; i++) {
-				Equip(C, i);
-			}
 		}
 		if (C.CLASS == "mage") {
 			C.GOLD = 30;
 			C.STATS[MAG] += 2;
 			C.SPELLS.push("Arcane Strike");
 			C.INVENTORY.push(startItem("wand"));
-			for (let i = 0; i < C.INVENTORY.length; i++) {
-				Equip(C, i);
-			}
+		}
+		for (let i = 0; i < C.INVENTORY.length; i++) {
+			Equip(C, i);
 		}
 		C.SP = 4;
 		C.LEVEL = 1;
@@ -1007,22 +1005,13 @@ function CommandDrink(words, C) {
 		}
 	}
 	if (name == "warp potion") {
-		let spot = rand(locations.length);
-		C.LOCATION = locations[spot].id;
-		let index = BattleIndex(C.ID);
-		if (index > -1) {
-			if (battles[index].level == 4) {
-				msg = "*RED*You drink the potion, but it has no effect!\n";
-			}
-			let battle = battles[index];
-			for (let a = battle.allies.length - 1; a >= 0; a--) {
-				if (battle.allies[a].ID == C.ID) {
-					battle.allies.splice(a, 1);
-					break;
-				}
-			}
+		if (battles[index].level == 4) {
+			return "*RED*You drink the potion, but the aura of evil is too strong to escape!\n";
 		}
-		msg = "*GREEN*You drink the bottle and in an instant you've returned to the town!\n\n";
+		
+		let spot = rand(locations.length);
+		Travel(C, spot, BattleIndex(C.ID));
+		msg = "*GREEN*You drink the warp potion and you're whisked away to safety!\n\n";
 		msg += RoomDescription(C);
 		return msg;
 	}
@@ -1109,11 +1098,7 @@ function CommandTalk(words, C) {
 	if (!NPC) {
 		return "*RED*Can't find '" + args + "'\n";
 	}
-	console.log(dialogues);
 	for (const dialogue of dialogues) {
-		console.log("Checking Dialogue");
-		console.log(dialogue);
-		console.log(NPC.NAME);
 		if (dialogue.speaker == NPC.NAME) {
 			if (dialogue.condition(C)) {
 				let msg = dialogue.init(C);
@@ -1207,12 +1192,12 @@ function CommandSell(words, C) {
 	if (C.INVENTORY[invIndex].type == "fish") {
 		gold = 0;
 	}
-	if (C.INVENTORY[invIndex].type == "weapon" || C.INVENTORY[invIndex].type == "armor" || C.INVENTORY[invIndex].type == "staff") {
-		for (let i = 0; i < C.INVENTORY[invIndex].runes.length; i++) {
-			gold += C.INVENTORY[invIndex].runes[i].value;
-		}
+	if (C.CLASS == "merchant") {
+		gold = Math.ceil(gold * .75);
 	}
-	gold = Math.ceil(gold/2);
+	else {
+		gold = Math.ceil(gold/2);
+	}
 	C.GOLD += gold;
 	C.REPORT.gold += gold;
 	let itemName = C.INVENTORY[invIndex].name;
@@ -1298,7 +1283,6 @@ function CommandLearn(words, C) {
 			}
 		}
 	}
-	console.log(spellList);
 	for (let i = 0; i < spellList.length; i++) {
 		if (spellList[i].toLowerCase() == args) {
 			C.SPELLS.push(spellList[i]);
@@ -1403,6 +1387,42 @@ function CommandSpells(C) {
 	return msg + DrawSpells(C, C.SPELLS);
 }
 
+function CommandDisenchant(words, C) {
+	let msg = "";
+	let args = words.slice(1, words.length);
+	let split = args.join(" ").split(" from ");
+	if (split.length == 2) {
+		let i = findItem(C.INVENTORY, split[1]);
+		if (i == -1) {
+			return "*RED*Couldn't find item '" + split[1] + "'!\n";
+		}
+		let item = C.INVENTORY[i];
+		if (item.runes) {
+			for (let i = 0; i < item.runes.length; i++) {
+				if (item.runes[i].toLowerCase() == split[0].toLowerCase()) {
+					if (item.runes[i] == "Tackle Box") {
+						return "*RED*You can't remove this rune!\n";
+					}
+					else {
+						for (let i = 0; i < item.runes.length; i++) {
+							if (item.runes[i].toLowerCase() == split[0]) {
+								msg = "*CYAN*The glow of the *PINK*" + item.runes[i] + " Rune*CYAN* fades away to nothingness. . .\n";
+								item.runes.splice(i, 1);
+								return msg;
+							}
+						}
+					}
+				}
+			}
+		}
+		return "*RED*Couldn't remove that rune!\n";
+	}
+	else {
+		return "*RED*Invalid Enchantment.\n";
+	}
+	return msg;
+}
+
 function CommandEnchant(words, C) {
 	let msg = "";
 	let args = words.slice(1, words.length);
@@ -1424,48 +1444,22 @@ function CommandEnchant(words, C) {
 		if (rune.type != "rune" || (rune.target != item.type && rune.target != "any")) {
 			return "*RED*Invalid Enchantment.\n";
 		}
-		if (item.runes.length >= maxRunes(item)) {
+		if (item.runes.length >= maxRunes(item) && rune.name != "Tackle Box") {
 			return "*RED*This item already has its max enchantments.\n";
 		}
 		if (item.type != "armor" && item.type != "weapon" && item.type != "staff") {
 			return "*RED*This item can not be enchanted!";
 		}
 		for (const usedRune of item.runes) {
-			if (usedRune.name.toLowerCase() == rune.name.toLowerCase()) {
+			if (usedRune.toLowerCase() == rune.name.toLowerCase()) {
 				return "*RED*This item has already been enchanted with that rune.\n";
 			}
 		}
-		if (rune.name.toLowerCase() == "invigorant") {
-			C.INVENTORY[i].attacks[1]++;
+		if (rune.name.toLowerCase() == "reach" && C.INVENTORY[i].range >= 5) {
+			return "*RED*This item's range can not be increased further!\n";
 		}
-		if (rune.name.toLowerCase() == "orisha") {
-			C.INVENTORY[i].pen = Math.min(100, C.INVENTORY[i].pen + 30);
-		}
-		if (rune.name.toLowerCase() == "reach") {
-			if (C.INVENTORY[i].range >= 5) {
-				return "*RED*This item's range can not be increased further!\n";
-			}
-			C.INVENTORY[i].range += 2;
-		}
-		if (rune.name.toLowerCase() == "density") {
-			C.INVENTORY[i].min += 8;
-			C.INVENTORY[i].max += 8;
-			C.INVENTORY[i].AP += 3;
-		}
-		if (rune.name.toLowerCase() == "precise") {
-			C.INVENTORY[i].min += 3;
-			C.INVENTORY[i].max += 3;
-		}
-		if (rune.name.toLowerCase() == "accurate") {
-			C.INVENTORY[i].chance = Math.min(100, C.INVENTORY[i].chance+15);
-			C.INVENTORY[i].min += C.INVENTORY[i].hands;
-			C.INVENTORY[i].max += C.INVENTORY[i].hands;
-		}
-		if (rune.name.toLowerCase() == "impervious") {
-			C.INVENTORY[i].armor[0] += 3;
-			C.INVENTORY[i].armor[1] += 3;
-		}
-		C.INVENTORY[i].runes.push(rune);
+		C.INVENTORY[i].value += rune.value;
+		C.INVENTORY[i].runes.push(rune.name);
 		RemoveItem(C, r);
 		msg = "*GREEN*You enchant the " + item.name + " with the Rune: *BLUE*" + rune.name + "*GREEN*!\n";
 	}
@@ -1477,19 +1471,6 @@ function CommandEnchant(words, C) {
 
 function CommandFish(C, message) {
 	let msg = "";
-	if (C.INVENTORY.length >= 5 && !(C.BACKPACK || C.INVENTORY.LENGTH >= 15)) {
-		return "*RED*You need to clear up some inventory space to be able to fish.\n";
-	}
-	let event = data[message.author.id].CATCH;
-	if (C.FISH.length >= numFish && C.FISH_REWARDS.indexOf("Tackle Box") == -1) {
-		C.FISH_REWARDS.push("Tackle Box");
-		C.INVENTORY.push(new Rune("Tackle Box", 200, "any", "Gain +3 Rune Slots. You can enchant any item with this."));
-		data[message.author.id].CATCH.valid = false;
-		return "*CYAN*Congratulations! You've caught every fish! A runic reward has been added into your inventory. . .\n\n";
-	}
-	if (event && event.valid) {
-		return "*RED*You're already fishing!\n";
-	}
 	let location = findLocation(C.LOCATION);
 	let poleTier = GetPoleTier(C);
 	if (poleTier == 0) {
@@ -1498,85 +1479,31 @@ function CommandFish(C, message) {
 	if (location.fish.length == 0) {
 		return "*RED*You can't fish here!";
 	}
-	msg += "*GREEN*You cast your line far out into the water, hoping that something will bite. . .\n";
-	let delay = ((10 - poleTier) + rand(5) + rand((8 - poleTier) * 2));
-	let date = new Date();
-	date.setSeconds(date.getSeconds() + delay);
-	data[message.author.id].CATCH = new FishEvent(location.fish[rand(location.fish.length)], date, C.LOCATION);
-	if (delay > 12) {
-		let ran = rand(4);
-		let idle = "*YELLOW*The water seems still. . .";
-		if (ran == 0) {
-			idle = "*YELLOW*A cool breeze passes over the water, dipping ripples into its mirrored surface. . .";
-		}
-		if (ran == 1) {
-			idle = "*YELLOW*You start to zone out. . .";
-		}
-		if (ran == 2) {
-			idle = "*YELLOW*You feel at peace. . .";
-		}
-		if (ran == 3) {
-			idle = "*YELLOW*Was that a bite? Nevermind, it was nothing. . .";
-		}
-		setTimeout(() => {
-			if (data[message.author.id].CATCH.valid) {
-				if (C.LOCATION == data[message.author.id].CATCH.location && C.BUILDING == "") {
-					PrintMessage(parseText(idle), message.channel);
-				}
-				else {
-					data[message.author.id].CATCH.valid = false;
-				}
-			}
-		}, 8000 + (rand(5) * 1000));
-	}
-	setTimeout(() => {
-		if (data[message.author.id].CATCH.valid) {
-			let startDate = new Date(data[message.author.id].CATCH.date);
-			let date = new Date();
-			let seconds = (date.getTime() - startDate.getTime()) / 1000;
-			if (seconds >= 0) {
-				if (C.LOCATION == data[message.author.id].CATCH.location && C.BUILDING == "") {
-					PrintMessage(parseText("*GREEN*You feel a bite! *CYAN*Reel!"), message.channel);
-				}
-				else {
-					data[message.author.id].CATCH.valid = false;
-				}
-			}
-		}
-	}, delay * 1000);
-	return msg;
-}
-
-function CommandReel(C, message) {
-	let msg = "";
-	let location = findLocation(C.LOCATION);
-	let poleTier = GetPoleTier(C);
-	if (poleTier == 0) {
-		return "*RED*You need to equip a fishing pole to be able to reel!\n";
-	}
-	if (location.fish.length == 0) {
-		return "*RED*You can't fish here!";
-	}
-	if (!data[message.author.id].CATCH) {
-		return "*RED*Try !fish";
+	if (C.INVENTORY.length >= 5 && !(C.BACKPACK || C.INVENTORY.LENGTH >= 15)) {
+		return "*RED*You need to clear up some inventory space to be able to fish.\n";
 	}
 	let event = data[message.author.id].CATCH;
-	if (event && event.valid && C.BUILDING == "" && C.LOCATION == event.location) {
+	if (C.FISH.length >= numFish && C.FISH_REWARDS.indexOf("Tackle Box") == -1) {
+		data[message.author.id].CATCH = null;
+		C.FISH_REWARDS.push("Tackle Box");
+		C.INVENTORY.push(startItem("Tackle Box"));
+		return "*CYAN*Congratulations! You've caught every fish! A runic reward has been added into your inventory. . .\n\n";
+	}
+	if (event) {
+		if (C.BUILDING != "" || C.LOCATION != event.location) {
+			data[message.author.id].CATCH = null;
+			return "*RED*You can't fish here\n";
+		}
 		let startDate = new Date(data[message.author.id].CATCH.date);
 		let delay = 3 + rand(10 - poleTier);
 		let date = new Date();
 		let seconds = (date.getTime() - startDate.getTime()) / 1000;
 		let threshold = 2 + .5 * rand(3);
 		if (seconds > 0 && seconds < threshold) {
-			if (data[message.author.id].CATCH.caught) {
-				data[message.author.id].CATCH.valid = false;
+			if (data[message.author.id].CATCH.reels <= 0) {
+				data[message.author.id].CATCH = null;
 				let fish = event.fish;
 				msg += "*GREEN*You caught a fish! *GREY*It's " + an(fish.name) + " *YELLOW*" + fish.name + "*GREY*!\n";
-				if (fish.value * 4 > poleTier * 8) {
-					if (8 - (2 * poleTier) > rand(14)) {
-						return "*RED*Your line breaks! The " + fish.name + " gets away!\n";
-					}
-				}
 				msg += ItemDescription(C, fish) + "\n";
 				if (!CanTake(C, fish)) {
 					return "*RED*You don't have room in your inventory for the fish! It gets away!\n";
@@ -1589,10 +1516,7 @@ function CommandReel(C, message) {
 					}
 				}
 				fishing_drops = newDrops;
-				console.log(fishing_drops);
 				let ranDrop = rand(15);
-				console.log(fishing_drops.length);
-				console.log(ranDrop);
 				if (!C.FISH.includes(fish.name)) {
 					C.FISH.push(fish.name);
 					msg += "*CYAN*You've never caught this type of fish before! There are " + (numFish - C.FISH.length) + " more types of fish to catch!\n";
@@ -1611,37 +1535,73 @@ function CommandReel(C, message) {
 			else {
 				msg += "*GREEN*You reel your line in a little. Wait for the next bite!\n";
 				date.setSeconds(date.getSeconds() + delay);
-				let ran = rand(1 + Math.max(0, Math.floor((event.fish.value - 3 * poleTier)/8)));
-				if (ran == 0) {
-					data[message.author.id].CATCH = new FishEvent(event.fish, date, C.LOCATION, true);
-					setTimeout(() => {
-						if (data[message.author.id].CATCH.valid) {
-							PrintMessage(parseText("*GREEN*You've hooked the fish! *CYAN*Reel!"), message.channel);
-						}
-					}, delay * 1000);	
-				}
-				else {
-					data[message.author.id].CATCH = new FishEvent(event.fish, date, C.LOCATION);
-					setTimeout(() => {
-						if (data[message.author.id].CATCH.valid) {
-							PrintMessage(parseText("*GREEN*You feel a bite! *CYAN*Reel!"), message.channel);
-						}
-					}, delay * 1000);	
-				}
+				data[message.author.id].CATCH.date = date;
+				data[message.author.id].CATCH.reels--;
+				setTimeout(() => {
+					if (data[message.author.id].CATCH) {
+						PrintMessage(parseText("*GREEN*You feel a bite! *CYAN*Reel!"), message.channel);
+					}
+				}, delay * 1000);	
 			}
 		}
 		else if (seconds < 0) {
-			data[message.author.id].CATCH.valid = false;
+			data[message.author.id].CATCH = null;
 			return "*RED*Your empty hook rises out of the water, you've reeled your line all the way in.";
 		}
 		else {
-			data[message.author.id].CATCH.valid = false;
+			data[message.author.id].CATCH = null;
 			return "*RED*You were too slow; The fish got away. . .";
 		}
 	}
 	else {
-		data[message.author.id].CATCH.valid = false;
-		return "*RED*Try !fish";
+		msg += "*GREEN*You cast your line far out into the water, hoping that something will bite. . .\n";
+		let delay = (14 - poleTier * 3) + rand(10);
+		let date = new Date();
+		date.setSeconds(date.getSeconds() + delay);
+		data[message.author.id].CATCH = new FishEvent(location.fish[rand(location.fish.length)], date, C.LOCATION);
+		data[message.author.id].CATCH.reels = 3 - poleTier;
+		if (delay >= 12) {
+			let idleComments = [
+			"The water seems still",
+			"A cool breeze passes over the water, dipping ripples into its mirrored surface",
+			"You start to zone out",
+			"You feel at peace",
+			"Was that a bite? Nevermind, it was nothing",
+			"A seabird flies past",
+			"In the distance, a fish disturbs the surface of the water",
+			"Your nose itches",
+			"It's quiet. Peaceful",
+			"You hear a harsh whisper, it sounds like your name. It was probably just in your head",
+			"You feel like someone is watching you",
+			"The sun feels warm shining down on you"];
+			let ran = rand(idleComments.length);
+			
+			setTimeout(() => {
+				if (data[message.author.id].CATCH) {
+					if (C.LOCATION == data[message.author.id].CATCH.location && C.BUILDING == "") {
+						PrintMessage(parseText("*YELLOW*" + idleComments[ran] + ". . ."), message.channel);
+					}
+					else {
+						data[message.author.id].CATCH = null;
+					}
+				}
+			}, 8000 + (rand(4) * 1000));
+		}
+		setTimeout(() => {
+			if (data[message.author.id].CATCH) {
+				let startDate = new Date(data[message.author.id].CATCH.date);
+				let date = new Date();
+				let seconds = (date.getTime() - startDate.getTime()) / 1000;
+				if (seconds >= 0) {
+					if (C.LOCATION == data[message.author.id].CATCH.location && C.BUILDING == "") {
+						PrintMessage(parseText("*GREEN*You feel a bite! *CYAN*Reel!"), message.channel);
+					}
+					else {
+						data[message.author.id].CATCH = null;
+					}
+				}
+			}
+		}, delay * 1000);
 	}
 	return msg;
 }

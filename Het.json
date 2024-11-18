@@ -1,0 +1,209 @@
+"211316647208812545": {
+		"CHARACTER": {
+			"TYPE": "player",
+			"DESCRIPTION": "",
+			"LEFT": 1,
+			"RIGHT": 1,
+			"INVENTORY": [
+				{
+					"name": "Blood Staff",
+					"type": "staff",
+					"value": 100,
+					"equipped": false,
+					"runes": [],
+					"description": "A staff wrought of bone and inset with crystals of angelic blood. Heal +6 HP per turn. You're immune to Poison.",
+					"rare": true
+				},
+				{
+					"name": "Masterwork Pole",
+					"type": "pole",
+					"value": 80,
+					"equipped": true,
+					"runes": [],
+					"description": "A fishing pole wrought of dark wood as solid as steel. Its unbreakable line shimmers like gold in the sun.",
+					"rare": false
+				},
+				{
+					"type": "armor",
+					"effect": "",
+					"name": "Haunted Hookscale",
+					"armor": [
+						3,
+						3
+					],
+					"AP": 0,
+					"value": 100,
+					"runes": [],
+					"equipped": true,
+					"description": "The hooks hunger. Each turn, take 6 damage and deal 8 damage to all enemies.",
+					"rare": true
+				},
+				{
+					"type": "weapon",
+					"subclass": "shield",
+					"description": "Made from the hide of an electric eel. Gain 2 Static stacks when attacked. Gives 20% Block Chance.",
+					"effect": "",
+					"runes": [],
+					"name": "Eel Shield",
+					"hands": 1,
+					"value": 75,
+					"attacks": [
+						1,
+						1
+					],
+					"chance": 90,
+					"min": 4,
+					"max": 8,
+					"pen": 50,
+					"AP": 6,
+					"range": 1,
+					"equipped": false,
+					"rare": true
+				},
+				{
+					"name": "Pufferfish",
+					"type": "fish",
+					"value": 7,
+					"equipped": false,
+					"runes": [],
+					"description": "A spiny, wide-eyed fish, colorful and capable of inflating itself into a ball.",
+					"rare": false
+				},
+				{
+					"name": "Ray",
+					"type": "fish",
+					"value": 4,
+					"equipped": false,
+					"runes": [],
+					"description": "A flat grey creature with a long tail that glides elegantly through the water.",
+					"rare": false
+				},
+				{
+					"name": "Common Snook",
+					"type": "fish",
+					"value": 3,
+					"equipped": false,
+					"runes": [],
+					"description": "A drab yellow fish with a single black stripe along its sides.",
+					"rare": false
+				},
+				{
+					"name": "Ray",
+					"type": "fish",
+					"value": 4,
+					"equipped": false,
+					"runes": [],
+					"description": "A flat grey creature with a long tail that glides elegantly through the water.",
+					"rare": false
+				},
+				{
+					"name": "Snapper",
+					"type": "fish",
+					"value": 6,
+					"equipped": false,
+					"runes": [],
+					"description": "A heavy pink fish with red highlights on its fins.",
+					"rare": false
+				}
+			],
+			"SKILLS": [],
+			"ABILITIES": [],
+			"SPELLS": [
+				"Arcane Strike"
+			],
+			"NAME": "Het",
+			"ID": "211316647208812545Hetmage54425",
+			"CLASS": "mage",
+			"STATS": [
+				0,
+				2,
+				0,
+				0,
+				0,
+				0
+			],
+			"SP": 4,
+			"HP": 30,
+			"MANA": 0,
+			"GOLD": 113,
+			"STAMINA": 30,
+			"AP": 6,
+			"ENDED": false,
+			"LEVEL": 1,
+			"XP": 0,
+			"ARMOR": [
+				0,
+				0
+			],
+			"LOCATION": "The Stony Island",
+			"BUILDING": "",
+			"BACKPACK": true,
+			"EFFECTS": [],
+			"ROW": 0,
+			"ATTACKS": 0,
+			"CASTS": 0,
+			"TRADING": "",
+			"FLED": false,
+			"REPORT": {
+				"kills": 0,
+				"gold": 133,
+				"damage": 0,
+				"taken": 0,
+				"mitigated": 0
+			},
+			"HITS": [
+				1,
+				1
+			],
+			"ATTEMPTS": [
+				1,
+				1
+			],
+			"CURSED": false,
+			"RETIRED": false,
+			"DIALOGUE": {
+				"RELATIONS": [],
+				"EVENTS": [],
+				"EVENT": null,
+				"STEP": null
+			},
+			"FISH": [
+				"Sunfish",
+				"Grouper",
+				"Eel",
+				"Flying Fish",
+				"Pufferfish",
+				"Jellyfish",
+				"Snapper",
+				"Octopus",
+				"Shrimp",
+				"Squid",
+				"Crab",
+				"Stonefish",
+				"Cod",
+				"Ray",
+				"Common Snook"
+			],
+			"FISH_REWARDS": [
+				"Coral Staff",
+				"Coral Axe",
+				"Eel Shield"
+			],
+			"ROW_PREFERENCE": 0
+		},
+		"CATCH": {
+			"fish": {
+				"name": "Snapper",
+				"type": "fish",
+				"value": 6,
+				"equipped": false,
+				"runes": [],
+				"description": "A heavy pink fish with red highlights on its fins.",
+				"rare": false
+			},
+			"date": "2024-11-10T18:19:36.967Z",
+			"caught": true,
+			"valid": false,
+			"location": "The Stony Island"
+		}
+	}

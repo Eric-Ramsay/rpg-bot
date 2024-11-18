@@ -35,7 +35,7 @@ const PHYSICAL = 0;
 const MAGICAL = 1;
 const TRUE_DAMAGE = 2;
 
-var classes = ["peasant", "rogue", "noble", "warrior", "ranger", "mage", "sorcerer"];
+var classes = ["peasant", "rogue", "noble", "warrior", "ranger", "mage", "sorcerer", "monk", "duelist", "merchant"];
 var stats = ["VIT", "MAG", "END", "WEP", "DEX", "AVD"];
 
 var effects = [];
@@ -84,21 +84,20 @@ function isEquipped(C, item) {
 	}
 	return false;
 }
-function Mitigate(attacker, target, dmg, pen = 0, type = 0) {
+function Mitigate(attacker, target, dmg, pen = 0, type = 0, canDodge = true) {
 	if (target.TYPE == "player") {
-		let dodgeChance = 10 * target.STATS[AVD];
-		if (type == MAGICAL) {
-			dodgeChance = 0;
-		}
+		let dodgeChance = 5 * Math.min(10, target.STATS[AVD]);
 		if (hasRune(target, "reflex")) {
-			dodgeChance += 25;
+			dodgeChance += 10;
 		}
-		dodgeChance = Math.min(95, dodgeChance);
 		if (type == 2) {
 			dodgeChance = 0;
 		}
 		let ran = rand(100);
-		if (ran < dodgeChance) {
+		if (hasEffect(target, "stunned")) {
+			canDodge = false;
+		}
+		if (canDodge && ran < dodgeChance) {
 			return 0;
 		}
 		if (isEquipped(target, "shield")) {
@@ -124,7 +123,13 @@ function Mitigate(attacker, target, dmg, pen = 0, type = 0) {
 			}
 		}
 	}
-	else if ((target.NAME == "Brigand Lord" || target.NAME == "Brigand")) {
+	else if (target.NAME == "Brigand Lord") {
+		let ran = rand(100);
+		if (ran < 50) {
+			return 0;
+		}
+	}
+	else if (target.NAME == "Brigand") {
 		let ran = rand(100);
 		if (ran < 35) {
 			return 0;
@@ -375,13 +380,20 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 			}
 		}
 	}
-	
+	if (target.TYPE == "construction" && target.NAME != "Warding Shield" && target.NAME != "Warded Totem") {
+		for (let i = 0; i < targets.length; i++) {
+			if (target.ROW == targets[i].ROW && targets[i].NAME == "Warding Shield") {
+				return DealDamage(attack, attackers, attacker, targets, targets[i]);
+			}
+		}
+	}
 	for (let i = 0; i < targets.length; i++) {
-		let guarding = hasEffect(targets[i], "guarding");
-		if (guarding && guarding.target.ID == target.ID) {
-			let result = DealDamage(attack, attackers, attacker, targets, targets[i]);
-			result[0] = "*CYAN*" + Prettify(Name(target)) + " is guarded by " + Name(targets[i]) + "!\n" + result[0];
-			return result;
+		for (const effect of targets[i].EFFECTS) {
+			if (effect.name.toLowerCase() == "guarding" && effect.target.ID == target.ID) {
+				let result = DealDamage(attack, attackers, attacker, targets, targets[i]);
+				result[0] = "*CYAN*" + Prettify(Name(target)) + " is guarded by " + Name(targets[i]) + "!\n" + result[0];
+				return result;
+			}
 		}
 	}
 	
@@ -419,7 +431,7 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 		let num = 10 - Math.floor(10 * attacker.HP/MaxHP(attacker));
 		damage *= 1 + (num/20);
 	}
-	damage = Mitigate(attacker, target, damage, attack.pen, attack.type);
+	damage = Mitigate(attacker, target, damage, attack.pen, attack.type, canReflect);
 	
 	let chance = rand(100);
 	if (chance > attack.hitChance) {
@@ -449,7 +461,7 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 			msg += AddEffect(target, "static", 999, null, null, 2);
 		}
 		if (hasRune(attacker, "cascade")) {
-			damage++;
+			damage += 2;
 		}
 		if (hasRune(attacker, "pacifist")) {
 			damage *= 2;
@@ -533,11 +545,12 @@ function PushTarget(C, target) {
 	if (target.TYPE == "boss") {
 		return msg;
 	}
+	let tName = Name(target);
 	if (C.ROW <= target.ROW && target.ROW < 4) {
-		msg += "*GREEN*The " + target.NAME + " is pushed right!\n";
+		msg += "*GREEN*" + tName + " is pushed right!\n";
 		target.ROW++;
 	} else if (C.ROW >= target.ROW && target.ROW > 0) {
-		msg += "*GREEN*The " + target.NAME + " is pushed left!\n";
+		msg += "*GREEN*" + tName + " is pushed left!\n";
 		target.ROW--;
 	}
 	return msg;
@@ -1130,6 +1143,18 @@ client.on('messageCreate', (rec) => {
 				}
 			}
 			if (data[id].CHARACTER) {
+				for (let i = 0; i < data[id].CHARACTER.INVENTORY.length; i++) {
+					let item = data[id].CHARACTER.INVENTORY[i];
+					if (item.runes) {
+						for (let j = 0; j < item.runes.length; j++) {
+							let rune = item.runes[j];
+							if (rune.value) {
+								item.value += rune.value;
+								item.runes[j] = rune.name;
+							}
+						}
+					}
+				}
 				if (!data[id].CHARACTER.DIALOGUE) {
 					data[id].CHARACTER.DIALOGUE = new DialogueHandler()
 				}
@@ -1209,7 +1234,15 @@ function ItemDescription(C, item) {
 	let msg = "";
 	let max = maxRunes(item);
 	if (item.type == "weapon") {
-		msg += "*RED*" + item.name + "*BLACK* | *CYAN*" + item.hands + "H*BLACK* | *PINK*" + item.chance + "%*BLACK* | *YELLOW*" + item.value + "G*GREY*\n";
+		let wepChance = w_chance(C, item);
+		let approx = "";
+		if (hasWeaponRune(item, "reprise")) {
+			let chance = 1 - (wepChance/100);
+			chance *= chance;
+			approx = "~";
+			wepChance = Math.floor(100 * (1 - chance));
+		}
+		msg += "*RED*" + item.name + "*BLACK* | *CYAN*" + item.hands + "H*BLACK* | *PINK*" + approx + wepChance + "%*BLACK* | *YELLOW*" + item.value + "G*GREY*\n";
 		msg += item.description+"\n\n";
 		let mult = 1 + (.05 * C.STATS[WEP]);
 		if (hasWeaponRune(item, "powerful")) {
@@ -1224,14 +1257,17 @@ function ItemDescription(C, item) {
 		if (hasWeaponRune(item, "decisive")) {
 			mult *= 1.25;
 		}
+		if (C.CLASS == "duelist") {
+			mult *= 1.15;
+		}
 		let multStr = "*GREEN* (x " + mult.toFixed(2) + ")";
 		if (mult == 1) {
 			multStr = "";
 		}
-		msg += "Deals *RED*" + item.min + "-" + (item.max + C.STATS[WEP]) + " Damage" + multStr + "*GREY* to targets within *GREEN*" + item.range + " range*GREY*, with *CYAN*" + item.pen + "%*GREY* penetration; can be used *PINK*" + item.attacks[1] + "*GREY* times per turn at a cost of *GREEN*" + item.AP + " AP*GREY* per attack.\n"
+		msg += "Deals *RED*" + w_min(C, item) + "-" + w_max(C, item) + " Damage" + multStr + "*GREY* to targets within *GREEN*" + w_range(C, item) + " range*GREY*, with *CYAN*" + w_pen(C, item) + "%*GREY* penetration; can be used *PINK*" + w_attacks(C, item) + "*GREY* times per turn at a cost of *GREEN*" + w_AP(C, item) + " AP*GREY* per attack.\n"
 	}
 	else if (item.type == "armor") {
-		msg += "*RED*" + item.name + "*BLACK* | *CYAN*⛊*GREY*" + item.armor[0] + " *CYAN*✱*GREY*" + item.armor[1] + "*BLACK* | *YELLOW*" + item.value + "G*GREY*\n";
+		msg += "*RED*" + item.name + "*BLACK* | *CYAN*⛊*GREY*" + a_physical(C, item) + " *CYAN*✱*GREY*" + a_magical(C, item) + "*BLACK* | *YELLOW*" + item.value + "G*GREY*\n";
 		msg += item.description+"\n\n";
 		if (item.AP > 0) {
 			msg += "*RED*Reduces*GREY* your *GREEN*AP*GREY* by *RED*" + item.AP
@@ -1252,7 +1288,13 @@ function ItemDescription(C, item) {
 	if (max > 0) {
 		msg += "*CYAN*Runes *BLACK*" + item.runes.length + "/" + max + "*GREY*\n";
 		for (const rune of item.runes) {
-			msg += StackStrings("*RED*   " + rune.name, "*YELLOW*" + rune.value + "G*GREY* " + rune.description, 30) + "\n";
+			let description = "";
+			for (let i = 0; i < items.length; i++) {
+				if (items[i].name == rune) {
+					description = items[i].description;
+				}
+			}
+			msg += StackStrings("*RED*   " + rune, "*GREY* " + description, 15) + "\n";
 		}
 	}
 	return msg;
@@ -1341,12 +1383,12 @@ function Inventory(C) {
 				if (C.INVENTORY[i].type == "weapon") {
 					let attacks = C.INVENTORY[i].attacks[0];
 					if (BattleIndex(C.ID) == -1) { 
-						attacks = C.INVENTORY[i].attacks[1];
+						attacks = w_attacks(C, C.INVENTORY[i]);
 					}
-					item += " *YELLOW*" + attacks + "*BLACK* | *GREEN*" + C.INVENTORY[i].AP + "*GREY*";
+					item += " *YELLOW*" + attacks + "*BLACK* | *GREEN*" + w_AP(C, C.INVENTORY[i]) + "*GREY*";
 				}
 				else if (C.INVENTORY[i].type == "armor") {
-					item += " *CYAN*" + C.INVENTORY[i].armor[0] + "*BLACK* | *CYAN*" + C.INVENTORY[i].armor[1];
+					item += " *CYAN*" + a_physical(C, C.INVENTORY[i]) + "*BLACK* | *CYAN*" + a_magical(C, C.INVENTORY[i]);
 					if (C.INVENTORY[i].AP > 0) {
 						item += "*BLACK* | *RED*-" + C.INVENTORY[i].AP;
 					}
@@ -1478,7 +1520,8 @@ function DrawGraveyard() {
 		}
 	}
 	worthy = shitSort(worthy, "LEVEL");
-	for (const death of worthy) {
+	for (let i = 0; i < 30; i++) {
+		let death = worthy[i];
 		msg += "*GREEN*" + death.NAME + "*GREY* the *BLUE*" + Prettify(death.CLASS) + "*GREY*, *YELLOW*Level " + death.LEVEL + "\n";
 		if (death.DESCRIPTION) {
 			msg += "*GREY*" + death.DESCRIPTION + "\n";
@@ -2080,7 +2123,7 @@ function Command(message) {
 	let index = -1;
 	let numRepeat = 1;
 	
-	let requireCharacter = ["servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "enchant", "level", "stop", "move", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "eat", "read", "learn", "order", "buy", "sell", "spells"];
+	let requireCharacter = ["fishing", "row", "servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "disenchant", "enchant", "level", "stop", "move", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "eat", "read", "learn", "order", "buy", "sell", "spells"];
 	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "guard", "brace"];
 	
 	for (let i = 0; i < requireBattle.length; i++) {
@@ -2113,18 +2156,28 @@ function Command(message) {
 			}
 			else if (C.HP <= 0) {
 				msg += Deliver(C);
-				if (C && C.HP <= 0) {
-					for (let i = 0; i < location.players; i++) {
-						if (location.players[i].ID == C.ID) {
-							location.players.splice(i, 1);
-							break;
+				if (C.HP <= 0) {
+					if (C.CLASS == "monk" && !C.DIED) {
+						C.HP = 1;
+						C.DIED = true;
+						let location = findLocation("The Churchyard");
+						Travel(C, location, BattleIndex(C.ID));
+						C.BUILDING = "Church";
+						return "*YELLOW*Miraculously, you were found by some travelers, who brought you to the Church for treatment. . .\n\n" + RoomDescription(C);
+					}
+					else {
+						for (let i = 0; i < location.players; i++) {
+							if (location.players[i].ID == C.ID) {
+								location.players.splice(i, 1);
+								break;
+							}
 						}
+						if (!(C.CURSED)) {
+							data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.REPORT, C.DESCRIPTION));
+						}
+						data[message.author.id].CHARACTER = null;
+						C = null;
 					}
-					if (!(C.CURSED)) {
-						data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.REPORT, C.DESCRIPTION));
-					}
-					data[message.author.id].CHARACTER = null;
-					C = null;
 				}
 			}
 			else {
@@ -2186,16 +2239,6 @@ function Command(message) {
 				return "*RED*Couldn't find spell to forget!\n";
 			}
 		}
-		else if (keyword == "cheat") {
-			C.SPELLS = [];
-			for (let i = 0; i < spells.length; i++) {
-				C.SPELLS.push(spells[i].name);
-			}
-			C.LEVEL = 10;
-			C.CURSED = true;
-			C.SP = 100;
-			C.GOLD = 10000;
-		}
 		else if (keyword == "test") {
 			words.splice(0, 1);
 			let sides = words.join(" ").split("vs");
@@ -2249,7 +2292,7 @@ function Command(message) {
 						battles[index].level = 1;
 						msg += "You've ended up back where you started from.\n\n";
 					}
-					msg += RoomDescription(C)
+					msg += RoomDescription(C);
 				}
 				else {
 					return "*BLACK*There's no boss for this zone yet, so you can't delve any deeper. . .\n";
@@ -2294,14 +2337,14 @@ function Command(message) {
 			else if (C.BRACED) {
 				msg = "*RED*You're already braced!\n";
 			}
-			else if (C.AP >= 3) {
-				C.AP -= 3;
+			else if (C.STAMINA >= 6) {
+				C.AP -= 6;
 				C.BRACING = true;
 				msg += "*YELLOW*" + C.NAME + " braces themselves!\n";
 				msg += HandleCombat(battles[index]);
 			}
 			else {
-				msg += "*RED*You don't have enough AP to brace.\n";
+				msg += "*RED*You don't have enough Stamina to brace.\n";
 			}
 		}
 		else if (keyword == "end") {
@@ -2319,9 +2362,9 @@ function Command(message) {
 		}
 		else if (keyword == "quest" || keyword == "quests") {
 			let quests = data["town"].quests;
-			let i = 1;
 			for (const quest of quests) {
 				let index = findTarget(enemies, quest.enemy);
+				let i = 1;
 				if (index > -1 && index < enemies.length) {
 					msg += "*YELLOW*Quest " + i++ + " - " + quest.value + "g\n";
 					msg += EnemyDescription(enemies[index], false);
@@ -2348,6 +2391,9 @@ function Command(message) {
 		else if (keyword == "enchant") {
 			msg += CommandEnchant(COPY(words), C);
 		}
+		else if (keyword == "disenchant") {
+			msg += CommandDisenchant(COPY(words), C);
+		}
 		else if (keyword == "guard") {
 			msg += CommandGuard(COPY(words), C, index);
 		}
@@ -2362,6 +2408,9 @@ function Command(message) {
 		}
 		else if (keyword == "haircut") {
 			msg += CommandHaircut(message.content.substring(1).split(" "), C);
+		}
+		else if (keyword == "parse") {
+			msg = message.content.substring("!parse ".length) + "\n";
 		}
 		else if (keyword == "leave") {
 			msg += CommandLeave(C, index);
@@ -2435,6 +2484,9 @@ function Command(message) {
 			if (index == -1) {
 				return "*RED*Stat not found '" + words[1] + "'\n";
 			}
+			if (index == AVD && C.STATS[AVD] >= 10) {
+				return "*RED*You can't increase this stat any further.\n";
+			}
 			C.STATS[index]++;
 			C.SP--;
 			if (index == VIT) {
@@ -2478,6 +2530,9 @@ function Command(message) {
 			msg += "*PINK*Ranger*GREY* - *CYAN*+1 WEP +1 AVD*GREY*. Start with *YELLOW*10 gold*GREY* and a ranged weapon. Your attacks deal more damage on farther enemies (5% -> 25%)\n\n";
 			msg += "*BLUE*Mage*GREY* - *CYAN*+2 MAG*GREY*. Starts with a wand and a simple spell. Only mages can wield staffs that enhance their magic.\n\n";
 			msg += "*PINK*Sorcerer*GREY* - *CYAN*+1 MAG*GREY*. Start with a quarterstaff, a cloak, and *YELLOW*15 gold*GREY*. Sorcerers can cast magic without staves or wands.\n\n";
+			msg += "*BLUE*Duelist*GREY* - *CYAN*+2 WEP +1 DEX. *GREY*Start with a Scimitar and a Buckler. Attacks have +10% hit chance and +15% damage, but you can only target one specific enemy per turn.\n\n";
+			msg += "*PINK*Monk*GREY* - *CYAN*+2 VIT. *GREY*Start with a quarterstaff and a Plain Cassock. Each turn, heal the lowest HP ally in your row 10% of your Max HP. You can rest at the church to recover HP. The first time you would die, instead wake up at the church with 1 HP.\n\n";
+			msg += "*BLUE*Merchant*GREY* - *CYAN*1 END. 1 AVD. *GREY*Start with *YELLOW*50 gold*GREY* and a backpack, but no weapon. You can sell items for 75% of their value rather than 50%, however you're too greedy to ever drop any items.\n\n";
 		}
 		else if (keyword == "effects") {
 			msg += WriteEffects(C);
@@ -2502,6 +2557,18 @@ function Command(message) {
 								return "*RED*This hero has permanently retired!\n";
 							}
 							C = hero;
+							for (let i = 0; i < C.INVENTORY.length; i++) {
+								let item = C.INVENTORY[i];
+								if (item.runes) {
+									for (let j = 0; j < item.runes.length; j++) {
+										let rune = item.runes[j];
+										if (rune.value) {
+											item.value += rune.value;
+											item.runes[j] = rune.name;
+										}
+									}
+								}
+							}
 							msg += "*GREEN*The mighty hero " + C.NAME + " returns from retirement. . .\n\n";
 							data["town"].retired.splice(i, 1);
 							break;
@@ -2589,12 +2656,12 @@ function Command(message) {
 			let scaling = "*CYAN*Scaling\n";
 			let reports = [];
 			for (const weapon of weapons) {
-				let result = runeDamage((weapon.min + weapon.max)/2, weapon.attacks[1], 2/weapon.hands, weapon.chance/100, weapon.AP, [false, false, false, false], 3);
+				let result = runeDamage((w_min(C, weapon) + w_max(C, weapon))/2, w_attacks(C, weapon), 2/weapon.hands, w_chance(C, weapon)/100, w_AP(C, weapon), [false, false, false, false], 3);
 				let dmg = result[0];
 				//dmg = Math.max(Math.floor(dmg * weapon.pen/100), Math.round(dmg - 10));
 				let mult = result[1];
 				let AP = weapon.AP * mult;
-				report = new WeaponReport(weapon.name, weapon.value, dmg, AP, weapon.pen, (dmg/AP), (dmg + (.5 * mult + dmg * .05))/dmg);	
+				report = new WeaponReport(weapon.name, weapon.value, dmg, AP, w_pen(C, weapon), (dmg/AP), (dmg + (.5 * mult + dmg * .05))/dmg);	
 				reports.push(report);
 			}
 			let sort = "cost";
@@ -2622,10 +2689,31 @@ function Command(message) {
 			if (C.HP == MaxHP(C)) {
 				return "*RED*You're already full HP."
 			}
-			if (C.BUILDING.toLowerCase() == "tavern") {
+			if (C.CLASS == "monk" && C.BUILDING.toLowerCase() == "church") {
+				C.HP = MaxHP(C);
+				let dialogues = ["You feel refreshed.", "You spend some time in solemn prayer.", "You help with some chores as a show of gratitude.", "The novice's cot you sleep on is covered in dust."];
+				msg += "*GREEN*You rest at the church. " + dialogues[rand(dialogues.length)] + "\n";
+			}
+			else if (C.BUILDING.toLowerCase() == "tavern") {
 				if (C.GOLD >= 5) {
-					//C.DIALOGUE[];
-					msg += "*GREEN*You pay 5 gold to sleep at the tavern.\n";
+					if (C.CLASS == "monk") {
+						msg += "*YELLOW*You pay five gold to sleep at the tavern, though you'd probably be more comfortable staying at the church. . .\n";
+					}
+					else {
+						let dialogues = [
+						"You gamble a little in common room, but come out even in the end.", 
+						"You dream about giant slugs.",
+						"Penelope brings you a mug of water as she shows you to your room, and sets it at your bedside.",
+						"You wake up to the sound of laughter from the floor below you, and you feel refreshed.",
+						"A dog is barking somewhere in the village.",
+						"You stumble on your way up the stairs.",
+						"The bed is soft and warm.",
+						"You dream of swimming in a cold river on a hot summer day.",
+						"The wind shakes the shutters to your room.",
+						"You hear rain tapping on the roof above you."
+						]
+						msg += "*GREEN*You pay five gold to sleep at the tavern. " + dialogues[rand(dialogues.length)] + "\n";
+					}
 					C.GOLD -= 5;
 					data["town"].prosperity += 5;
 					C.HP = MaxHP(C);
@@ -2671,14 +2759,15 @@ function Command(message) {
 		}
 		else if (keyword == "cheat") {
 			if (message.author.id == "462829989465948180") {
+				console.log(words);
 				if (words[1].toLowerCase() == "gold") {
 					let amount = COPY(words).slice(2, COPY(words).length).join(" ");
 					let value = parseInt(amount);
 					C.GOLD = value;
 					return "*GREEN*Gold set to " + amount + ".\n";
 				}
-				else {
-					let item = COPY(words).slice(1, COPY(words).length).join(" ");
+				else if (words[1].toLowerCase() == "item") {
+					let item = COPY(words).slice(2, COPY(words).length).join(" ");
 					for (let i = 0; i < items.length; i++) {
 						if (items[i].name.toLowerCase() == item.toLowerCase()) {
 							if (CanTake(C, items[i])) {
@@ -2692,12 +2781,23 @@ function Command(message) {
 					}
 					return "*RED*Item not found " + item + "!\n";
 				}
+				else if (words[1].toLowerCase() == "character") {
+					C.SPELLS = [];
+					for (let i = 0; i < spells.length; i++) {
+						C.SPELLS.push(spells[i].name);
+					}
+					C.LEVEL = 10;
+					C.CURSED = true;
+					C.SP = 100;
+					C.GOLD = 10000;
+					return "*RED*Level set to 10. Gold set to 10,000. SP set to 100.\n";
+				}
 			}
 			else {
 				return "*RED*You wish.\n";
 			}
 		}
-		else if (keyword == "fish") {
+		else if (keyword == "fish" || keyword == "reel") {
 			msg += CommandFish(C, message);
 		}
 		else if (keyword == "fishing") {
@@ -2714,9 +2814,6 @@ function Command(message) {
 					msg += location.id + "\n";
 				}
 			}
-		}
-		else if (keyword == "reel") {
-			msg += CommandReel(C, message);
 		}
 		else {
 			return "*RED*Command '" + keyword + "' not found!\n";

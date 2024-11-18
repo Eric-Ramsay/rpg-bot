@@ -109,13 +109,36 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 				}
 				C.HP -= (worms + embers);
 				if (hasEffect(C, "bleed")) {
-					C.HP -= 4;
+					let bleedDmg = 2 + (Math.floor(C.HP/25));
+					C.HP -= bleedDmg;
 				}
 				if (hasEffect(C, "whipped")) {
 					C.HP -= 4;
 				}
 			}
+			
+			if (C.CLASS == "monk") {
+				let minHP = C.HP;
+				let mindex = i;
+				for (let j = 0; j < allies.length; j++) {
+					if (allies[j].HP > 0 && allies[j].ROW == allies[i].ROW && allies[j].HP < minHP) {
+						mindex = j;
+						minHP = allies[j].HP;
+					}
+				}
+				if (allies[mindex].HP < MaxHP(allies[mindex])) {
+					let monkHeal = Math.floor(MaxHP(allies[i])/10);
+					if (mindex == i) {
+						healing += monkHeal;
+					}
+					else {
+						msg += Heal(allies[mindex], monkHeal);
+					}
+				}
+			}
+			
 			if (C.TYPE == "player") {
+				C.TARGET_ID = "";
 				C.FLED = false;	
 				C.CASTS = 0;
 				C.ENDED = false;
@@ -140,7 +163,7 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 			}
 			//Print Results of starting the turn
 			let HPDiff = Math.min(startHP, startHP - C.HP);
-			if (HPDiff != 0) {
+			if (HPDiff > 0) {
 				C.REPORT.taken += HPDiff;
 				msg += tag + "*PINK*" + aName + " takes " + HPDiff + " damage from their active effects!\n";
 			}
@@ -220,6 +243,9 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 		if (allies[i].TYPE == "player" && hasEffect(allies[i], "guarding")) {
 			allies[i].AP = Math.max(0, allies[i].AP - 6);
 		}
+		if (hasEffect(allies[i], "coated in honey")) {
+			allies[i].AP = Math.floor(allies[i].AP/2);
+		}
 	}
 	for (let i = enemies.length - 1; i >= 0; i--) {
 		if (enemies[i].HP <= 0) {
@@ -244,6 +270,39 @@ function FinalBoss(battle) {
 		battle.enemies.push(summon("briar monster", 4));
 		battle.enemies.push(summon("briar monster", 4));
 		battle.enemies.push(summon("seated figure", 4));
+	}
+	return msg;
+}
+
+function configureEnemies(enemyList, targets, resilient = false) {
+	let msg = "";
+	for (let i = enemyList.length - 1; i >= 0; i--) {
+		if (enemyList[i].NAME == "Swamp Stalker") {
+			enemyList[i].ROW = 1;
+		}
+		if (enemyList[i].NAME == "Ephemeral Warrior") {
+			AddEffect(enemyList[i], "fading", 8);
+		}
+		if (enemyList[i].NAME == "Grand Architect") {
+			msg += "*YELLOW*The Grand Architect deploys their defenses!\n";
+			enemyList.push(summon("Warding Shield", enemyList[i].ROW));
+			enemyList.push(summon("Mechanical Guardsman", enemyList[i].ROW));
+			enemyList.push(summon("Mechanical Guardsman", enemyList[i].ROW));
+			enemyList.push(summon("Mechanical Gunman", enemyList[i].ROW));
+			enemyList.push(summon("Mechanical Gunman", enemyList[i].ROW));	
+		}
+	}
+	for (let i = 0; i < enemyList.length; i++) {
+		if (enemyList[i].NAME == "Hiveling Guard") {
+			let tag = "*YELLOW*E" + (i + 1) + "*GREY* - ";
+			let text = enemyAttack(i, enemyList, targets);
+			if (text != "") {
+				msg += tag + text + "\n";
+			}
+		}
+		if (resilient) {
+			AddEffect(enemyList[i], "resilient", 0);
+		}
 	}
 	return msg;
 }
@@ -275,7 +334,7 @@ function StartBattle(battle) {
 	}
 	else {
 		lvl /= num;
-		let rating = 45 * num * Math.pow(1.3, lvl);
+		let rating = 45 * num * Math.pow(1.21, lvl);
 		
 		ran = rand(6);
 		if (ran == 0) {
@@ -286,6 +345,7 @@ function StartBattle(battle) {
 				RemoveEffect(battle.allies[i], "Coward's Haste");
 			}
 		}
+		rating = Math.floor(rating);
 		
 		console.log("Combat Difficulty: " + rating);
 		let quests = data["town"].quests;
@@ -313,7 +373,7 @@ function StartBattle(battle) {
 				}
 			}
 		}
-		if (rating > 200 && rand(100) <= 10) {
+		if (rating > 200 && rand(100) <= 5) {
 			if (battle.zone == 0 || battle.zone == 2) {
 				validEnemies = [];
 				for (const enemy of enemies) {
@@ -332,16 +392,16 @@ function StartBattle(battle) {
 				}
 			}
 		}
+		
+		validEnemies = shitSort(validEnemies, "DIFFICULTY");
+		
 		while (validEnemies.length > 0 && rating > 0) {
 			let index = rand((validEnemies.length));
+			if (battle.enemies.length < 3) {
+				index = rand(validEnemies.length/4);
+			}
 			let temp = COPY(validEnemies[index]);
-			if (temp.NAME == "Ephemeral Warrior") {
-				AddEffect(temp, "fading", 8);
-			}
-			if (temp.NAME == "Swamp Stalker") {
-				temp.ROW = 0;
-			}
-			else if (rand(8) == 0) {
+			if (rand(8) == 0) {
 				temp.ROW = 3;
 			}
 			temp.ID = temp.NAME + rating + rand(99999999999); 
@@ -356,15 +416,7 @@ function StartBattle(battle) {
 			}
 			validEnemies = newTeams;
 		}
-		for (let i = 0; i < battle.enemies.length; i++) {
-			if (battle.enemies[i].NAME == "Hiveling Guard") {
-				let tag = "*YELLOW*E" + (i + 1) + "*GREY* - ";
-				let text = enemyAttack(i, battle.enemies, battle.allies, battle.deadEnemies, battle.deadAllies);
-				if (text != "") {
-					msg += tag + text + "\n";
-				}
-			}
-		}
+		msg += configureEnemies(battle.enemies, battle.allies, true);
 	}
 	battle.enemies = shitSort(battle.enemies, "DIFFICULTY");
 	return msg;
@@ -431,7 +483,11 @@ function WinBattle(battle) {
 			for (let i = 0; i < INVENTORY.length; i++) {
 				INVENTORY[i].equipped = false;
 				let ran = rand(100);
-				if (ran < 20) {
+				let dropChance = 25;
+				if (INVENTORY[i].runes && INVENTORY[i].runes.length > 3) {
+					dropChance *= 2;
+				}
+				if (ran < dropChance) {
 					battle.loot.push(INVENTORY[i]);
 				}
 			}
@@ -439,10 +495,9 @@ function WinBattle(battle) {
 	}
 	let goldReward = 15;
 	let expReward = 0;
-	let numMimics = 0;
+	let lootList = [];
 	for (const enemy of battle.deadEnemies) {
 		msg += CheckQuest(enemy, battle.allies);
-		let lootValue = 0;
 		let mimicSpawned = false;
 		if (!enemy.SUMMONED) {
 			if (enemy.NAME == "Brigand") {
@@ -460,31 +515,46 @@ function WinBattle(battle) {
 			goldReward = Math.min(200, goldReward);
 			expReward += enemy.DIFFICULTY;
 			for (const drop of enemy.LOOT) {
-				let ran = rand(100);
-				if (lootValue <= enemy.DIFFICULTY/4) {
-					if (ran <= drop.chance) {
-						let index = findItem(items, drop.name);
-						if (index > -1) {
-							battle.loot.push(COPY(items[index]));
-							lootValue += items[index].value;
-						}
+				let ran = rand(90);
+				if (ran <= drop.chance) {
+					let index = findItem(items, drop.name);
+					if (index > -1) {
+						lootList.push(COPY(items[index]));
 					}
 				}
 			}
 		}
-		if (rand(10) == 0 && (numMimics < battle.loot.length/4)) {
-			numMimics++;
-			let mimics = [
-				new Item("Stanima Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
-				new Item("Heolth Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
-				new Item("Armor", 			"mimic", 0, "It looks like metal, but it's pulsing . . ."),
-				new Item("Weapon", 			"mimic", 0, "It kind of looks like a sword, or maybe an axe. . ."),
-				new Item("Gold", 			"mimic", 0, "An amoprhous pile resembling coins."),
-				new Item("Potion", 			"mimic", 0, "A translucent bottle-shaped lump filled with what looks like blood."),
-				new Item("Gemstome", 		"mimic", 0, "A damp lump that almost resembles a ruby."),
-			]
-			battle.loot.push(COPY(mimics[rand(mimics.length)]));
+	}
+	let lootMax = Math.max(150, expReward/4);
+	let lootValue = 0;
+	lootList = shitSort(lootList, "value");
+	for (let i = lootList.length - 1; i >= 0; i--) {
+		if (lootList[i].rare) {
+			battle.loot.push(lootList[i]);
+			lootValue += lootList[i].value;
+			lootList.splice(i, 1);
 		}
+	}
+	while (lootValue < lootMax && lootList.length > 0) {
+		let index = 0;
+		if (lootValue > lootMax/2) {
+			index = rand(lootList.length);
+		}
+		lootValue += lootList[index].value;
+		battle.loot.push(lootList[index]);
+		lootList.splice(index, 1);
+	}
+	if (rand(10) == 0) {
+		let mimics = [
+			new Item("Stanima Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
+			new Item("Heolth Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
+			new Item("Armor", 			"mimic", 0, "It looks like metal, but it's pulsing . . ."),
+			new Item("Weapon", 			"mimic", 0, "It kind of looks like a sword, or maybe an axe. . ."),
+			new Item("Gold", 			"mimic", 0, "An amoprhous pile resembling coins."),
+			new Item("Potion", 			"mimic", 0, "A translucent bottle-shaped lump filled with what looks like blood."),
+			new Item("Gemstome", 		"mimic", 0, "A damp lump that almost resembles a ruby."),
+		]
+		battle.loot.push(COPY(mimics[rand(mimics.length)]));
 	}
 	msg += "*GREEN*Each player gains " + goldReward + " gold and " + expReward + " experience!\n";
 	for (const player of battle.allies) {
@@ -605,19 +675,23 @@ function HandleCombat(battle, purgeBattle = true, testing = false) {
 }
 
 
-function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
+function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPierce = false) {
 	let msg = "";
 	let enemy = Battle.enemies[enemyIndex];
 	let enemyHP = enemy.HP;
 	let eName = enemy.NAME;
 	let targetRow = enemy.ROW;
 	let weapon = C.INVENTORY[weaponIndex];
-	if (depth == 0) {
+	if (!reprise && !gunPierce) {
 		weapon.attacks[0]--;
 		C.AP -= weapon.AP;
 	}
 	RemoveEffect(C, "Coward's Haste");
-	let dmg = weapon.min + rand(1 + ((weapon.max + C.STATS[WEP]) - weapon.min));
+	
+	let minDmg = w_min(C, weapon);
+	let maxDmg = w_max(C, weapon);
+	
+	let dmg = minDmg + rand(1 + maxDmg - minDmg);
 	if (hasWeaponRune(weapon, "decisive")) {
 		if (weapon.attacks[0] == weapon.attacks[1] - 1) {
 			dmg *= 1.25;
@@ -640,6 +714,9 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		let mult = 1 + (1 + Math.abs(C.ROW - enemy.ROW)) * .05;
 		dmg *= mult;
 	}
+	if (C.CLASS == "duelist") {
+		dmg *= 1.15;
+	}
 	dmg = Math.floor(dmg * (1 + .05 * C.STATS[WEP]));
 	if (hasEffect(C, "cascade")) {
 		dmg += 2;
@@ -660,7 +737,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	
 	//RNG BALANCING -----------------
 	let hand = LEFT;
-	let weaponChance = weapon.chance;
+	let weaponChance = w_chance(C, weapon);
 	if (weaponChance > hitPercent(C, hand)) {
 		weaponChance *= 1.25;
 		console.log("RNG is being boosted because RNG of " + Math.floor(100 * hitPercent(C, hand))/100 + "% is lower than expected value of " + weapon.chance + "%");
@@ -677,12 +754,12 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 	if (hasRune(C, "pacifist")) {
 		dmg = 0;
 	}
-	let result = DealDamage(new P_Attack(Math.round(dmg), weaponChance, weapon.pen), Battle.allies, C, Battle.enemies, enemy);
+	let result = DealDamage(new P_Attack(Math.round(dmg), weaponChance, w_pen(C, weapon)), Battle.allies, C, Battle.enemies, enemy);
 	msg += result[0];
 	if (result[1] == -2) {
-		if (depth == 0 && hasWeaponRune(weapon, "reprise")) {
+		if (!reprise && hasWeaponRune(weapon, "reprise")) {
 			msg += "*CYAN*Reprise takes effect\n";
-			msg += AllyAttack(Battle, C, enemyIndex, weaponIndex, 1);
+			msg += AllyAttack(Battle, C, enemyIndex, weaponIndex, true, true);
 		}
 	}
 	else {
@@ -694,7 +771,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		}
 	}
 	
-	if (weapon.name == "Hand Cannon" && depth == 0) {
+	if (weapon.name == "Hand Cannon" && !gunPierce) {
 		let firingRight = true;
 		if (enemy.ROW < C.ROW) {
 			firingRight = false;
@@ -707,7 +784,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 			for (let i = C.ROW; i < 5; i++) {
 				if (i != enemy.ROW && rows[i].length > 0) {
 					let enemyIndex = rows[i][rand(rows[i].length)];
-					msg += AllyAttack(Battle, C, enemyIndex, weaponIndex, 1);
+					msg += AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise, true);
 				}
 			}
 		}
@@ -715,7 +792,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 			for (let i = C.ROW; i >= 0; i--) {
 				if (i != enemy.ROW && rows[i].length > 0) {
 					let enemyIndex = rows[i][rand(rows[i].length)];
-					msg += AllyAttack(Battle, C, enemyIndex, weaponIndex, 1);
+					msg += AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise, true);
 				}
 			}
 		}
@@ -785,7 +862,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, depth = 0) {
 		if (sweepDmg > 0 && !bossKill) {
 			for (let i = 0; i < Battle.enemies.length; i++) {
 				if (i != enemyIndex && Battle.enemies[i].ROW == targetRow) {
-					msg += DealDamage(new P_Attack(sweepDmg, 100, weapon.pen), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
+					msg += DealDamage(new P_Attack(sweepDmg, 100, w_pen(C, weapon)), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
 				}
 			}
 		}

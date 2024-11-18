@@ -1,0 +1,344 @@
+{
+				"TYPE": "player",
+				"DESCRIPTION": "A slender *GREEN*young woman*GREY* with short, dark hair. *BLUE*Runes*GREY* are etched in *YELLOW*gold*GREY* across the shoulders of her *BLACK*black armor*GREY*, and along the well-worn *WHITE*silver barrel*GREY* of her *RED*gun*GREY*. The *PINK*violet*GREY* glow of *CYAN*runelight*GREY* catches in her sharp eyes.",
+				"LEFT": 0,
+				"RIGHT": 0,
+				"INVENTORY": [
+					{
+						"type": "weapon",
+						"subclass": "ranged",
+						"description": "A heavy weapon from far east. Its shots pass through enemies, but carrying it slows you down.",
+						"effect": "",
+						"runes": [
+							{
+								"value": 90,
+								"type": "rune",
+								"target": "weapon",
+								"name": "Reprise",
+								"description": "Any attacks that miss their target are re-tried one time",
+								"equipped": false,
+								"rare": false
+							},
+							{
+								"value": 90,
+								"type": "rune",
+								"target": "weapon",
+								"name": "Accurate",
+								"description": "Your weapon gains +10% hit chance. 1H Weapons gain +1 Damage. 2H Weapons gain +2 Damage",
+								"equipped": false,
+								"rare": false
+							},
+							{
+								"value": 200,
+								"type": "rune",
+								"target": "any",
+								"name": "Tackle Box",
+								"description": "Gain +3 Rune Slots. You can enchant any item with this.",
+								"equipped": false,
+								"rare": false
+							},
+							{
+								"value": 90,
+								"type": "rune",
+								"target": "weapon",
+								"name": "Decisive",
+								"description": "+25% Base Damage on your first attack each turn.",
+								"equipped": false,
+								"rare": false
+							},
+							{
+								"value": 90,
+								"type": "rune",
+								"target": "weapon",
+								"name": "Powerful",
+								"description": "+20% Weapon Base Damage on Attacks",
+								"equipped": false,
+								"rare": false
+							},
+							{
+								"value": 90,
+								"type": "rune",
+								"target": "weapon",
+								"name": "Density",
+								"description": "Attacks cost +3 AP, but gain +8 Damage",
+								"equipped": false,
+								"rare": false
+							},
+							{
+								"value": 90,
+								"type": "rune",
+								"target": "weapon",
+								"name": "Sweeping",
+								"description": "When you hit an enemy, deal 20% of the damage to other enemies in the row",
+								"equipped": false,
+								"rare": false
+							},
+							{
+								"value": 90,
+								"type": "rune",
+								"target": "weapon",
+								"name": "Lethality",
+								"description": "Gain a 15% chance per attack to double your weapon's total damage.",
+								"equipped": false,
+								"rare": false
+							}
+						],
+						"name": "Hand Cannon",
+						"hands": 2,
+						"value": 100,
+						"attacks": [
+							0,
+							1
+						],
+						"chance": 55,
+						"min": 36,
+						"max": 42,
+						"pen": 50,
+						"AP": 15,
+						"range": 3,
+						"equipped": true,
+						"rare": false
+					},
+					{
+						"type": "armor",
+						"effect": "",
+						"name": "Drowned Armor",
+						"armor": [
+							5,
+							4
+						],
+						"AP": 3,
+						"value": 100,
+						"runes": [
+							{
+								"value": 100,
+								"type": "rune",
+								"target": "armor",
+								"name": "Stout",
+								"description": "Gain +15 Max HP and +25 Stamina",
+								"equipped": false,
+								"rare": false
+							},
+							{
+								"value": 100,
+								"type": "rune",
+								"target": "armor",
+								"name": "Reflex",
+								"description": "Gain +25% Dodge Chance against all attacks. When you dodge an attack, deal 6 damage to your attacker",
+								"equipped": false,
+								"rare": false
+							},
+							{
+								"value": 100,
+								"type": "rune",
+								"target": "armor",
+								"name": "Huntsman",
+								"description": "Fleeing costs no AP and can be done from any row. When you win a battle, heal to full HP.",
+								"equipped": false,
+								"rare": false
+							},
+							{
+								"value": 100,
+								"type": "rune",
+								"target": "armor",
+								"name": "Cultivation",
+								"description": "Gain +3 AP and +4 HP each turn",
+								"equipped": false,
+								"rare": false
+							}
+						],
+						"equipped": true,
+						"description": "Black armor that reeks of rust and salt. -20 Max HP. +25% Damage Dealt.",
+						"rare": true
+					},
+					{
+						"name": "Panacea",
+						"type": "potion",
+						"value": 10,
+						"equipped": false,
+						"runes": [],
+						"description": "A thick green potion that cleanses all of your debuffs.",
+						"rare": false
+					},
+					{
+						"name": "Haste Potion",
+						"type": "potion",
+						"value": 10,
+						"equipped": false,
+						"runes": [],
+						"description": "Restores 6 AP",
+						"rare": false
+					},
+					{
+						"name": "Haste Potion",
+						"type": "potion",
+						"value": 10,
+						"equipped": false,
+						"runes": [],
+						"description": "Restores 6 AP",
+						"rare": false
+					},
+					{
+						"name": "Panacea",
+						"type": "potion",
+						"value": 10,
+						"equipped": false,
+						"runes": [],
+						"description": "A thick green potion that cleanses all of your debuffs.",
+						"rare": false
+					},
+					{
+						"name": "Panacea",
+						"type": "potion",
+						"value": 10,
+						"equipped": false,
+						"runes": [],
+						"description": "A thick green potion that cleanses all of your debuffs.",
+						"rare": false
+					},
+					{
+						"name": "Health Potion",
+						"type": "potion",
+						"value": 15,
+						"equipped": false,
+						"runes": [],
+						"description": "Restores 30 HP over time.",
+						"rare": false
+					},
+					{
+						"name": "Health Potion",
+						"type": "potion",
+						"value": 15,
+						"equipped": false,
+						"runes": [],
+						"description": "Restores 30 HP over time.",
+						"rare": false
+					},
+					{
+						"name": "Scroll: Feed Flame",
+						"type": "scroll",
+						"value": 30,
+						"equipped": false,
+						"runes": [],
+						"description": "*YELLOW*4  *RED*0  *PINK*Gain 1 Ember. Deal damage equal to the amount of Embers you have. Ember reduces your HP by 1 per turn.",
+						"rare": true
+					},
+					{
+						"name": "Scroll: Radiance",
+						"type": "scroll",
+						"value": 15,
+						"equipped": false,
+						"runes": [],
+						"description": "*YELLOW*9  *RED*0  *PINK*Deal 6-10 Damage to all enemies on your row.",
+						"rare": false
+					}
+				],
+				"SKILLS": [],
+				"ABILITIES": [],
+				"SPELLS": [],
+				"NAME": "Sofia",
+				"ID": "462829989465948180Sofianoble12266",
+				"CLASS": "noble",
+				"STATS": [
+					7,
+					0,
+					2,
+					10,
+					4,
+					6
+				],
+				"SP": 1,
+				"HP": 95,
+				"MANA": 0,
+				"GOLD": 552,
+				"STAMINA": 70,
+				"AP": 0,
+				"ENDED": false,
+				"LEVEL": 19,
+				"XP": 730,
+				"ARMOR": [
+					0,
+					0
+				],
+				"LOCATION": "The Haunted Crypts",
+				"BUILDING": "",
+				"BACKPACK": true,
+				"EFFECTS": [],
+				"ROW": 2,
+				"ATTACKS": 0,
+				"CASTS": 0,
+				"TRADING": "",
+				"FLED": false,
+				"REPORT": {
+					"kills": 280,
+					"gold": 4575,
+					"damage": 52504,
+					"taken": 3099,
+					"mitigated": 1369.5
+				},
+				"HITS": [
+					56,
+					56
+				],
+				"ATTEMPTS": [
+					100,
+					100
+				],
+				"CURSED": false,
+				"RETIRED": false,
+				"DIALOGUE": {
+					"RELATIONS": [],
+					"EVENTS": [],
+					"EVENT": null,
+					"STEP": null
+				},
+				"FISH": [
+					"Freshwater Eel",
+					"Minnow",
+					"Carp",
+					"Bluegill",
+					"Catfish",
+					"Crawdad",
+					"Gar",
+					"Perch",
+					"Trout",
+					"Sturgeon",
+					"Salmon",
+					"Crappie",
+					"Bass",
+					"Shad",
+					"Pike",
+					"Stonefish",
+					"Common Snook",
+					"Eel",
+					"Jellyfish",
+					"Pufferfish",
+					"Shrimp",
+					"Grouper",
+					"Squid",
+					"Sardine",
+					"Mackerel",
+					"Snapper",
+					"Hake",
+					"Tuna",
+					"Ray",
+					"Cod",
+					"Flying Fish",
+					"Crab",
+					"Sunfish",
+					"Swordfish",
+					"Wahoo",
+					"Octopus"
+				],
+				"FISH_REWARDS": [
+					"Eel Shield",
+					"Swordfish Spear",
+					"Anchor Armor",
+					"Drowned Armor",
+					"Coral Staff",
+					"Tackle Box"
+				],
+				"ROW_PREFERENCE": 2,
+				"SERVANT": "Clara",
+				"BRACING": false
+			}

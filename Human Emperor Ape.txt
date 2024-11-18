@@ -1,0 +1,118 @@
+	{
+	"TYPE": "player",
+	"DESCRIPTION": "",
+	"LEFT": 0,
+	"RIGHT": 0,
+	"INVENTORY": [
+		{
+			"type": "weapon",
+			"subclass": "blade",
+			"description": "",
+			"effect": "",
+			"runes": [
+				{
+					"value": 90,
+					"type": "rune",
+					"target": "weapon",
+					"name": "Invigorant",
+					"description": "Your weapon is able to attack +1 time",
+					"equipped": false
+				}
+			],
+			"name": "Claymore",
+			"hands": 2,
+			"value": 50,
+			"attacks": [
+				2,
+				2
+			],
+			"chance": 90,
+			"min": 20,
+			"max": 28,
+			"pen": 20,
+			"AP": 12,
+			"range": 1,
+			"equipped": true,
+			"rare": false
+		},
+		{
+			"value": 125,
+			"type": "rune",
+			"target": "weapon",
+			"name": "Death Mark",
+			"description": "Slain enemies are raised as allied zombies",
+			"equipped": false,
+			"rare": true
+		},
+		{
+			"name": "Divine Pole",
+			"type": "pole",
+			"value": 250,
+			"equipped": false,
+			"runes": [],
+			"description": "From the merry halls of an ancient god there fell to the earth a fishing pole, that shone like silver.",
+			"rare": false
+		}
+	],
+	"SKILLS": [],
+	"ABILITIES": [],
+	"SPELLS": [],
+	"NAME": "The Human Emperor",
+	"ID": "211316647208812545The Human Emperorranger77004",
+	"CLASS": "ranger",
+	"STATS": [
+		10,
+		0,
+		5,
+		4,
+		10,
+		10
+	],
+	"SP": 0,
+	"HP": 130,
+	"MANA": 0,
+	"GOLD": 73,
+	"STAMINA": 105,
+	"AP": 46,
+	"ENDED": false,
+	"LEVEL": 5,
+	"XP": 110,
+	"ARMOR": [
+		0,
+		0
+	],
+	"LOCATION": "The Acrid Swamp",
+	"BUILDING": "",
+	"BACKPACK": true,
+	"EFFECTS": [],
+	"ROW": 0,
+	"ATTACKS": 0,
+	"CASTS": 0,
+	"TRADING": "",
+	"HITS": [
+		27,
+		27
+	],
+	"ATTEMPTS": [
+		28,
+		28
+	],
+	"REPORT": {
+		"kills": 11,
+		"gold": 193,
+		"damage": 690,
+		"taken": 118,
+		"mitigated": 13
+	},
+	"FLED": true,
+	"BRACING": false,
+	"DIALOGUE": {
+		"RELATIONS": [],
+		"EVENTS": [],
+		"EVENT": null,
+		"STEP": null
+	},
+	"FISH": [],
+	"FISH_REWARDS": [],
+	"REWARDED": false
+	}

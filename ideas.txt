@@ -32,8 +32,6 @@ Ideas to add
 Dialogue System overhaul - Improved relationship tracking and diversity + user input
  - Event system where each event has a custom trigger function (ie if relation > 50 and this event hasn't triggered and player recently defeated lich)
  - Then have custom function to process the event and user responses
- 
-Make rare weapons a little more expensive
 
 Add a way to prevent re-delving over and over to get to the wandering merchant
 
@@ -44,28 +42,12 @@ Add traits to choose from
 Add hirable party members
 
 
-Patch Notes
-===========
-Quality of Life
-	- Enemies are now sorted by difficulty on Combat Page
-	- I have done all I can for the UI not going over screen length on smaller monitors
-	- Melee Attack Code has been refactored to give more clarity when you can't attack, also selecting weapons to attack with always works.
-	- Melee Attacking defaults to using the weapon in your right hand first always.
-	- You can move an item to the bottom of your inventory with the !order command
-	- When a turn starts, enemy messages are tagged by what enemy they correspond to
-	
-Enemies
-	- Previous: HP: 5200 Average HP: 57.14
-	- Previous: Difficulty: 5054 Average Difficulty: 55.54 
-	- New HP: 6429 Average: 70.65
-	- New Difficulty: 
-
-Other
-	- Poison can stack, increasing its damage.
-	- You can guard allies
-	- Boss fight implemented
-	- Hivelings
-	- 2 new spells
+- Dialogue Overhaul
+- Hirable Party Members
+- More Final Bosses
+- Trait System
+- Icy Mountain Zone
+- Crystal Cave Zone
 	
 	
 Dialogue System Ideas
@@ -115,6 +97,32 @@ Stats to store:
 - unique stats per NPC
 - # of times talked to that NPC
 - variables for controlling unique dialogue events (ie to prevent dialogue from repeating)
+
+
+
+
+Late Game Enemies to Add / Minibosses
+- Witchlord (500)
+- Grand Architect (750)
+
+Rework Enemies to Raise their difficulty:
+- Dirge (500)
+- Risen Whale (500)
+- Forest Demon (500)
+
+
+
+New Classes
+===========
+- Duelist: +2 WEP +1 DEX. Start with a Scimitar and a Buckler. Attacks have +10% hit chance and +10% damage, but you can only attack 1 unique enemy per turn.
+- Monk: +2 VIT. Start with a quarterstaff and a Plain Cassock. Each turn, heal the lowest HP ally in your row 10% of your Max HP. You can rest at the church to recover HP. The first time you die, wake up at the church with 1 HP.
+- Merchant: 1 END. 1 AVD. Start with 50 gold and a backpack, but no weapon. You can sell items for 100% of their value rather than 50%, however you can't drop any items.
+
+- Alchemist: something with potions
+- Druid: Transform into an animal (?)
+- Psychic: 
+- Brawler
+
 
 
 	

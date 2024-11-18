@@ -127,7 +127,8 @@ function LootItem(C, battle, index) {
 	if (item.type == "mimic") {
 		let msg = "*RED*It's a mimic!\n";
 		battle.started = true;
-		let enemy = COPY(new Enemy("Mimic", 40, 0, 0, 50, [], 1, "", "A slow-moving creature born of early attempts at alchemical conjuration, now thriving in the wild. They submerge themselves underground, while a specialized organ resembling a commonplace object acts as a lure for careless adventurers."));
+		battle.allyTurn = false;	
+		let enemy = COPY(new Enemy("Mimic", 75, 4, 4, 50, [], 1, "", "A slow-moving creature born of early attempts at alchemical conjuration, now thriving in the wild. They submerge themselves underground, while a specialized organ resembling a commonplace object acts as a lure for careless adventurers."));
 		enemy.ROW = C.ROW;
 		battle.enemies.push(enemy);
 		C.ENDED = true;
@@ -212,10 +213,11 @@ function hasWeaponRune(weapon, name) {
 		return false;
 	}
 	for (const rune of weapon.runes) {
-		if (rune.name.toLowerCase() == name.toLowerCase()) {
+		if (rune.toLowerCase() == name.toLowerCase()) {
 			return true;
 		}
 	}
+	return false;
 }
 
 function hasRune(C, name) {
@@ -225,7 +227,7 @@ function hasRune(C, name) {
 	for (const item of C.INVENTORY) {
 		if (item.equipped) {
 			for (const rune of item.runes) {
-				if (rune.name.toLowerCase() == name.toLowerCase()) {
+				if (rune.toLowerCase() == name.toLowerCase()) {
 					return true;
 				}
 			}
@@ -361,7 +363,7 @@ function maxRunes(item) {
 		}
 	}
 	else if (item.type == "armor") {
-		max = 4;
+		max = 5;
 	}
 	else if (item.type == "staff") {
 		max = 4;
@@ -374,7 +376,7 @@ function maxRunes(item) {
 	}
 	if (item.runes) {
 		for (const rune of item.runes) {
-			if (rune.name.toLowerCase() == "tackle box") {
+			if (rune.toLowerCase() == "tackle box") {
 				max += 3;
 			}
 		}
@@ -483,7 +485,7 @@ function prepMerchant() {
 	let rareItems = [];
 	let inventory = ["Warp Potion", "Potion of Wrath", "Tears of a God", "Scroll: Gamble"]
 	for (let i = 0; i < items.length; i++) {
-		if (!items[i].canDrop || (items[i].type == "scroll" && items[i].value > 15)) {
+		if (items[i].rare) {
 			rareItems.push(items[i].name);
 		}
 	}
@@ -558,17 +560,14 @@ function findTarget(list, target) {
 }
 
 function GetPoleTier(C) {
-	if (isEquipped(C, "stick and string")) {
+	if (isEquipped(C, "fishing pole")) {
 		return 1;
 	}
-	if (isEquipped(C, "old fishing pole")) {
+	if (isEquipped(C, "masterwork pole")) {
 		return 2;
 	}
-	if (isEquipped(C, "fishing pole")) {
+	if (isEquipped(C, "divine pole")) {
 		return 3;
-	}
-	if (isEquipped(C, "masterwork pole")) {
-		return 4;
 	}
 	return 0;
 }
@@ -642,15 +641,142 @@ function takeItem(C, item) {
 function rand(num) {
 	return Math.floor(Math.random() * num);
 }
+
+function w_attacks(C, weapon) {
+	let base = weapon.attacks[1];
+	
+	for (const rune of weapon.runes) {
+		if (rune.toLowerCase() == "invigorant") {
+			base++;
+		}
+	}
+	
+	return base;
+}
+
+function a_physical(C, armor) {
+	let base = armor.armor[0];
+	
+	for (const rune of armor.runes) {
+		if (rune.toLowerCase() == "impervious") {
+			base += 3;
+		}
+	}
+	
+	return base;
+}
+
+function a_magical(C, armor) {
+	let base = armor.armor[1];
+	
+	for (const rune of armor.runes) {
+		if (rune.toLowerCase() == "impervious") {
+			base += 3;
+		}
+	}
+	
+	return base;
+}
+
+
+function w_AP(C, weapon) {
+	let base = weapon.AP;
+	
+	for (const rune of weapon.runes) {
+		if (rune.toLowerCase() == "density") {
+			base += 3;
+		}
+	}
+	
+	return base;
+}
+
+function w_pen(C, weapon) {
+	let base = weapon.pen;
+	
+	for (const rune of weapon.runes) {
+		if (rune.toLowerCase() == "orisha") {
+			base += 30;
+		}
+	}
+	
+	return Math.min(100, base);
+}
+
+function w_min(C, weapon) {
+	let base = weapon.min;
+	
+	for (const rune of weapon.runes) {
+		if (rune.toLowerCase() == "accurate") {
+			base += weapon.hands;
+		}
+		if (rune.toLowerCase() == "precise") {
+			base += 3;
+		}
+		if (rune.toLowerCase() == "density") {
+			base += 8;
+		}
+	}
+	
+	return base;
+}
+
+function w_max(C, weapon) {
+	let base = weapon.max;
+	
+	for (const rune of weapon.runes) {
+		if (rune.toLowerCase() == "accurate") {
+			base += weapon.hands;
+		}
+		if (rune.toLowerCase() == "precise") {
+			base += 3;
+		}
+		if (rune.toLowerCase() == "density") {
+			base += 8;
+		}
+	}
+	
+	base += C.STATS[WEP];
+	
+	return base;
+}
+
+function w_range(C, weapon) {
+	let base = weapon.range;
+	
+	for (const rune of weapon.runes) {
+		if (rune.toLowerCase() == "reach") {
+			base += 2;
+		}
+	}
+	
+	return base;
+}
+
+function w_chance(C, weapon) {
+	let base = weapon.chance;
+	
+	for (const rune of weapon.runes) {
+		if (rune.toLowerCase() == "accurate") {
+			base += 10;
+		}
+	}
+	if (C.CLASS == "duelist") {
+		base += 10;
+	}
+	
+	return Math.min(100, base);
+}
+
 function P_Armor(C) {
 	let armor = C.ARMOR[0];
 	if (C.TYPE == "player") {
 		if (C.CLASS == "warrior") {
 			armor += 2;
 		}
-		for (let i = 0; i < C.INVENTORY.length; i++) {
-			if (C.INVENTORY[i].type == "armor" && C.INVENTORY[i].equipped) {
-				armor += C.INVENTORY[i].armor[0];
+		for (const item of C.INVENTORY) {
+			if (item.type == "armor" && item.equipped) {
+				armor += a_physical(C, item);
 				break;
 			}
 		}
@@ -678,9 +804,9 @@ function M_Armor(C) {
 		if (C.CLASS == "warrior") {
 			armor += 2;
 		}
-		for (let i = 0; i < C.INVENTORY.length; i++) {
-			if (C.INVENTORY[i].type == "armor" && C.INVENTORY[i].equipped) {
-				armor += C.INVENTORY[i].armor[1];
+		for (const item of C.INVENTORY) {
+			if (item.type == "armor" && item.equipped) {
+				armor += a_magical(C, item);
 				break;
 			}
 		}
@@ -709,10 +835,13 @@ function MaxHP(C) {
 	}
 	let bonus = 0;
 	if (hasRune(C, "stout")) {
-		bonus = 15;
+		bonus += 15;
 	}
 	if (isEquipped(C, "Drowned Armor")) {
-		bonus = -20;
+		bonus -= 20;
+	}
+	if (hasRune(C, "fortified")) {
+		bonus += 3 * C.STATS[VIT];
 	}
 	return bonus + 30 + C.STATS[VIT] * 10;
 }
@@ -726,7 +855,7 @@ function MaxAP(C) {
 			}
 		}
 	}
-	return bonus + 6 + C.STATS[DEX] * 3;
+	return bonus + 6 + C.STATS[DEX] * 3 + C.STATS[AVD];
 	
 }
 

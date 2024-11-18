@@ -125,25 +125,15 @@ function runBattle(teamOne, teamTwo, index, channel = null) {
 	for (const enemy of teamOne) {
 		let en = summon(enemy, 4);
 		en.ROW = 4;
-		if (en.NAME == "Swamp Stalker") {
-			en.ROW = 1;
-		}
-		if (en.NAME == "Ephemeral Warrior") {
-			AddEffect(en, "fading", 8);
-		}
 		battle.allies.push(en);
 	}
 	for (const enemy of teamTwo) {
 		let en = summon(enemy, 4);
 		en.ROW = 1;
-		if (en.NAME == "Swamp Stalker") {
-			en.ROW = 4;
-		}
-		if (en.NAME == "Ephemeral Warrior") {
-			AddEffect(en, "fading", 8);
-		}
 		battle.enemies.push(en);
 	}
+	configureEnemies(battle.enemies, battle.allies);
+	configureEnemies(battle.allies, battle.enemies);
 	let turns = 0;
 	battle.started = true;
 	if (index % 2 == 0) {
