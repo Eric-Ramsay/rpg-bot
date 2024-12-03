@@ -6,15 +6,22 @@ function Report() {
 	this.mitigated = 0;
 }
 
+function initDialogueHandler() {
+	let handler = new DialogueHandler();
+	for (const npc of people) {
+		handler.RELATIONS[npc.NAME] = 0;
+	}
+	return handler;
+}
+
 function DialogueHandler() {
-	this.RELATIONS = [];
+	this.RELATIONS = new function(){}
 	this.EVENTS = [];
-	this.EVENT = "";
-	this.STEP = "";
-	this.ACTIVE = false;
+	this.STEP = null;
 }
 
 function Character() {
+	this.DISCORD_ID = "";
 	this.TYPE = "player";
 	this.DESCRIPTION = "";
 	//HELMET, GLOVES, CHEST, LEGS, BOOTS

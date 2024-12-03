@@ -7,11 +7,12 @@ Dialogue System overhaul - Improved relationship tracking and diversity + user i
 */
 
 var events = [];
+var steps = [];
 
-function Step(parentEvent, parentSteps, id, event){
-	this.parentEvent = parentEvent;     //The event or step this step is a child of
-	this.parentSteps = parentSteps;     //The event or step this step is a child of
+function Step(speaker, id, text, event){
+	this.speaker = speaker;
 	this.id = id; 				//String that tells what player response triggers this 
+	this.text = text;
 	this.event = event; 		//Code that runs when this step is triggered
 	this.responses = [];		//Children of this step
 }
@@ -21,255 +22,91 @@ function Event(speaker, id, condition, init) {
 	this.id = id; 				//The name of the event
 	this.condition = condition;	//Condition function
 	this.init = init;			//Initialization Function
-	this.index = ""; 			//What step are we on?
 }
 
-var dialogues = [];
-
-function initDialogue() {
-	//Penelope Greeting
-	let PenelopeGreeting = new DialogueEvent("Penelope", "PenelopeGreeting");
+function ProcessDialogue(C) {
+	let speaker = C.DIALOGUE.STEP.speaker;
+	let msg = "*PINK*Conversation with " + speaker + "\n\n";
+	let relations = COPY(C.DIALOGUE.RELATIONS);
+	msg += C.DIALOGUE.STEP.event(C);
 	
-	var uglySty = new Step("It's an ugly sty, but it's not like there's other options.", function(C) {
-		let msg = "";
-		let ran = rand(4);
-		if (ran == 0) {
-			msg = "*GREY*Penelope laughs genuinely. *GREEN*Tell me what you really think why don't you. Enjoy your stay at this old sty.\n";
-			C.DIALOGUE.RELATIONS["Penelope"] += 5;
-		}
-		else {
-			C.DIALOGUE.RELATIONS["Asha"] -= 10;
-			C.DIALOGUE.RELATIONS["Penelope"] -= 10;
-			msg = "*GREY*Penelope scowls. Asha seems annoyed as well.*GREEN* It's always a pleasure to talk to customers.\n";
-		}
-		this.ended = true;
-		return msg;
-	});
+	let relationChange = false;
 	
-	var alright = new Step("It's alright.", function(C) {
-		this.ended = true;
-		return "If you give it some time, I'm sure you'll learn to love it here.\n";
-	});
-	
-	var veryNice = new Step("It's very nice. I'll probably be returning often.", function(C) {
-		let msg = "That'd be wonderful. I look forward to talking to you more often.\n";
-		C.DIALOGUE.RELATIONS["Penelope"] += 5;
-		this.ended = true;
-		return msg;
-	});
-	
-	var acceptDrink = new Step("A drink sounds great, thanks.", function(C) {
-		takeItem(C, COPY(findItem(items, "Penelope's Brew")));
-		msg = "*GREY*Penelope hands you a drink with a slight smile.\n";
-		this.ended = true;
-		return msg;
-	});
-	
-	var refuseDrink = new Step("Oh, no thank you.", function(C) {
-		msg = "*GREY*Penelope seems slightly hurt.*GREEN*Oh, I guess you're busy. Another time, maybe?\n";
-		C.DIALOGUE.RELATIONS["Penelope"]--;
-		this.ended = true;
-		return msg;
-	});
-	
-	var lovely = new Step("It's as lovely as its keeper.", function(C) {
-		let msg = "";
-		let ran = rand(3);
-		if (C.DIALOGUE.RELATIONS["Penelope"] >= 15) {
-			ran = 0;
+	for (const key of Object.keys(relations)) {
+		if (C.DIALOGUE.RELATIONS[key] > relations[key]) {
+			msg += "\n*GREY*Your relation with " + key + " has improved.";
+			relationChange = true;
 		}
-		if (ran == 0) {
-			C.DIALOGUE.RELATIONS["Penelope"] += 5;
-			C.ROMANCE["Penelope"] = true;
-			if (C.INVENTORY.length < 5 || (C.BACKPACK && C.INVENTORY.length < 15)) {
-				msg = "*GREY*Penelope blushes . . .*GREEN*That's very kind of you. How about a drink? On the house, of course.\n";
-				this.responses = [acceptDrink, refuseDrink];
-			}
-			else {
-				msg = "*GREY*Penelope blushes . . .*GREEN*That's very kind of you. I'd offer you a drink, but I can see your hands are full.\n";
-			}
+		else if (C.DIALOGUE.RELATIONS[key] < relations[key]) {
+			msg += "\n*GREY*Your relation with " + key + " has worsened.";
+			relationChange = true;
 		}
-		else {
-			C.DIALOGUE.RELATIONS["Penelope"] -= 5;
-			msg = "*GREY*Penelope forces a smile and looks away. *GREEN*I'd better get back to cleaning the bar.\n";
-			this.ended = true;
-		}
-		return msg;
-	});
-	
-	var P_BasicGreeting = new Step("BasicGreeting", function(C) {
-		let msg = "";
-		let ran = rand(2);
-		if (ran == 0) {
-			msg = "*GREEN*Oh! It's a pleasure to meet you. I'm Penelope, the tavernkeeper. I hope you enjoy your stay in our village.\n";
-		}
-		if (ran == 1) {
-			msg = "*GREEN*Greetings, stranger. I'm Penelope, the propietor of this tavern. Rooms are five gold a night.\n";
-		}
-		msg += "\nWhat do you think of the place?\n";
-		this.responses = [uglySty, alright, veryNice, lovely];
-		return msg;
-	});
-	
-	var P_CharmedGreeting = new Step("CharmedGreeting", function(C) {
-		C.DIALOGUE.RELATIONS["Penelope"] += 5;
-		let msg = "";
-		let ran = rand(2);
-		if (ran == 0) {
-			C.DIALOGUE.RELATIONS["Penelope"] += 10;
-			msg = "It's so nice to finally meet you. I've heard so, so much about you.\n";
-		}
-		if (ran == 1) {
-			msg = "Hey. I've seen you here before, I think. It's nice to finally make your acquaintance.\n";
-		}
-		msg += "\nSo, what are your thoughts on my tavern?\n";
-		this.responses = [uglySty, alright, veryNice, lovely];
-		return msg;
-	});
-	
-	PenelopeGreeting.condition = function(C) {
-		console.log("Evaluating condition . . .");
-		console.log(C.DIALOGUE);
-		let index = C.DIALOGUE.EVENTS.indexOf("PenelopeGreeting");
-		console.log(index);
-		if (C.DIALOGUE.EVENTS.indexOf("PenelopeGreeting") == -1) {
-			return true;
-		}
-		return false;
 	}
 	
-	PenelopeGreeting.init = function(C) {
-		C.DIALOGUE.EVENTS.push("PenelopeGreeting");
-		C.DIALOGUE.EVENT = this;
-		if (C.LEVEL > 3) {
-			C.DIALOGUE.STEP = P_CharmedGreeting;
-		}
-		else {
-			C.DIALOGUE.STEP = P_BasicGreeting;
-		}
-		return C.DIALOGUE.STEP.event(C);
+	if (relationChange) {
+		msg += "\n";
 	}
 	
-	PenelopeGreeting.ignore = function(C) {
-		let msg = "*RED*Penelope scoffs as you exit the tavern, clearly annoyed. . .\n";
-		C.DIALOGUE.RELATIONS["Penelope"] -= 5;
-		return msg;
+	if (C.DIALOGUE.STEP == null) {
+		msg += "\n*BLACK*You end your conversation with " + speaker + ". . .\n"; 
 	}
 	
-	dialogues.push(PenelopeGreeting);
+	return msg;
 }
 
-var steps = [];
+function Tag(step, textColor = "GREEN") {
+	return "*GREY*" + step.speaker + ": *" + textColor + "*"
+}
+
 function initEvents() {
-	events.push(new DialogueEvent("Penelope", "PenelopeGreeting", 
+	events.push(new Event("Penelope", "PenelopeGreeting", 
 	function(C) {
-		if (C.DIALOGUE.EVENTS.indexOf("PenelopeGreeting") == -1) {
-			return true;
+		if (C.DIALOGUE.EVENTS["PenelopeGreeting"]) {
+			return false;
 		}
-		return false;
+		return true;
 	},
 	function(C) {
-		C.DIALOGUE.EVENTS.push("PenelopeGreeting");
-		C.DIALOGUE.EVENT = this;
-		if (C.LEVEL > 3) {
-			C.DIALOGUE.STEP = "CharmedGreeting";
-		}
-		else {
-			C.DIALOGUE.STEP = "BasicGreeting";
-		}
-		return C.DIALOGUE.STEP.event(C);
+		C.DIALOGUE.EVENTS["PenelopeGreeting"] = true;
+		C.DIALOGUE.STEP = findStep("Penelope", "BasicGreeting");
 	}));
-	steps.push(new Step("PenelopeGreeting", "", "CharmedGreeting", function(C) {
-		C.DIALOGUE.RELATIONS["Penelope"] += 5;
-		let msg = "";
-		let ran = rand(2);
-		if (ran == 0) {
-			C.DIALOGUE.RELATIONS["Penelope"] += 5;
-			msg = "It's so nice to finally meet you. I've heard so much about you. . .\n";
-		}
-		if (ran == 1) {
-			msg = "Hey. I've seen you here before, I think. It's nice to finally make your acquaintance.\n";
-		}
-		msg += "\nSo, what do you think of the tavern?\n";
-		return msg;
-	}));
-	steps.push(new Step("PenelopeGreeting", "", "BasicGreeting", function(C) {
+	steps.push(new Step("Penelope", "BasicGreeting", "", function(C) {
 		let msg = "";
 		let dialogue = [
-		"*GREEN*Oh! It's a pleasure to meet you. I'm Penelope, the tavernkeeper. I hope you enjoy your stay in our village.\n",
-		"*GREEN*Greetings, stranger. I'm Penelope, the propietor of this tavern. Rooms are five gold a night.\n"
+		"Oh! It's a pleasure to meet you. I'm Penelope, the keeper of this tavern. I hope you enjoy your stay in our village.\n",
+		"Greetings, stranger. I'm Penelope, the propietor of this tavern. Rooms are five gold a night.\n"
 		];
-		msg = dialogue[rand(dialogue.length)];
+		msg = "*GREEN*" + dialogue[rand(dialogue.length)];
 		msg += "\n*GREY*She gestures broadly to the tavern. *GREEN*What do you think of the place?\n";
+		this.responses = ["Sty", "Alright", "Nice"];
 		return msg;
 	}));
-	steps.push(new Step("PenelopeGreeting", ["BasicGreeting", "CharmedGreeting"], "It's an ugly sty, but it's not like there's other options.", function(C) {
-		let msg = "";
-		let ran = rand(4);
-		if (ran == 0) {
-			msg = "*GREY*Penelope laughs genuinely. *GREEN*Tell me what you really think. Enjoy your stay at this old sty.\n";
-			C.DIALOGUE.RELATIONS["Penelope"] += 1;
-		}
-		else {
-			C.DIALOGUE.RELATIONS["Asha"] -= 10;
-			C.DIALOGUE.RELATIONS["Penelope"] -= 10;
-			msg = "*GREY*Penelope scowls. Asha seems annoyed as well.*GREEN* It's always a pleasure to talk to customers.\n";
-		}
-		C.DIALOGUE.ACTIVE = false;
-		return msg;
-	}));
-	steps.push(new Step("PenelopeGreeting", ["BasicGreeting", "CharmedGreeting"], "It's alright.", function(C) {
-		C.DIALOGUE.ACTIVE = false;
-		return "If you give it some time, I'm sure you'll learn to love it here.\n";
-	}));
-	steps.push(new Step("PenelopeGreeting", ["BasicGreeting", "CharmedGreeting"], "It's very nice. I'll probably be returning often.", function(C) {
-		C.DIALOGUE.RELATIONS["Penelope"] += 5;
-		C.DIALOGUE.ACTIVE = false;
-		return "That'd be wonderful. I look forward to talking to you more often.\n";;
-	}));
-	steps.push(new Step("PenelopeGreeting", ["BasicGreeting", "CharmedGreeting"], "It's as lovely as its keeper.", function(C) {
+	steps.push(new Step("Penelope", "Sty", "It's an ugly sty, but it's not like there's other options.", function(C) {
 		let msg = "";
 		let ran = rand(3);
-		if (C.DIALOGUE.RELATIONS["Penelope"] >= 15) {
-			ran = 0;
-		}
 		if (ran == 0) {
-			C.DIALOGUE.RELATIONS["Penelope"] += 5;
-			C.ROMANCE["Penelope"] = true;
-			if (C.INVENTORY.length < 5 || (C.BACKPACK && C.INVENTORY.length < 15)) {
-				msg = "*GREY*Penelope blushes . . .*GREEN*That's very kind of you. How about a drink? On the house, of course.\n";
-				this.responses = [acceptDrink, refuseDrink];
-			}
-			else {
-				msg = "*GREY*Penelope blushes . . .*GREEN*That's very kind of you. I'd offer you a drink, but I can see your hands are full.\n";
-			}
+			msg += "*GREY*Penelope laughs genuinely.\n";
+			msg += "*GREEN*Tell me what you really think. Enjoy your stay at this old sty.\n";
+			C.DIALOGUE.RELATIONS["Penelope"] += 3;
 		}
 		else {
+			C.DIALOGUE.RELATIONS["Asha"] -= 5;
 			C.DIALOGUE.RELATIONS["Penelope"] -= 5;
-			msg = "*GREY*Penelope forces a smile and glances away. *GREEN*I'd better get back to cleaning the bar.\n";
-			this.ended = true;
+			msg = "*GREY*Penelope scowls. Asha, who's sitting at the bar, seems annoyed as well.\n\n";
+			msg += "*GREEN*It's always a pleasure to talk to customers.\n";
 		}
+		C.DIALOGUE.STEP = null;
 		return msg;
 	}));
-	
-	steps.push(new Step("PenelopeGreeting", ["BasicGreeting", "CharmedGreeting"], "It's as lovely as its keeper.", "A drink sounds great, thanks.", function(C) {
-		takeItem(C, COPY(findItem(items, "Penelope's Brew")));
-		msg = "*GREY*Penelope hands you a drink with a slight smile.\n";
-		this.ended = true;
-		return msg;
+	steps.push(new Step("Penelope", "Alright", "It's alright.", function(C) {
+		C.DIALOGUE.STEP = null;
+		return "*GREEN*If you give it some time, I'm sure you'll learn to love it here.\n";
 	}));
-	
-	var acceptDrink = new Step("A drink sounds great, thanks.", function(C) {
-		takeItem(C, COPY(findItem(items, "Penelope's Brew")));
-		msg = "*GREY*Penelope hands you a drink with a slight smile.\n";
-		this.ended = true;
-		return msg;
-	});
-	
-	steps.push(new Step("PenelopeGreeting", ["It's as lovely as its keeper."], "Oh, no thank you.", function(C) {
-		msg = "*GREY*Penelope seems slightly hurt.*GREEN*Oh, I guess you're busy. Another time, maybe?\n";
-		C.DIALOGUE.RELATIONS["Penelope"]--;
-		this.ended = true;
-		return msg;
+	steps.push(new Step("Penelope", "Nice", "It's very nice. I'll probably be returning often.", function(C) {
+		C.DIALOGUE.RELATIONS["Penelope"] += 3;
+		C.DIALOGUE.STEP = null;
+		return "*GREEN*That'd be wonderful! I look forward to talking to you more often.\n";;
 	}));
 }
+
+initEvents();

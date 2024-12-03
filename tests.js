@@ -16,13 +16,11 @@ function testMonsters() {
 	}
 	let total = 0;
 	let i = 0;
-	for (const team of teams) {
-		let teamNames = [];
-		for (const enemy of team) {
-			teamNames.push(enemy.NAME);
+	for (const enemy of enemies) {
+		if (enemy.ZONES.length > 0) {
+			wins.push({index: i, wins: 0, battles: 0, name: "", cost: 0, team: [enemy.NAME], turns: 0});
+			i++;
 		}
-		wins.push({index: i, wins: 0, battles: 0, name: "", cost: 0, team: teamNames, turns: 0});
-		i++;
 	}
 	for (let i = 0; i < wins.length; i++ ){
 		let teamName = "";
@@ -141,9 +139,9 @@ function runBattle(teamOne, teamTwo, index, channel = null) {
 	}
 	let msg = "";
 	while (battle.started && turns++ < 10000 && (battle.allies.length + battle.enemies.length < 100)) {
-		msg += HandleCombat(battle, false, true) + "\n";
-		if (channel && battle.started && (battle.allies.length + battle.enemies.length < 100)) {
-			msg += DrawCombat(battle) + "\n";
+		msg = HandleCombat(battle, false, true) + "\n";
+		if (channel) {
+			PrintMessage(parseText(msg), channel);
 		}
 	}
 	if (battle.allies.length > 0) {
@@ -170,7 +168,7 @@ function runBattle(teamOne, teamTwo, index, channel = null) {
 	}
 	results[2] = turns;
 	if (channel) {
-		PrintMessage(parseText(msg), channel);
+		//PrintMessage(parseText(msg), channel);
 	}
 	return results;
 }

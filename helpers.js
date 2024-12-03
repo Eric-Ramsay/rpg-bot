@@ -109,9 +109,9 @@ function CanTake(C, item) {
 
 function itemName(item) {
 	let name = item.name;
-	if (item.type == "weapon" || item.type == "armor") {
+	if (item.runes) {
 		for (const rune of item.runes) {
-			item += "+";
+			name += "+";
 		}
 	}
 	return name;
@@ -327,6 +327,16 @@ function AddEffect(C, eName, duration, attacker = null, target = null, stacks = 
 	return msg;
 }
 
+function findStep(speaker, id) {
+	for (const step of steps) {
+		if (step.speaker.toLowerCase() == speaker.toLowerCase() && step.id.toLowerCase() == id.toLowerCase()) {
+			return step;
+		}
+	}
+	console.log("Couldn't find step with speaker '" + speaker + "' and id '" + id + "'!");
+	return steps[0];
+}
+
 function findThing(list, target) {
 	let index = -1;
 	index = parseInt(target) - 1;
@@ -453,7 +463,7 @@ function Heal(C, health, overheal = false) {
 	let startHP = C.HP;
 	let amount = health;
 	let multiplier = 1;
-	if (hasRune(C, "vine")) {
+	if (hasRune(C, "vine") && C.HP < MaxHP(C)/2) {
 		multiplier *= 1.5;
 	}
 	if (hasEffect(C, "poison")) {
@@ -479,6 +489,36 @@ function Heal(C, health, overheal = false) {
 		return "";
 	}
 	return "*PINK*" + Prettify(Name(C)) + " is healed for " + (C.HP - startHP) + " HP!\n";
+}
+
+function shitSort(list, property, flip = false) {
+	let sorted = [];
+	while (list.length > 0) {
+		let max = 0;
+		for (let i = 1; i < list.length; i++) {
+			if (list[i][property] > list[max][property]) {
+				max = i;
+			}
+			else if (list[i][property] == list[max][property]) {
+				if (list[i].NAME && list[max].NAME) {
+					if (list[i].NAME < list[max].NAME) {
+						max = i;
+					}
+				}
+				else if (list[i].name && list[max].name) {
+					if (list[i].name < list[max].name) {
+						max = i;
+					}
+				}
+			}
+		}
+		sorted.push(list[max]);
+		list.splice(max, 1);
+	}
+	if (flip) {
+		return sorted.reverse();
+	}
+	return sorted;
 }
 
 function prepMerchant() {
@@ -531,10 +571,10 @@ function RemoveItem(C, index) {
 function startItem(item) {
 	for (let i = 0; i < items.length; i++) {
 		if (items[i].name.toLowerCase() == item.toLowerCase()) {
-			let item = COPY(items[i])
-			return item;
+			return COPY(items[i])
 		}
 	}
+	return items[0];
 }
 
 function findTarget(list, target) {
@@ -838,7 +878,7 @@ function MaxHP(C) {
 		bonus += 15;
 	}
 	if (isEquipped(C, "Drowned Armor")) {
-		bonus -= 20;
+		bonus -= 25;
 	}
 	if (hasRune(C, "fortified")) {
 		bonus += 3 * C.STATS[VIT];

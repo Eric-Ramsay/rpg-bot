@@ -2,7 +2,7 @@ function ListCommands(index) {
 	let msg = "";
 	msg += "--- Available Queries ---\n";
 	if (index == -1) {
-		msg += "*CYAN*!tutorial - Provides a list of commands to use when getting started.\n";
+		msg += "*CYAN*!tutorial - *GREY*Provides a list of commands to use when getting started.\n";
 		msg += "*GREEN*!character CLASS NAME *GREY*- Creates a new Character. Name and Class are optional, or can be set as RANDOM.\n";
 		msg += "*CYAN*!stats *GREY*- Describes what character stats do.\n";
 		msg += "*GREEN*!equip ITEM *GREY*- Equips armor or a weapon.\n";
@@ -81,6 +81,12 @@ function CommandDescribe(words, C, battleIndex) {
 		index = findItem(battles[battleIndex].loot, args);
 		if (index > -1) {
 			return ItemDescription(C, battles[battleIndex].loot[index]);
+		}
+	}
+	if (C.BUILDING.toLowerCase() == "bank") {
+		index = findItem(data[C.DISCORD_ID].BANK, args);
+		if (index > -1) {
+			return ItemDescription(C, data[C.DISCORD_ID].BANK[index]);
 		}
 	}
 	index = findItem(C.INVENTORY, args);
@@ -473,9 +479,6 @@ function CommandAttack(words, C, battleIndex) {
 	if (weapons[0] == null && weapons[1] == null) {
 		return "*RED*You must equip a weapon to be able to attack!\n";
 	}
-	if (C.AP < weapons[0].AP && C.AP < weapons[1].AP) {
-		return "*RED*You don't have enough AP to attack with this weapon!\n";
-	}
 	
 	//Find Target
 	let index = parseInt(words[1].slice(1, words[1].length));
@@ -529,7 +532,9 @@ function CommandAttack(words, C, battleIndex) {
 	
 	let range = Math.abs(battle.enemies[index].ROW - C.ROW);
 	if (C.AP < weapons[weapon].AP || weapons[weapon].attacks[0] <= 0 || range >= weapons[weapon].range) {
-		weapon = 1 - weapon;
+		if (weapons[1 - weapon]) {
+			weapon = 1 - weapon;
+		}
 	}
 	if (C.AP < w_AP(C, weapons[weapon])) {
 		return "*RED*You don't have enough AP to use your weapon.\n";
@@ -570,6 +575,7 @@ function CommandLeave(C, index) {
 			}
 			msg += "You are no longer delving deeper. . .\n";
 			msg += RoomDescription(C);
+			PurgeBattles();
 		}
 	}
 	else if (C.TRADING != "") {
@@ -823,8 +829,63 @@ function CommandFlee(C, index) {
 	return msg;
 }
 
+function CommandWithdraw(words, C) {
+	let msg = "";
+	if (C.BUILDING.toLowerCase() != "bank") {
+		return "*RED*You must be at the bank to make a withdraw!\n";
+	}
+	if (C.GOLD < 25) {
+		return "*RED*There is a 25 gold fee to withdraw items from your bank vault!\n";
+	}
+	let args = words.slice(1, words.length).join(" ");
+	let index = findItem(data[C.DISCORD_ID].BANK, args);
+	if (index > -1) {
+		let item = COPY(data[C.DISCORD_ID].BANK[index]);
+		if (!CanTake(C, item)) {
+			return "*RED*You don't have room in your inventory for that!\n";
+		}
+		C.GOLD -= 25;
+		C.INVENTORY.push(item);
+		data[C.DISCORD_ID].BANK.splice(index, 1);
+		msg = "*GREEN*You pay *YELLOW*25 gold*GREEN* and withdraw the *CYAN*" + item.name + "*GREEN* from your vault.\n\n";
+		msg += RoomDescription(C);
+		return msg;
+	}
+	return "*RED*That item couldn't be found in your vault!\n";
+}
+
+function CommandDeposit(words, C) {
+	let msg = "";
+	if (C.BUILDING.toLowerCase() != "bank") {
+		return "*RED*You must be at the bank to make a deposit!\n";
+	}
+	if (data[C.DISCORD_ID].BANK.length >= 5) {
+		return "*RED*Your bank vault is already full! Withdraw some items first!\n";
+	}
+	let args = words.slice(1, words.length).join(" ");
+	let index = findItem(C.INVENTORY, args);
+	if (index > -1) {
+		if (C.INVENTORY[index].equipped) {
+			return "*RED*Dequip this item first.\n";
+		}
+		if (C.INVENTORY[index].type == "pole") {
+			return "*RED*A bank vault is no place to store fishing supplies!\n";
+		}
+		let item = COPY(C.INVENTORY[index]);
+		data[C.DISCORD_ID].BANK.push(item);
+		C.INVENTORY.splice(index, 1);
+		msg = "*GREEN*You deposit the *CYAN*" + item.name + "*GREEN* in your vault.\n\n";
+		msg += RoomDescription(C);
+		return msg;
+	}
+	return "*RED*That item couldn't be found in your inventory!\n";
+}
+
 function CommandTake(words, C, index) {
 	let msg = "";
+	if (index == -1) {
+		return "*RED*There's no loot here to pick up.\n";
+	}
 	//Two Parts Expected: Item Index and # to take
 	let args = words.slice(1, words.length).join(" ");
 	let num = 1;
@@ -971,13 +1032,13 @@ function CommandDrink(words, C) {
 	let args = words.slice(1, words.length).join(" ");
 	let invIndex = findItem(C.INVENTORY, args);
 	if (invIndex == -1) {
-		return "*RED*Can't find item '" + args + "'";
+		return "*RED*Can't find item '" + args + "'\n";
 	}
 	if (hasEffect(C, "parched")) {
 		return "*RED*You can't eat drink anything!\n";
 	}
 	if (C.INVENTORY[invIndex].type != "fish" && C.INVENTORY[invIndex].type != "potion" && C.INVENTORY[invIndex].type != "drink") {
-		return "*RED*You can't eat or drink that.";
+		return "*RED*You can't eat or drink that.\n";
 	}
 	let name = C.INVENTORY[invIndex].name.toLowerCase();
 	if (name == "health potion") {
@@ -1005,12 +1066,21 @@ function CommandDrink(words, C) {
 		}
 	}
 	if (name == "warp potion") {
-		if (battles[index].level == 4) {
+		let index = BattleIndex(C.ID);
+		if (index > -1 && battles[index].level == 4) {
 			return "*RED*You drink the potion, but the aura of evil is too strong to escape!\n";
 		}
-		
-		let spot = rand(locations.length);
-		Travel(C, spot, BattleIndex(C.ID));
+		if (index > -1) {
+			let battle = battles[index];
+			for (let a = battle.allies.length - 1; a >= 0; a--) {
+				if (battle.allies[a].ID == C.ID) {
+					battle.allies.splice(a, 1);
+					break;
+				}
+			}
+		}
+		let spot = locations[rand(locations.length)];
+		Travel(C, spot, index);
 		msg = "*GREEN*You drink the warp potion and you're whisked away to safety!\n\n";
 		msg += RoomDescription(C);
 		return msg;
@@ -1071,6 +1141,24 @@ function CommandDrink(words, C) {
 	return msg;
 }
 
+function CommandReply(words, C) {
+	if (!C.DIALOGUE.STEP) {
+		return "*RED*You aren't talking to anybody!\n";
+	}
+	let msg = "";
+	let args = words.slice(1, words.length).join(" ");
+	let index = parseInt(args) - 1;
+	let i = 0;
+	for (const reply of C.DIALOGUE.STEP.responses) {
+		let step = findStep(C.DIALOGUE.STEP.speaker, reply);
+		if (i++ === index || args.toLowerCase() == step.text) {
+			C.DIALOGUE.STEP = step;
+			return ProcessDialogue(C);
+		}
+	}
+	return "*RED*Couldn't find a reply that matched what you said.\n";
+}
+
 function CommandTalk(words, C) {
 	let msg = "";
 	let args = words.slice(1, words.length);
@@ -1098,13 +1186,15 @@ function CommandTalk(words, C) {
 	if (!NPC) {
 		return "*RED*Can't find '" + args + "'\n";
 	}
-	for (const dialogue of dialogues) {
+	for (const dialogue of events) {
 		if (dialogue.speaker == NPC.NAME) {
 			if (dialogue.condition(C)) {
-				let msg = dialogue.init(C);
+				dialogue.init(C);
+				let msg = ProcessDialogue(C);
 				let i = 1;
 				for (const response of C.DIALOGUE.STEP.responses) {
-					msg += "\n*BLACK*" + i++ + ") *YELLOW*" + response.trigger;
+					let step = findStep(C.DIALOGUE.STEP.speaker, response);
+					msg += "\n*WHITE*" + i++ + " *BLACK*- *YELLOW*" + step.text;
 				}
 				msg += "\n";
 				return msg;
@@ -1177,9 +1267,9 @@ function CommandSell(words, C) {
 	let msg = "";
 	let args = words.slice(1, words.length).join(" ");
 	let location = findLocation(C.LOCATION);
-	/*if (location.dungeon) {
+	if (location.dungeon) {
 		return "*RED*You must be in town to sell your items.\n";
-	}*/
+	}
 	let invIndex = findItem(C.INVENTORY, args, true);
 	if (invIndex == -1 || invIndex > C.INVENTORY.length) {
 		return "*RED*Can't find item '" + args + "'\n";

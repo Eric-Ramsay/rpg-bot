@@ -51,8 +51,9 @@ var runes = [];
 var weaponEffects = [];
 var statuses = [];
 var enemies = [];
-//var enemyLevels = [[], [], []];
-var teams = [];
+
+var zoneLoot = []
+var genericLoot = [];
 
 function COPY(obj) {
 	return JSON.parse(JSON.stringify(obj));
@@ -183,8 +184,17 @@ function deathCry(C, allies, enemies) {
 		else if (C.NAME == "Crazed Wolf") {
 			msg += "*YELLOW*" + Prettify(Name(C)) + " whimpers and dies.\n";
 		}
+		else if (C.NAME == "Bronze Bellbeast") {
+			msg += "*YELLOW*There's a terrible clatter as the Bronze Bellbeast falls to the ground!\n";
+			for (let i = 0; i < enemies.length; i++) {
+				msg += DealDamage(new T_Attack(8 + rand(8)), allies, C, enemies, enemies[i])[0];
+			}
+		}
 		else if (C.NAME == "Swamp Ape") {
 			msg += "*YELLOW*The light fades from " + Name(C) + "'s eyes.\n";
+		}
+		else if (C.NAME == "Water Elemental") {
+			msg += "*YELLOW*The Water Elemental bursts into rising steam!\n";
 		}
 		else if (C.NAME == "Raging Boar") {
 			msg += "*YELLOW*" + Prettify(Name(C)) + " lets out one final, pained snort before it falls heavily to the dirt.\n";
@@ -284,7 +294,7 @@ function deathCry(C, allies, enemies) {
 		}
 		else if (C.NAME == "Egg Sac") {
 			msg += "*YELLOW*" + Prettify(Name(C)) + " bursts open, and Baby Spiders swarm out of it!\n";
-			let num = 2 + rand(2);
+			let num = 3 + rand(4);
 			for (let i = 0; i < num; i++) {
 				let slime = summon("Baby Spider", C.ROW);
 				slime.ROW = C.ROW;
@@ -447,7 +457,7 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 		}
 	}
 	
-	if (damage > 0 && target.BRACING) {
+	if (damage > 0 && target.BRACING && attack.type != TRUE_DAMAGE) {
 		target.BRACING = false;
 		let chance = rand(100);
 		if (chance < 50) {
@@ -472,10 +482,7 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 			RemoveEffect(target, "static");
 		}
 		if (hasEffect(target, "jade")) {
-			damage--;
-			if (damage > 10) {
-				damage = 10;
-			}
+			damage = Math.min(damage, Math.floor(MaxHP(target) * .15));
 		}
 		//Reporting
 		attacker.REPORT.damage += damage;
@@ -1051,24 +1058,6 @@ function Prettify(string) {
 	return val;
 }
 
-function shitSort(list, property, flip = false) {
-	let sorted = [];
-	while (list.length > 0) {
-		let max = 0;
-		for (let i = 1; i < list.length; i++) {
-			if (flip && list[i][property] < list[max][property]) {
-				max = i;
-			}
-			else if (list[i][property] > list[max][property]) {
-				max = i;
-			}
-		}
-		sorted.push(list[max]);
-		list.splice(max, 1);
-	}
-	return sorted;
-}
-
 function clearLastLine() {
   process.stdout.moveCursor(0, -1) // up one line
   process.stdout.clearLine(1) // from cursor to end
@@ -1142,7 +1131,13 @@ client.on('messageCreate', (rec) => {
 					CHARACTER: null
 				}
 			}
+			if (!data[id].BANK) {
+				data[id].BANK = [];
+			}
 			if (data[id].CHARACTER) {
+				if (!data[id].CHARACTER.DISCORD_ID) {
+					data[id].CHARACTER.DISCORD_ID = id;
+				}
 				for (let i = 0; i < data[id].CHARACTER.INVENTORY.length; i++) {
 					let item = data[id].CHARACTER.INVENTORY[i];
 					if (item.runes) {
@@ -1156,7 +1151,7 @@ client.on('messageCreate', (rec) => {
 					}
 				}
 				if (!data[id].CHARACTER.DIALOGUE) {
-					data[id].CHARACTER.DIALOGUE = new DialogueHandler()
+					data[id].CHARACTER.DIALOGUE = initDialogueHandler()
 				}
 				if (!data[id].CHARACTER.FISH) {
 					data[id].CHARACTER.FISH = [];
@@ -1214,7 +1209,8 @@ function parseText(msg, tabReplace = true) {
 	}
 	console.log("Deleted " + numDeletions + " colors.");
 	*/
-	let text = msg.split("*GREY*").join("[2;0m");
+	let text = SimplifyMessage(msg);
+	text = text.split("*GREY*").join("[2;0m");
 	text = text.split("*BLACK*").join("[2;30m");
 	text = text.split("*RED*").join("[2;31m");
 	text = text.split("*GREEN*").join("[2;32m");
@@ -1348,15 +1344,12 @@ function Inventory(C) {
 			let item = "---";
 			let isItem = false;
 			let isEquipped = false;
+			let rare = false;
 			if (i < C.INVENTORY.length) {
 				isItem = true;
 				isEquipped = C.INVENTORY[i].equipped;
-				item = C.INVENTORY[i].name;
-				if (C.INVENTORY[i].runes) {
-					for (const rune of C.INVENTORY[i].runes) {
-						item += "+";
-					}
-				}
+				item = itemName(C.INVENTORY[i]);
+				rare = C.INVENTORY[i].rare;
 				if (isEquipped && (C.INVENTORY[i].type == "weapon" || C.INVENTORY[i].type == "staff" || C.INVENTORY.type == "pole")) {
 					let equipStr = "";
 					if (C.LEFT == i) {
@@ -1374,12 +1367,14 @@ function Inventory(C) {
 				}
 			}
 			if (isItem) {
+				let color = "*GREY*";
 				if (isEquipped) {
-					item = "*BLUE*" + item + "*GREY*";
+					color = "*BLUE*";
 				}
-				else {
-					item = "*GREY*" + item + "*GREY*";
+				else if (rare) {
+					color = "*CYAN*";
 				}
+				item = color + item + "*GREY*";
 				if (C.INVENTORY[i].type == "weapon") {
 					let attacks = C.INVENTORY[i].attacks[0];
 					if (BattleIndex(C.ID) == -1) { 
@@ -1506,16 +1501,28 @@ function DrawGuildHall() {
 	return msg;
 }
 
+function DrawBank(C) {
+	let bank = data[C.DISCORD_ID].BANK;
+	let msg = "*WHITE*You're in your personal bank vault. You can *CYAN*!deposit*GREY* and *CYAN*!withdraw*GREY* items here. There's a *YELLOW*25 gold fee*GREY* to make withdraws.\n\n";
+	msg += "*YELLOW*BANK VAULT\n";
+	for (let i = 0; i < 5; i++) {
+		msg += "*RED*0" + (i+1) + "*GREY*) ";
+		if (i < bank.length) {
+			msg += itemName(bank[i]) + "\n";
+		}
+		else {
+			msg += "---\n";
+		}
+	}
+	return msg;
+}
+
 function DrawGraveyard() {
 	let graves = data["town"].graves;
 	let msg = "\nThere are " + graves.length + " graves in the graveyard.\n\n";
-	let unmarked = 0;
 	let worthy = [];
 	for (const death of graves) {
-		if (death.LEVEL <= 2) {
-			unmarked++;
-		}
-		else {
+		if (death.LEVEL > 2) {
 			worthy.push(death);
 		}
 	}
@@ -1528,8 +1535,6 @@ function DrawGraveyard() {
 		}
 		msg += "\n";
 	}
-	msg += "\n*GREY*";
-	msg += unmarked + " of the graves are unmarked, having been left by adventurers who were too insignificant to be remembered. . .\n";
 	return msg;
 }
 
@@ -1646,6 +1651,11 @@ function RoomDescription(C) {
 	}
 	if (C.BUILDING.toLowerCase() == "guild hall") {
 		msg += DrawGuildHall();
+	}
+	if (C.BUILDING.toLowerCase() == "bank") {
+		msg += DrawBank(C);
+		msg += "\n";
+		msg += Inventory(C);
 	}
 	return msg;
 }
@@ -1912,17 +1922,12 @@ function DrawCombat(battle) {
 	if (battle.loot.length > 0) {
 		let lootStr = "\n*GREY*Loot\n"
 		for (let i = 0; i < battle.loot.length; i++) {
-			let name = battle.loot[i].name;
-			if (battle.loot[i].type == "weapon" || battle.loot[i].type == "armor") {
-				for (const rune of battle.loot[i].runes) {
-					name += "+";
-				}
+			let name = itemName(battle.loot[i]);
+			let color = "*GREY*";
+			if (battle.loot[i].rare) {
+				color = "*CYAN*";
 			}
-			if (name.length > 30) {
-				name = name.substring(0, 17);
-				name += "...";
-			}
-			lootStr += "*PINK*" + (i + 1).toString().padStart(2, '0') + "*GREY*) " + name + "\n";;
+			lootStr += "*PINK*" + (i + 1).toString().padStart(2, '0') + "*GREY*) " + color + name + "\n";;
 		}
 		battleStr += lootStr+"\n";
 	}
@@ -2009,29 +2014,40 @@ function DrawTrade(C) {
 			tempStrings[2] = StackStrings(armor, APStr, 10);
 		}
 		else if (item.description) {
-			let color = " *CYAN*";
+			let color = "*CYAN*";
 			if (item.type == "staff") {
-				color = " *RED*";
+				color = "*RED*";
 			}
 			if (item.type == "scroll" || item.type == "spellbook") {
-				color = " *PINK*";
+				color = "*PINK*";
 			}
-			tempStrings[1] = color + item.description;
+			tempStrings[2] = color + item.description;
 		}
-		tempStrings[3] += "*YELLOW*" + item.value;
+		tempStrings[3] = "*YELLOW*" + item.value;
 		for (let i = 0; i < strings.length; i++) {
 			lengths[i] = Math.max(lengths[i], measureText(tempStrings[i]));
 			strings[i] += tempStrings[i] + "\n";
 		}
 	}
 	let itemStr = strings[0];
-	let len = lengths[0] + 2;
+	let len = lengths[0] + 1;
+	/*for (let i = strings.length - 1; i >= 0; i--) {
+		let hasText = false;
+		for (const str of strings[i]) {
+			if (str != "\n") {
+				hasText = true;
+			}
+		}
+		if (!hasText) {
+			strings.splice(i, 1);
+		}
+	}*/
 	for (let i = 1; i < strings.length; i++) {
 		itemStr = StackStrings(itemStr, strings[i], len);
 		len += (5 + lengths[i]);
 	}
 	msg += itemStr;
-	msg += "\n*GREY*Your Gold: *YELLOW*" + C.GOLD;
+	msg += "\n*GREY*Your Gold: *YELLOW*" + C.GOLD + "\n";
 	return msg;
 }
 
@@ -2110,6 +2126,41 @@ function runeDamage(baseDmg, attacks, hands, chance, mult, mask = [false, false,
 	}
 }
 
+function SimplifyMessage(message) {
+	let msg = "";
+	let lines = message.split("\n");
+	let dict = new Object({});
+	for (const line of lines) {
+		if (line.trim() != "") {
+			if (dict[line] == null) {
+				dict[line] = 1;
+			}
+			else {
+				dict[line]++;
+			}
+		}
+	}
+	
+	for (const line of lines) {
+		if (lines.length > 30 && line.includes("moves") && (line.includes("left") || line.includes("right"))) {
+			dict[line] = null;
+		}
+		else if (dict[line] == 1 || line.trim() == "") {
+			msg += (line + "\n");
+		}
+		else if (dict[line]) {
+			msg += line + " *WHITE*(x" + dict[line] + ")\n";
+		}
+		dict[line] = null;
+	}
+	
+	msg = msg.split("\n\n\n").join("\n\n");
+	msg = msg.split("\n\n\n").join("\n\n");
+	msg = msg.split("\n\n\n").join("\n\n");
+	
+	return msg;
+}
+
 function Command(message) {
 	let words = message.content.substring(1).toLowerCase().split(" ");
 	for (let i = 0; i < words.length; i++) {
@@ -2123,14 +2174,14 @@ function Command(message) {
 	let index = -1;
 	let numRepeat = 1;
 	
-	let requireCharacter = ["fishing", "row", "servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "disenchant", "enchant", "level", "stop", "move", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "eat", "read", "learn", "order", "buy", "sell", "spells"];
+	let requireCharacter = ["deposit", "withdraw", "fishing", "row", "servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "disenchant", "enchant", "level", "stop", "move", "mvoe", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "eat", "read", "learn", "order", "buy", "sell", "spells"];
 	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "guard", "brace"];
 	
 	for (let i = 0; i < requireBattle.length; i++) {
 		requireCharacter.push(requireBattle[i]);
 	}
-	if ((keyword == "normal" || keyword == "silly" || requireCharacter.indexOf(keyword) > -1) && words[words.length - 1][0] == "x" && words[words.length - 1].length == 2) {
-		numRepeat = parseInt(words[words.length - 1][1]);
+	if ((keyword == "normal" || keyword == "silly" || requireCharacter.indexOf(keyword) > -1) && words[words.length - 1][0] == "x" && words[words.length - 1].length <= 3) {
+		numRepeat = parseInt(words[words.length - 1].substring(1));
 		if (isNaN(numRepeat) || numRepeat == 0) {
 			numRepeat = 1;
 		}
@@ -2283,6 +2334,9 @@ function Command(message) {
 		}
 		else if (keyword == "delve") {
 			if (index > -1) {
+				if (battles[index].started) {
+					return "*RED*You must be out of combat before you can delve deeper.\n";
+				}
 				if (battles[index].zone == 2) {
 					if (battles[index].level < 4) {
 						msg += "If you delve this deep, you won't be able to find your way back. You sense that a terrible presence lurks here. . .\n\n";
@@ -2338,7 +2392,7 @@ function Command(message) {
 				msg = "*RED*You're already braced!\n";
 			}
 			else if (C.STAMINA >= 6) {
-				C.AP -= 6;
+				C.STAMINA -= 6;
 				C.BRACING = true;
 				msg += "*YELLOW*" + C.NAME + " braces themselves!\n";
 				msg += HandleCombat(battles[index]);
@@ -2415,8 +2469,9 @@ function Command(message) {
 		else if (keyword == "leave") {
 			msg += CommandLeave(C, index);
 		}
-		else if (keyword == "go" || keyword == "move" || keyword == "enter" || keyword == "travel" || keyword == "leave") {
+		else if (keyword == "go" || keyword == "mvoe" || keyword == "move" || keyword == "enter" || keyword == "travel" || keyword == "leave") {
 			msg += CommandTravel(COPY(words), C, index);
+			PurgeBattles();
 			if (i == numRepeat - 1) {
 				msg += RoomDescription(C);
 			}
@@ -2427,8 +2482,14 @@ function Command(message) {
 		else if (keyword == "trade") {
 			msg += CommandTrade(COPY(words), C);
 		}
+		else if (keyword == "reply") {
+			msg += CommandReply(COPY(words), C);
+		}
 		else if (keyword == "talk") {
 			msg += CommandTalk(COPY(words), C);
+		}
+		else if (keyword == "clear") {
+			C.DIALOGUE = initDialogueHandler();
 		}
 		else if (keyword == "accuracy") {
 			let l_accuracy = Math.floor(100 * C.HITS[LEFT]/C.ATTEMPTS[LEFT])/100;
@@ -2444,6 +2505,12 @@ function Command(message) {
 		}
 		else if (keyword == "take") {
 			msg += CommandTake(COPY(words), C, index);
+		}
+		else if (keyword == "deposit") {
+			msg += CommandDeposit(COPY(words), C);
+		}
+		else if (keyword == "withdraw") {
+			msg += CommandWithdraw(COPY(words), C);
 		}
 		else if (keyword == "suicide") {
 			C.HP = 0;
@@ -2463,6 +2530,7 @@ function Command(message) {
 				data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.REPORT, C.DESCRIPTION));
 			}
 			C = null;
+			PurgeBattles();
 		}
 		else if (keyword == "inventory") {
 			return Inventory(C);
@@ -2686,7 +2754,7 @@ function Command(message) {
 			msg = StackStrings(msg, scaling, 70);
 		}
 		else if (keyword == "sleep" || keyword == "rest" || keyword == "heal") {
-			if (C.HP == MaxHP(C)) {
+			if (C.HP >= MaxHP(C)) {
 				return "*RED*You're already full HP."
 			}
 			if (C.CLASS == "monk" && C.BUILDING.toLowerCase() == "church") {
@@ -2712,7 +2780,7 @@ function Command(message) {
 						"The wind shakes the shutters to your room.",
 						"You hear rain tapping on the roof above you."
 						]
-						msg += "*GREEN*You pay five gold to sleep at the tavern. " + dialogues[rand(dialogues.length)] + "\n";
+						msg += "*GREEN*You pay five gold to sleep at the tavern. *GREY*" + dialogues[rand(dialogues.length)] + "\n";
 					}
 					C.GOLD -= 5;
 					data["town"].prosperity += 5;
@@ -2760,7 +2828,24 @@ function Command(message) {
 		else if (keyword == "cheat") {
 			if (message.author.id == "462829989465948180") {
 				console.log(words);
-				if (words[1].toLowerCase() == "gold") {
+				if (!words[1] || words[1].toLowerCase() == "character") {
+					C.SPELLS = [];
+					for (let i = 0; i < spells.length; i++) {
+						C.SPELLS.push(spells[i].name);
+					}
+					C.LEVEL = 10;
+					C.CURSED = true;
+					C.SP = 100;
+					C.GOLD = 10000;
+					return "*RED*Level set to 10. Gold set to 10,000. SP set to 100.\n";
+				}
+				else if (words[1].toLowerCase() == "level") {
+					let amount = COPY(words).slice(2, COPY(words).length).join(" ");
+					let value = parseInt(amount);
+					C.LEVEL = value;
+					return "*GREEN*Level set to " + amount + ".\n";
+				}
+				else if (words[1].toLowerCase() == "gold") {
 					let amount = COPY(words).slice(2, COPY(words).length).join(" ");
 					let value = parseInt(amount);
 					C.GOLD = value;
@@ -2780,17 +2865,6 @@ function Command(message) {
 						}
 					}
 					return "*RED*Item not found " + item + "!\n";
-				}
-				else if (words[1].toLowerCase() == "character") {
-					C.SPELLS = [];
-					for (let i = 0; i < spells.length; i++) {
-						C.SPELLS.push(spells[i].name);
-					}
-					C.LEVEL = 10;
-					C.CURSED = true;
-					C.SP = 100;
-					C.GOLD = 10000;
-					return "*RED*Level set to 10. Gold set to 10,000. SP set to 100.\n";
 				}
 			}
 			else {

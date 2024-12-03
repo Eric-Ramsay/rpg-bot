@@ -1,31 +1,42 @@
 Feature Ideas
 =============
-- Premade Boss Fights
+- Finals Boss for Acrid Swamp, Stony Island, & Haunted Crypts
 - Renown System
 - Dialogue Rework
-- Purpose for Fishing / Drinks
+- Purpose for Drinks
 - Hiring Party Members
 - Mounts
 - Random Allies in Dungeons	
+- Trait System
+- Icy Mountain Zone
+- Crystal Cave Zone
 
+
+- UI Fix for Wandering Merchant
+	
 Enemy Ideas
 ===========
+- Late Game Enemies to Add / Minibosses
+	- Witchlord (500)
+
+- Rework Enemies to Raise their difficulty:
+	- Dirge (500)
+	- Risen Whale (500)
+	- Forest Demon (500)
+
+- Enemy that places a pavise shield that blocks damage on one side of the shield
 - Glutton -> Eats a player
 
 Rune Ideas
 ==========
 Death Mark should be a debuff rather than a proc
 
-
 Other Ideas
 ===========
 - Confused Effect -> Enemy attacks other enemies
 
-
 Spell Ideas
 ===========
-
-
 
 Ideas to add
 
@@ -41,14 +52,6 @@ Add traits to choose from
 
 Add hirable party members
 
-
-- Dialogue Overhaul
-- Hirable Party Members
-- More Final Bosses
-- Trait System
-- Icy Mountain Zone
-- Crystal Cave Zone
-	
 	
 Dialogue System Ideas
 =====================
@@ -56,32 +59,6 @@ Dialogue System Ideas
 - Relation - How much they like you. Affects what they say to you.
 - Familiarity - How well they know you. It's the sum of your spent points with them.
 - Interest - How much they want to talk to you right now. A currency you spend on dialogue options. Increases over time.
-
-Ask about places
-- Church
-- Rune Shop
-- Tavern
-- Apothecary
-- Tailor Shop
-- Curio Shop
-- Ferry
-
-
-Ask about people
-- Minsiki
-- Qarana
-- Terat
-- Tobin
-- Penelope
-- Asha
-- Clyde
-- Kobos
-- Florence
-- Nestra
-
-
-
-
 
 Improved Dialogue Manager & Interactions
 - Improved NPC interactions with player
@@ -98,20 +75,6 @@ Stats to store:
 - # of times talked to that NPC
 - variables for controlling unique dialogue events (ie to prevent dialogue from repeating)
 
-
-
-
-Late Game Enemies to Add / Minibosses
-- Witchlord (500)
-- Grand Architect (750)
-
-Rework Enemies to Raise their difficulty:
-- Dirge (500)
-- Risen Whale (500)
-- Forest Demon (500)
-
-
-
 New Classes
 ===========
 - Duelist: +2 WEP +1 DEX. Start with a Scimitar and a Buckler. Attacks have +10% hit chance and +10% damage, but you can only attack 1 unique enemy per turn.
@@ -122,7 +85,14 @@ New Classes
 - Druid: Transform into an animal (?)
 - Psychic: 
 - Brawler
+- Servant, has an NPC noble 
 
 
+Patch Notes
+===========
+- 3 new Classes: Duelist, Monk, Merchant
+- Loot system reworked to give more consistent loot
+- You have to go to town to sell items; items left in a dungeon will vanish if all players leave the dungeon
+- There's now a bank to deposit items at
 
 	

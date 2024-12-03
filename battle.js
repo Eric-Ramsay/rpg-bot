@@ -146,7 +146,7 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 				RemoveEffect(C, "guarding")
 				for (let j = 0; j < C.INVENTORY.length; j++) {
 					if (C.INVENTORY[j].type == "weapon") {
-						C.INVENTORY[j].attacks[0] = C.INVENTORY[j].attacks[1];
+						C.INVENTORY[j].attacks[0] = w_attacks(C, C.INVENTORY[j]);
 					}
 				}
 				C.STAMINA = Math.min(C.STAMINA + 2 * (1 + C.STATS[END]), MaxStamina(C));
@@ -350,19 +350,12 @@ function StartBattle(battle) {
 		console.log("Combat Difficulty: " + rating);
 		let quests = data["town"].quests;
 		let validEnemies = [];
-		let minRating = 0;
-		if (rating > 300) {
-			minRating = 50;
-		}
-		if (rating > 400) {
-			minRating = 70;
-		}
 		for (const enemy of enemies) {
-			if (validZone(enemy, battle.zone) && enemy.DIFFICULTY >= minRating && enemy.DIFFICULTY <= rating) {
+			if (validZone(enemy, battle.zone) && enemy.DIFFICULTY <= rating) {
 				validEnemies.push(enemy);
 			}
 		}
-		for (const quest of quests) {
+		/*for (const quest of quests) {
 			for (const enemy of enemies) {
 				if (enemy.NAME.toLowerCase() == quest.enemy.toLowerCase()) {
 					if (validZone(enemy, battle.zone) && enemy.DIFFICULTY <= rating) {
@@ -372,7 +365,7 @@ function StartBattle(battle) {
 					break;
 				}
 			}
-		}
+		}*/
 		if (rating > 200 && rand(100) <= 5) {
 			if (battle.zone == 0 || battle.zone == 2) {
 				validEnemies = [];
@@ -381,7 +374,7 @@ function StartBattle(battle) {
 						if (enemy.NAME != "Hiveling Larva") {
 							validEnemies.push(enemy);
 						}
-						if (enemy.NAME == "Hiveling Warrior") {
+						if (enemy.NAME == "Hiveling Warrior") { //Make sure there's at least one hiveling warrior
 							let temp = COPY(enemy);
 							temp.ID = temp.NAME + rating + rand(99999999999); 
 							rating -= temp.DIFFICULTY;
@@ -394,11 +387,35 @@ function StartBattle(battle) {
 		}
 		
 		validEnemies = shitSort(validEnemies, "DIFFICULTY");
-		
+		let baseDifficulty = 0;
+		if (rating > 300) {
+			baseDifficulty = Math.min(70, Math.min(validEnemies[0].DIFFICULTY, rating/5));
+		}
 		while (validEnemies.length > 0 && rating > 0) {
-			let index = rand((validEnemies.length));
-			if (battle.enemies.length < 3) {
-				index = rand(validEnemies.length/4);
+			if (validEnemies.length == 0 || validEnemies[0].DIFFICULTY < baseDifficulty) {
+				console.log("Bailing out with " + rating + " left over. Oh well.");
+				break;
+			}
+			let limit = validEnemies.length;
+			let minDifficulty = Math.floor(rating/3);
+			let forcedDiversity = 4;
+			if (validEnemies.length >= forcedDiversity) {
+				if (validEnemies[forcedDiversity].DIFFICULTY < minDifficulty) {
+					minDifficulty = validEnemies[forcedDiversity].DIFFICULTY;
+				}
+			}
+			for (let i = 0; i < validEnemies.length; i++) {
+				if (validEnemies[i].DIFFICULTY < minDifficulty) {
+					limit = Math.max(0, (i - 1));
+					break;
+				}
+			}
+			limit = Math.max(limit, Math.min(forcedDiversity, validEnemies.length));
+			let index = rand(limit);
+			console.log("");
+			console.log("Rating = " + rating);
+			for (let i = 0; i < limit; i++) {
+				console.log((i+1).toString().padStart(2, '0') + " " + StackStrings(validEnemies[i].NAME, validEnemies[i].DIFFICULTY, 20));
 			}
 			let temp = COPY(validEnemies[index]);
 			if (rand(8) == 0) {
@@ -436,7 +453,71 @@ function PurgeBattles() {
 	}
 }
 
+function generateLoot(enemyList, zone) {
+	let loot = [];
+	let lootValue = 0;	
+	let difficulty = 0;
+	
+	//Zone Loot
+	let dropList = zoneLoot[zone];
+	
+	//Enemy Loot
+	for (const enemy of enemyList) {
+		if (!enemy.SUMMONED) {
+			difficulty += enemy.DIFFICULTY;
+			dropList.concat(enemy.LOOT);
+		}
+	}
+	
+	//Handle Zone + Enemy Drops
+	for (const drop of dropList) {
+		let ran = rand(100);
+		if (ran <= drop.chance) {
+			let item = startItem(drop.name);
+			lootValue += item.value;
+			loot.push(item);
+		}
+	}
+	
+	//Generic Loot
+	let lootMax = Math.max(20, difficulty/3);
+	//let lootMin = Math.min(50, difficulty/20);
+	let maxIndex = genericLoot.length;
+	let minIndex = 0;
+	for (let i = 0; i < genericLoot.length; i++) {
+		//if (genericLoot[i].value >= lootMin) {
+		//	minIndex = i;
+		//}
+		if (genericLoot[i].value > lootMax) {
+			maxIndex = i;
+			break;
+		}
+	}
+	while (lootValue < lootMax) {
+		let index = rand(maxIndex);
+		let item = COPY(genericLoot[index]);
+		lootValue += item.value;
+		loot.push(item);
+	}
+	console.log(lootValue + "G worth of loot rewarded.");
+	
+	if (rand(5) == 0) {
+		let mimics = [
+			new Item("Stanima Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
+			new Item("Heolth Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
+			new Item("Armor", 			"mimic", 0, "It looks like metal, but it's pulsing . . ."),
+			new Item("Weapon", 			"mimic", 0, "It kind of looks like a sword, or maybe an axe. . ."),
+			new Item("Gold", 			"mimic", 0, "An amoprhous pile resembling coins."),
+			new Item("Potion", 			"mimic", 0, "A translucent bottle-shaped lump filled with what looks like blood."),
+			new Item("Gemstome", 		"mimic", 0, "A damp lump that almost resembles a ruby."),
+		]
+		loot.push(COPY(mimics[rand(mimics.length)]));
+	}
+	return loot;
+}
+
 function WinBattle(battle) {
+	let numPlayers = 0;
 	if (battle.level >= 4) {
 		for (let i = 0; i < battle.allies.length; i++) {
 			if (battle.allies[i].TYPE == "player") {
@@ -460,21 +541,17 @@ function WinBattle(battle) {
 	let msg = "";
 	battle.started = false;
 	msg += "*GREEN*The enemies are all slain!*GREY*\n";
-	//HANDLE LOOT
+	//Handle Player despawning/deaths & drop items they're carrying
 	for (let a = battle.allies.length - 1; a >= 0; a--) {
 		if (battle.allies[a].SUMMONED) {
 			battle.allies.splice(a, 1);
 		}
 		else if (battle.allies[a].HP <= 0) {
-			let INVENTORY = battle.allies[a].INVENTORY;
-			for (let i = 0; i < INVENTORY.length; i++) {
-				INVENTORY[i].equipped = false;
-				let ran = rand(100);
-				if (ran < 30) {
-					battle.loot.push(INVENTORY[i]);
-				}
-			}
+			battle.deadAllies.push(battle.allies[a]);
 			battle.allies.splice(a, 1);
+		}
+		else {
+			numPlayers++;
 		}
 	}
 	for (const ally of battle.deadAllies) {
@@ -493,69 +570,25 @@ function WinBattle(battle) {
 			}
 		}
 	}
-	let goldReward = 15;
+	let goldReward = 10;
 	let expReward = 0;
-	let lootList = [];
 	for (const enemy of battle.deadEnemies) {
-		msg += CheckQuest(enemy, battle.allies);
-		let mimicSpawned = false;
+		//msg += CheckQuest(enemy, battle.allies);
 		if (!enemy.SUMMONED) {
-			if (enemy.NAME == "Brigand") {
-				goldReward += 15;
+			if (enemy.NAME == "Brigand" || enemy.NAME == "Brigand Lord") {
+				goldReward += Math.floor(enemy.PHASE/numPlayers);
 			}
-			if (enemy.NAME == "Brigand Lord") {
-				goldReward += 30;
-			}
-			if (enemy.NAME == "Treasure Chest") {
+			else if (enemy.NAME == "Treasure Chest") {
 				goldReward += 40;
 			}
 			else {
-				goldReward += (1 + Math.ceil(enemy.DIFFICULTY/10));
+				goldReward += (1 + Math.ceil(enemy.DIFFICULTY/20));
 			}
 			goldReward = Math.min(200, goldReward);
 			expReward += enemy.DIFFICULTY;
-			for (const drop of enemy.LOOT) {
-				let ran = rand(90);
-				if (ran <= drop.chance) {
-					let index = findItem(items, drop.name);
-					if (index > -1) {
-						lootList.push(COPY(items[index]));
-					}
-				}
-			}
 		}
 	}
-	let lootMax = Math.max(150, expReward/4);
-	let lootValue = 0;
-	lootList = shitSort(lootList, "value");
-	for (let i = lootList.length - 1; i >= 0; i--) {
-		if (lootList[i].rare) {
-			battle.loot.push(lootList[i]);
-			lootValue += lootList[i].value;
-			lootList.splice(i, 1);
-		}
-	}
-	while (lootValue < lootMax && lootList.length > 0) {
-		let index = 0;
-		if (lootValue > lootMax/2) {
-			index = rand(lootList.length);
-		}
-		lootValue += lootList[index].value;
-		battle.loot.push(lootList[index]);
-		lootList.splice(index, 1);
-	}
-	if (rand(10) == 0) {
-		let mimics = [
-			new Item("Stanima Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
-			new Item("Heolth Potion", 	"mimic", 0, "A potion, but something seems off about it . . ."),
-			new Item("Armor", 			"mimic", 0, "It looks like metal, but it's pulsing . . ."),
-			new Item("Weapon", 			"mimic", 0, "It kind of looks like a sword, or maybe an axe. . ."),
-			new Item("Gold", 			"mimic", 0, "An amoprhous pile resembling coins."),
-			new Item("Potion", 			"mimic", 0, "A translucent bottle-shaped lump filled with what looks like blood."),
-			new Item("Gemstome", 		"mimic", 0, "A damp lump that almost resembles a ruby."),
-		]
-		battle.loot.push(COPY(mimics[rand(mimics.length)]));
-	}
+	battle.loot = battle.loot.concat(generateLoot(battle.deadEnemies, battle.zone));
 	msg += "*GREEN*Each player gains " + goldReward + " gold and " + expReward + " experience!\n";
 	for (const player of battle.allies) {
 		player.EFFECTS = [];
@@ -684,7 +717,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPier
 	let weapon = C.INVENTORY[weaponIndex];
 	if (!reprise && !gunPierce) {
 		weapon.attacks[0]--;
-		C.AP -= weapon.AP;
+		C.AP -= w_AP(C, weapon);
 	}
 	RemoveEffect(C, "Coward's Haste");
 	
@@ -693,7 +726,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPier
 	
 	let dmg = minDmg + rand(1 + maxDmg - minDmg);
 	if (hasWeaponRune(weapon, "decisive")) {
-		if (weapon.attacks[0] == weapon.attacks[1] - 1) {
+		if (weapon.attacks[0] == w_attacks(C, weapon) - 1) {
 			dmg *= 1.25;
 		}
 	}
@@ -831,10 +864,6 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPier
 				}
 			}
 		}
-		else if (hasWeaponRune(weapon, "death mark")) {
-			msg += "*GREEN*A zombie rises to your side!\n";
-			Battle.allies.push(summon("zombie", enemy.ROW));
-		}
 	}
 	
 	let bossKill = (enemy.TYPE == "boss" && eName != enemy.NAME);
@@ -871,6 +900,14 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPier
 		}
 		msg += "*GREEN*" + C.NAME + "*GREY* has " + C.AP + " *GREEN*AP*GREY* left this turn.\n";
 		msg += "\n";
+	}
+	if (enemy.HP <= 0) {
+		if (hasWeaponRune(weapon, "death mark")) {
+			msg += "*GREEN*A zombie rises to your side!\n";
+			let newEnemy = summon(enemy.NAME, enemy.ROW, true, 0, true);
+			newEnemy.HP = Math.floor(MaxHP(newEnemy)/2);
+			Battle.allies.push(newEnemy);
+		}
 	}
 	return msg;
 }
