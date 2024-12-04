@@ -469,9 +469,12 @@ function Heal(C, health, overheal = false) {
 	if (hasEffect(C, "poison")) {
 		multiplier *= .5;
 	}
+	if (hasEffect(C, "necrosis")) {
+		multiplier = 0;
+	}
 	//Beware of floating point fuckery
 	if (multiplier != 1) {
-		amount = Math.ceil(amount * multiplier);
+		amount = Math.round(amount * multiplier);
 	}
 	if (isEquipped(C, "crook")) {
 		amount++;
@@ -491,7 +494,7 @@ function Heal(C, health, overheal = false) {
 	return "*PINK*" + Prettify(Name(C)) + " is healed for " + (C.HP - startHP) + " HP!\n";
 }
 
-function shitSort(list, property, flip = false) {
+function shitSort(list, property, flip = false, secondary = "") {
 	let sorted = [];
 	while (list.length > 0) {
 		let max = 0;
@@ -500,7 +503,12 @@ function shitSort(list, property, flip = false) {
 				max = i;
 			}
 			else if (list[i][property] == list[max][property]) {
-				if (list[i].NAME && list[max].NAME) {
+				if (secondary != "") {
+					if (list[i][secondary] && list[max][secondary] && list[i][secondary] < list[max][secondary]) {
+						max = i;
+					}
+				}
+				else if (list[i].NAME && list[max].NAME) {
 					if (list[i].NAME < list[max].NAME) {
 						max = i;
 					}
@@ -628,6 +636,51 @@ function findPerson(people, target) {
 		}
 	}
 	return -1;
+}
+
+function searchInList(words, list) {
+	if (words.length == 0) {
+		return [words, -1];
+	}
+	let index = parseInt(words[0]);
+	if (isNaN(index)) {
+		index = parseInt(words[0].slice(1, words[0].length));
+	}
+	if (!isNaN(index)) {
+		index--;
+		words = words.slice(1, words.length);
+	}
+	else {
+		index = -1;
+		let checkStr = "";
+		let count = 0;
+		do {
+			if (count > 0) {
+				checkStr += " ";
+			}
+			checkStr += words[0];
+			words = words.slice(1, words.length);
+			console.log(checkStr);
+			for (let i = 0; i < list.length; i++) {
+				if (list[i].name && list[i].name.toLowerCase() == checkStr.toLowerCase()) {
+					index = i;
+				}
+				if (list[i].NAME && list[i].NAME.toLowerCase() == checkStr.toLowerCase()) {
+					index = i;
+				}
+				if (typeof list[i] === 'string' && list[i].toLowerCase() == checkStr.toLowerCase()) {
+					index = i;
+				}
+				if (index != -1) {
+					break;
+				}
+			}
+		} while (index == -1 && count++ < words.length);
+	}
+	if (index < 0 || index >= list.length) {
+		index = -1;
+	}
+	return [words, index]
 }
 
 function findItem(itemList, target, hesitate = false, useNumber = true) {
@@ -836,6 +889,9 @@ function P_Armor(C) {
 	if (hasEffect(C, "protection")) {
 		armor += 2;
 	}
+	if (hasEffect(C, "peeled")) {
+		armor = 0;
+	}
 	return armor;
 }
 function M_Armor(C) {
@@ -865,6 +921,9 @@ function M_Armor(C) {
 	}
 	if (hasEffect(C, "protection")) {
 		armor += 2;
+	}
+	if (hasEffect(C, "peeled")) {
+		armor = 0;
 	}
 	return armor;
 }

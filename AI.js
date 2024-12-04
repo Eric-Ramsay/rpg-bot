@@ -2,7 +2,7 @@ function Name(target, color = "") {
 	if (target.TYPE == "player" || target.NAME == "Carcinos" || target.TYPE == "servant") {
 		return color + target.NAME;
 	}
-	return "the " + color + target.NAME;
+	return "the " + color + P(target.NAME);
 }
 
 function summon(name, row, summoned = true, fading = 0, zombie = false) {
@@ -18,6 +18,7 @@ function summon(name, row, summoned = true, fading = 0, zombie = false) {
 	}
 	if (zombie) {
 		copy.NAME = "Zombified " + copy.NAME;
+		copy.HP = Math.floor(MaxHP(copy)/2);
 	}
 	copy.ID = copy.NAME + rand(99999999999);
 	copy.ROW = row;
@@ -152,7 +153,7 @@ function moveToRow(enemy, targetRow, force = false, printMoves = true) {
 	}
 	let numMoves = enemy.MOVES;
 	if (hasEffect(enemy, "slowed")) {
-		numMoves = Math.min(numMoves, 1);
+		numMoves = Math.max(Math.floor(numMoves/2), 1);
 	}
 	if (hasEffect(enemy, "charging")) {
 		numMoves *= 2;
@@ -377,21 +378,26 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 		}
 		else if (eName == "Mechanical Guardsman") {
 			let masterFound = false;
+			let moved = false;
+			AddEffect(enemy, "blocking", 1);
 			if (enemy.PHASE == 0) {
 				for (let i = 0; i < allies.length; i++) {
 					if (allies[i].NAME == "Grand Architect") {
-						if (enemy.ROW == allies[i].ROW) {
-							msg += AddEffect(enemy, "guarding", 999, null, allies[i]);
-						}
-						else {
-							msg += moveToRow(enemy, allies[i].ROW);
-						}
 						masterFound = true;
+						if (rows[allies[i].ROW] > 0) {
+							msg += moveToRow(enemy, allies[i].ROW);
+							moved = true;
+						}
 						break;
 					}
 				}
 				if (!masterFound) {
 					enemy.PHASE++;
+				}
+				if (!moved) {
+					if (enemy.ROW != 4) {
+						msg += moveToRow(enemy, 4);
+					}
 				}
 				else {
 				let indexOne = findVictim(enemy.ROW, targets, 1);
@@ -1264,6 +1270,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			}
 		}
 		else if (eName == "Wild Bear") {
+			AddEffect(enemy, "blocking", 999);
 			let ran = rand(2);
 			if (ran == 0) {
 				msg += moveAttack(allies, enemy, targets, new Attack("bites", 16 + rand(13), 90))[0];
@@ -1839,9 +1846,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 					else {
 						msg += "*PINK*The Witch curses all of her foes, poisoning them!\n";
 						for (let i = 0; i < targets.length; i++) {
-							for (let j = 0; j < 3; j++) {
-								AddEffect(targets[i], "poison", 3, enemy);
-							}
+							AddEffect(targets[i], "poison", 3, enemy, null, 5);
 						}
 					}
 				}

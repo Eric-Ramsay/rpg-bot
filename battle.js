@@ -201,7 +201,13 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 					msg += Deliver(C);
 				}
 				if (C.HP > 0) {
-					let text = enemyAttack(i, allies, enemies, deadAllies, deadEnemies);
+					let text = "";
+					if (hasEffect(C, "confused")) {
+						text = enemyAttack(i, allies, allies, deadAllies, deadEnemies);
+					}
+					else {
+						text = enemyAttack(i, allies, enemies, deadAllies, deadEnemies);
+					}
 					if (text != "") {
 						if (C.TYPE == "boss" && i < allies.length - 1) {
 							msg += "\n";
@@ -280,6 +286,12 @@ function configureEnemies(enemyList, targets, resilient = false) {
 		if (enemyList[i].NAME == "Swamp Stalker") {
 			enemyList[i].ROW = 1;
 		}
+		if (enemyList[i].NAME == "Wild Bear") {
+			AddEffect(enemyList[i], "blocking", 999);
+		}
+		if (enemyList[i].NAME == "Mechanical Guardsman") {
+			AddEffect(enemyList[i], "blocking", 999);
+		}
 		if (enemyList[i].NAME == "Ephemeral Warrior") {
 			AddEffect(enemyList[i], "fading", 8);
 		}
@@ -305,6 +317,80 @@ function configureEnemies(enemyList, targets, resilient = false) {
 		}
 	}
 	return msg;
+}
+
+function generateEnemies(r, zone) {
+	let enemyList = [];
+	let validEnemies = [];
+	let rating = Math.floor(r);
+	for (const enemy of enemies) {
+		if (validZone(enemy, zone) && enemy.DIFFICULTY <= rating) {
+			validEnemies.push(enemy);
+		}
+	}
+	
+	//Spawn Hivelings instead of normal enemies
+	if (rating > 200 && rand(100) <= 5) {
+		if (zone == 0 || zone == 2) {
+			validEnemies = [];
+			for (const enemy of enemies) {
+				if (enemy.NAME.toLowerCase().includes("hiveling") && enemy.DIFFICULTY <= rating) {
+					if (enemy.NAME != "Hiveling Larva") {
+						validEnemies.push(enemy);
+					}
+					if (enemy.NAME == "Hiveling Warrior") {
+						enemyList.push(summon(enemy.NAME, 4, false));
+					}
+				}
+			}
+		}
+	}
+	
+	validEnemies = shitSort(validEnemies, "DIFFICULTY");
+	let baseDifficulty = 0;
+	if (rating > 300) {
+		baseDifficulty = Math.min(70, Math.min(validEnemies[0].DIFFICULTY, rating/5));
+	}
+	let loops = 0;
+	while (validEnemies.length > 0 && rating > 0) {
+		if (validEnemies.length == 0 || validEnemies[0].DIFFICULTY < baseDifficulty) {
+			console.log("Bailing out with " + rating + " left over. Oh well.");
+			break;
+		}
+		let limit = validEnemies.length;
+		let minDifficulty = Math.floor(rating/3);
+		let forcedDiversity = 4;
+		if (validEnemies.length > forcedDiversity) {
+			if (validEnemies[forcedDiversity].DIFFICULTY < minDifficulty) {
+				minDifficulty = validEnemies[forcedDiversity].DIFFICULTY;
+			}
+		}
+		for (let i = 0; i < validEnemies.length; i++) {
+			if (validEnemies[i].DIFFICULTY < minDifficulty) {
+				limit = Math.max(0, (i - 1));
+				break;
+			}
+		}
+		limit = Math.max(limit, Math.min(forcedDiversity, validEnemies.length));
+		//for (let j = 0; j < limit; j++) {
+		//	console.log((1+j).toString().padStart(2, '0') + ") " + StackStrings(validEnemies[j].NAME, validEnemies[j].DIFFICULTY, 20));
+		//}
+		let index = rand(limit);
+		let row = 4;
+		if (rand(8) == 0) {
+			row = 3;
+		}
+		enemyList.push(summon(validEnemies[index].NAME, row, false));
+		rating -= validEnemies[index].DIFFICULTY;
+		var newTeams = [];
+		for (const enemy of validEnemies) {
+			if (enemy.DIFFICULTY <= rating) {
+				newTeams.push(enemy);
+			}
+		}
+		validEnemies = newTeams;
+	}
+	return enemyList;
 }
 
 function StartBattle(battle) {
@@ -348,14 +434,9 @@ function StartBattle(battle) {
 		rating = Math.floor(rating);
 		
 		console.log("Combat Difficulty: " + rating);
+		/*
 		let quests = data["town"].quests;
-		let validEnemies = [];
-		for (const enemy of enemies) {
-			if (validZone(enemy, battle.zone) && enemy.DIFFICULTY <= rating) {
-				validEnemies.push(enemy);
-			}
-		}
-		/*for (const quest of quests) {
+		for (const quest of quests) {
 			for (const enemy of enemies) {
 				if (enemy.NAME.toLowerCase() == quest.enemy.toLowerCase()) {
 					if (validZone(enemy, battle.zone) && enemy.DIFFICULTY <= rating) {
@@ -366,73 +447,7 @@ function StartBattle(battle) {
 				}
 			}
 		}*/
-		if (rating > 200 && rand(100) <= 5) {
-			if (battle.zone == 0 || battle.zone == 2) {
-				validEnemies = [];
-				for (const enemy of enemies) {
-					if (enemy.NAME.toLowerCase().includes("hiveling") && enemy.DIFFICULTY <= rating) {
-						if (enemy.NAME != "Hiveling Larva") {
-							validEnemies.push(enemy);
-						}
-						if (enemy.NAME == "Hiveling Warrior") { //Make sure there's at least one hiveling warrior
-							let temp = COPY(enemy);
-							temp.ID = temp.NAME + rating + rand(99999999999); 
-							rating -= temp.DIFFICULTY;
-							msg += "*RED*The " + temp.NAME + " approaches. . .*GREY*\n";
-							battle.enemies.push(temp);
-						}
-					}
-				}
-			}
-		}
-		
-		validEnemies = shitSort(validEnemies, "DIFFICULTY");
-		let baseDifficulty = 0;
-		if (rating > 300) {
-			baseDifficulty = Math.min(70, Math.min(validEnemies[0].DIFFICULTY, rating/5));
-		}
-		while (validEnemies.length > 0 && rating > 0) {
-			if (validEnemies.length == 0 || validEnemies[0].DIFFICULTY < baseDifficulty) {
-				console.log("Bailing out with " + rating + " left over. Oh well.");
-				break;
-			}
-			let limit = validEnemies.length;
-			let minDifficulty = Math.floor(rating/3);
-			let forcedDiversity = 4;
-			if (validEnemies.length >= forcedDiversity) {
-				if (validEnemies[forcedDiversity].DIFFICULTY < minDifficulty) {
-					minDifficulty = validEnemies[forcedDiversity].DIFFICULTY;
-				}
-			}
-			for (let i = 0; i < validEnemies.length; i++) {
-				if (validEnemies[i].DIFFICULTY < minDifficulty) {
-					limit = Math.max(0, (i - 1));
-					break;
-				}
-			}
-			limit = Math.max(limit, Math.min(forcedDiversity, validEnemies.length));
-			let index = rand(limit);
-			console.log("");
-			console.log("Rating = " + rating);
-			for (let i = 0; i < limit; i++) {
-				console.log((i+1).toString().padStart(2, '0') + " " + StackStrings(validEnemies[i].NAME, validEnemies[i].DIFFICULTY, 20));
-			}
-			let temp = COPY(validEnemies[index]);
-			if (rand(8) == 0) {
-				temp.ROW = 3;
-			}
-			temp.ID = temp.NAME + rating + rand(99999999999); 
-			battle.enemies.push(temp);
-			msg += "*RED*The " + temp.NAME + " approaches. . .*GREY*\n";
-			rating -= temp.DIFFICULTY;
-			var newTeams = [];
-			for (const enemy of validEnemies) {
-				if (enemy.DIFFICULTY <= rating) {
-					newTeams.push(enemy);
-				}
-			}
-			validEnemies = newTeams;
-		}
+		battle.enemies = battle.enemies.concat(generateEnemies(rating, battle.zone));
 		msg += configureEnemies(battle.enemies, battle.allies, true);
 	}
 	battle.enemies = shitSort(battle.enemies, "DIFFICULTY");
@@ -725,6 +740,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPier
 	let maxDmg = w_max(C, weapon);
 	
 	let dmg = minDmg + rand(1 + maxDmg - minDmg);
+	console.log("Damage Roll: " + dmg);
 	if (hasWeaponRune(weapon, "decisive")) {
 		if (weapon.attacks[0] == w_attacks(C, weapon) - 1) {
 			dmg *= 1.25;
@@ -773,7 +789,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPier
 	let weaponChance = w_chance(C, weapon);
 	if (weaponChance > hitPercent(C, hand)) {
 		weaponChance *= 1.25;
-		console.log("RNG is being boosted because RNG of " + Math.floor(100 * hitPercent(C, hand))/100 + "% is lower than expected value of " + weapon.chance + "%");
+		console.log("RNG is being boosted because RNG of " + Math.floor(100 * hitPercent(C, hand))/100 + "% is lower than expected value of " + w_chance(C, weapon) + "%");
 	}
 	if (C.LEFT == weaponIndex) {
 		C.ATTEMPTS[LEFT]++;

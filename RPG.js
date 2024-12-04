@@ -441,6 +441,7 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 		let num = 10 - Math.floor(10 * attacker.HP/MaxHP(attacker));
 		damage *= 1 + (num/20);
 	}
+	
 	damage = Mitigate(attacker, target, damage, attack.pen, attack.type, canReflect);
 	
 	let chance = rand(100);
@@ -1049,6 +1050,10 @@ function Cast(C, spell, allies, enemyList, targets) {
 	return msg;
 }
 
+function P (string) {
+	return Prettify(string);
+}
+
 function Prettify(string) {
 	let arr = string.split(" ");
 	for (let i = 0; i < arr.length; i++) {
@@ -1209,7 +1214,13 @@ function parseText(msg, tabReplace = true) {
 	}
 	console.log("Deleted " + numDeletions + " colors.");
 	*/
-	let text = SimplifyMessage(msg);
+	let text = msg;
+	if (text.includes("*REPEAT*")) {
+		text = text.split("*REPEAT*").join("");
+	}
+	else {
+		text = SimplifyMessage(msg);
+	}
 	text = text.split("*GREY*").join("[2;0m");
 	text = text.split("*BLACK*").join("[2;30m");
 	text = text.split("*RED*").join("[2;31m");
@@ -1994,7 +2005,7 @@ function DrawTrade(C) {
 	msg += "*GREY*" + NPC.DESCRIPTION + "\n\n";
 	msg += "*YELLOW*" + NPC.CONVERSATIONS[NPC.INDEX++] + "\n\n";
 	let i = 0;
-	NPC.ITEMS = shitSort(NPC.ITEMS, "type"	);	
+	NPC.ITEMS = shitSort(NPC.ITEMS, "type", false, "value");	
 	for (const item of NPC.ITEMS) {
 		let tempStrings = ["", "", "", ""];
 		let num = (++i).toString().padStart(2, '0');
@@ -2175,7 +2186,7 @@ function Command(message) {
 	let numRepeat = 1;
 	
 	let requireCharacter = ["deposit", "withdraw", "fishing", "row", "servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "disenchant", "enchant", "level", "stop", "move", "mvoe", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "eat", "read", "learn", "order", "buy", "sell", "spells"];
-	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "guard", "brace"];
+	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "guard", "brace", "throw"];
 	
 	for (let i = 0; i < requireBattle.length; i++) {
 		requireCharacter.push(requireBattle[i]);
@@ -2333,56 +2344,28 @@ function Command(message) {
 			msg += CommandStats(C);
 		}
 		else if (keyword == "delve") {
+			msg += CommandDelve(C, index);
+		}
+		else if (keyword == "spawn") {
 			if (index > -1) {
-				if (battles[index].started) {
-					return "*RED*You must be out of combat before you can delve deeper.\n";
-				}
-				if (battles[index].zone == 2) {
-					if (battles[index].level < 4) {
-						msg += "If you delve this deep, you won't be able to find your way back. You sense that a terrible presence lurks here. . .\n\n";
-						battles[index].level = 4;
+				let rating = 45 * Math.pow(1.21, C.LEVEL);
+				for (let i = 0; i < 3; i++) {
+					let enemyList = generateEnemies(rating, battles[index].zone);
+					let j = 0;
+					for (const enemy of enemyList) {
+						msg += "*REPEAT**PINK*" + (++j).toString().padStart(2, '0') + "*GREY*) " + StackStrings(enemy.NAME, "*GREY*" + enemy.DIFFICULTY, 20) + "\n";
 					}
-					else {
-						battles[index].level = 1;
-						msg += "You've ended up back where you started from.\n\n";
-					}
-					msg += RoomDescription(C);
+					msg += "\n";
 				}
-				else {
-					return "*BLACK*There's no boss for this zone yet, so you can't delve any deeper. . .\n";
-				}
-			}
-			else {
-				msg += CommandDelve(C);
 			}
 		}
 		else if (keyword == "start") {
-			if (!battles[index].started) {
-				let ran = rand(20);
-				if (ran == 0) {
-					prepMerchant();
-					msg += "*YELLOW*You find yourself in a strange place. . .\n\n";
-					for (let i = battles[index].allies.length - 1; i >= 0; i--) {
-						if (battles[index].allies[i].TYPE == "player") {
-							battles[index].allies[i].LOCATION = "A Strange Clearing";
-						}
-					}
-					battles[index].allies = [];
-					msg += RoomDescription(C);
-				}
-				else {
-					battles[index].started = true;
-					battles[index].allyTurn = true;
-					msg += StartBattle(battles[index]);
-					msg += StartTurn(battles[index], battles[index].allies, battles[index].enemies, battles[index].deadAllies, battles[index].deadEnemies);
-					for (let i = 0; i < battles[index].allies.length; i++) {
-						if (battles[index].allies.TYPE == "player") {
-							battles[index].allies.STAMINA = MaxStamina(battles[index].allies);
-						}
-					}
-					msg += HandleCombat(battles[index]);
-				}
-			}
+			msg += CommandStart(C, index);
+		}
+		else if (keyword == "delvestart") {
+			CommandDelve(C, index);
+			index = BattleIndex(C.ID);
+			msg += CommandStart(C, index);
 		}
 		else if (keyword == "brace") {
 			if (hasEffect(C, "stunned")) {
@@ -2589,6 +2572,9 @@ function Command(message) {
 		}
 		else if (keyword == "drink" || keyword == "eat") {
 			msg += CommandDrink(COPY(words), C);
+		}
+		else if (keyword == "throw") {
+			msg += CommandThrow(COPY(words), C, index);
 		}
 		else if (keyword == "classes") {
 			msg += "*PINK*Peasant*GREY* - *CYAN*+2 END +2 VIT*GREY*. Starts with a club but *RED*no gold*GREY*.\n\n";

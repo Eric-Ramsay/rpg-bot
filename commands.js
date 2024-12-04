@@ -40,10 +40,11 @@ function ListCommands(index) {
 		msg += "*CYAN*!end *GREY*- Ends your turn.\n\n";
 		msg += "*GREEN*!move LEFT/RIGHT *GREY*- Moves left or right a row. Costs 3 AP.\n\n";
 		msg += "*CYAN*!drink POTION *GREY*- Drinks a potion.\n\n";
-		msg += "*GREEN*!eat POTION *GREY*- Eats a fish.\n\n";
-		msg += "*CYAN*!effects *GREY*- Lists effects on you.\n\n";
-		msg += "*GREEN*!guard TARGET *GREY*- Costs 6 AP per turn. Guard a target on your row; redirecting damage they would taket to yourself.\n\n";
-		msg += "*CYAN*!brace *GREY*- Costs 6 Stamina. You brace yourself, giving yourself a 50% chance to dodge the next damage that comes your way.\n\n";
+		msg += "*GREEN*!eat FISH *GREY*- Eats a fish.\n\n";
+		msg += "*CYAN*!throw TINCTURE *GREY*- Costs 3 AP. Throw a tincture at an enemy within 3 tiles.\n\n";
+		msg += "*GREEN*!effects *GREY*- Lists effects on you.\n\n";
+		msg += "*CYAN*!guard TARGET *GREY*- Costs 6 AP per turn. Guard a target on your row; redirecting damage they would taket to yourself.\n\n";
+		msg += "*GREEN*!brace *GREY*- Costs 6 Stamina. You brace yourself, giving yourself a 50% chance to dodge the next damage that comes your way.\n\n";
 	}
 
 	return msg;
@@ -180,8 +181,59 @@ function CommandStats(C) {
 	return msg;
 }
 
-function CommandDelve(C) {
+function CommandStart(C, index) {
 	let msg = "";
+	if (index > -1 && !battles[index].started) {
+		let ran = rand(20);
+		if (ran == 0) {
+			prepMerchant();
+			msg += "*YELLOW*You find yourself in a strange place. . .\n\n";
+			for (let i = battles[index].allies.length - 1; i >= 0; i--) {
+				if (battles[index].allies[i].TYPE == "player") {
+					battles[index].allies[i].LOCATION = "A Strange Clearing";
+				}
+			}
+			battles[index].allies = [];
+			msg += RoomDescription(C);
+		}
+		else {
+			battles[index].started = true;
+			battles[index].allyTurn = true;
+			msg += StartBattle(battles[index]);
+			msg += StartTurn(battles[index], battles[index].allies, battles[index].enemies, battles[index].deadAllies, battles[index].deadEnemies);
+			for (let i = 0; i < battles[index].allies.length; i++) {
+				if (battles[index].allies.TYPE == "player") {
+					battles[index].allies.STAMINA = MaxStamina(battles[index].allies);
+				}
+			}
+			msg += HandleCombat(battles[index]);
+		}
+	}
+	return msg;
+}
+
+function CommandDelve(C, index) {
+	let msg = "";
+	if (index > -1) {
+		if (battles[index].started) {
+			return "*RED*You must be out of combat before you can delve deeper.\n";
+		}
+		if (battles[index].zone == 2) {
+			if (battles[index].level < 4) {
+				msg += "If you delve this deep, you won't be able to find your way back. You sense that a terrible presence lurks here. . .\n\n";
+				battles[index].level = 4;
+			}
+			else {
+				battles[index].level = 1;
+				msg += "You've ended up back where you started from.\n\n";
+			}
+			msg += RoomDescription(C);
+			return msg;
+		}
+		else {
+			return "*BLACK*There's no boss for this zone yet, so you can't delve any deeper. . .\n";
+		}
+	}
 	let location = findLocation(C.LOCATION);
 	if (!location.dungeon) {
 		return "*RED*You can't delve here!";
@@ -234,22 +286,6 @@ function CommandEquip(words, C) {
 	return msg;
 }
 
-function partialNameMatch(words, targets) {
-	let word = "";
-	for (let j = words.length - 1; j >= 0; j--) {
-		if (word != "") {
-			word = " " + word;
-		}
-		word = words[j] + word;
-		for (let k = 0; k < targets.length; k++) {
-			if (targets[k].NAME.toLowerCase() == word.toLowerCase()) {
-				return [words.splice(0, j), k];
-			}
-		}
-	}
-	return [words, -1];
-}
-
 function CommandCast(words, C, index) {
 	if (hasEffect(C, "stunned")) {
 		return "*RED*You can't act while you're stunned!\n";
@@ -286,40 +322,18 @@ function CommandCast(words, C, index) {
 	let spellName = "";
 	let checkStr = "";
 	let count = 0;
-	let spellIndex = findThing(C.SPELLS, words.join(" "));
+	let result = searchInList(words, C.SPELLS);
+	let spellIndex = result[1];
+	words = result[0];
 	if (spellIndex == -1) {
-		while (spellName == "" && count < words.length) {
-			if (count > 0) {
-				checkStr += " ";
-			}
-			checkStr += words[count];
-			for (let i = 0; i < C.SPELLS.length; i++) {
-				if (!(typeof C.SPELLS[i] === 'string')) {
-					C.SPELLS[i] = C.SPELLS[i].name;
-				}
-				if (C.SPELLS[i].toLowerCase() == checkStr) {
-					spellName = checkStr;
-					break;
-				}
-			}
-			count++;
-		}
-	}
-	else {
-		count = 1;
-		spellName = C.SPELLS[spellIndex];
-	}
-	if (spellName == "") {
 		return "*RED*You don't seem to know that spell. . .\n";
 	}
-	
-	spellIndex = findSpell(spells, spellName);
+	spellIndex = findSpell(spells, C.SPELLS[spellIndex]);
 	if (spellIndex == -1) {
 		return "*RED*That spell is no longer in the game. . .\n";
 	}
 	spell = spells[spellIndex];
 	
-	words = words.slice(count, words.length);
 	if (words[0] == "on" || words[0] == "at" || words[0] == "to" || words[0] == "in" || words[0] == "against") {
 		words = words.slice(1, words.length);
 	}
@@ -337,10 +351,10 @@ function CommandCast(words, C, index) {
 				}
 				let result;
 				if (spell.numAllies > 0) {
-					result = partialNameMatch(words, battle.allies);
+					result = searchInList(words, battle.allies);
 				}
 				else {
-					result = partialNameMatch(words, battle.enemies);
+					result = searchInList(words, battle.enemies);
 				}
 				if (result[1] == -1) {
 					return "*RED*Target '" + words.join(" ") + "' not found in list of targets!\n";
@@ -414,24 +428,11 @@ function CommandGuard(words, C, battleIndex) {
 	if (!battle.started) {
 		return "*RED*The battle must be started before you can guard an ally!\n";
 	}
-	let index = parseInt(words[1].slice(1, words[1].length));
-	if (isNaN(index)) {
-		let checkStr = "";
-		let count = 0;
-		do {
-			words = words.slice(1, words.length);
-			if (count > 0) {
-				checkStr += " ";
-			}
-			checkStr += words[0];
-			index = findTarget(battle.allies, checkStr);
-		} while (index == -1 && ++count < words.length);
-	}
-	else {
-		index--;
-		words = words.slice(2, words.length);
-	}
-	if (index <= -1 || index >= battle.allies.length) {
+	words = words.slice(1, words.length);
+	let result = searchInList(words, battle.allies);
+	let index = result[1];
+	words = result[0];
+	if (index == -1) {
 		return "*RED*Couldn't find that ally!\n";
 	}
 	if (battle.allies[index].ROW != C.ROW) {
@@ -481,27 +482,13 @@ function CommandAttack(words, C, battleIndex) {
 	}
 	
 	//Find Target
-	let index = parseInt(words[1].slice(1, words[1].length));
-	if (isNaN(index)) {
-		let checkStr = "";
-		let count = 0;
-		do {
-			words = words.slice(1, words.length);
-			if (count > 0) {
-				checkStr += " ";
-			}
-			checkStr += words[0];
-			index = findTarget(battle.enemies, checkStr);
-		} while (index == -1 && ++count < words.length);
-	}
-	else {
-		index--;
-		words = words.slice(2, words.length);
-	}
-	if (index <= -1 || index >= battle.enemies.length) {
+	words = words.slice(1, words.length);
+	let result = searchInList(words, battle.enemies);
+	let index = result[1];
+	words = result[0];
+	if (index == -1) {
 		return "*RED*Couldn't find that enemy!\n";
 	}
-	
 	
 	if (words[0] == "with" || words[0] == "using") {
 		words = words.slice(1, words.length);
@@ -630,6 +617,7 @@ function CommandTravel(words, C, index) {
 			return "*RED*You're rooted and can't move!\n";
 		}
 		let direction = 1;
+		let count = 1;
 		if (words[0] == "left") {
 			direction = -1;
 		}
@@ -642,7 +630,9 @@ function CommandTravel(words, C, index) {
 				if (num < 0 || num > 4) {
 					return "*RED*You can't go to that row.\n";
 				}
-				direction = num - C.ROW;
+				count = num - C.ROW;
+				direction = count/Math.abs(count);
+				count = Math.abs(count);
 				if (direction == 0) {
 					return "*RED*You're already on that row.\n";
 				}
@@ -655,17 +645,24 @@ function CommandTravel(words, C, index) {
 			tryGo = true;
 		}
 		if (!tryGo) {
-			if (C.ROW + direction >= 0 && C.ROW + direction <= 4) {
-				let cost = Math.abs(direction) * 3;
-				if (hasEffect(C, "slowed")) {
-					cost += Math.abs(direction) * 3;
-				}
-				if (C.AP >= cost || !battles[index].started) {
-					if (battles[index].started) {
-						C.AP -= cost;
+			for (let n = 0; n < count; n++) {
+				if (C.ROW + direction >= 0 && C.ROW + direction <= 4) {	
+					let cost = 3;
+					if (hasEffect(C, "slowed")) {
+						cost += 3;
 					}
-					C.ROW += direction;
-					for (let i = 0; i < Math.abs(direction); i++) {
+					if (direction > 0) {
+						for (const enemy of battles[index].enemies) {
+							if (enemy.ROW == C.ROW && hasEffect(enemy, "blocking")) {
+								return msg + "*RED*" + P(Name(enemy)) + " blocks your path!\n";
+							}
+						}
+					}
+					if (C.AP >= cost || !battles[index].started) {
+						if (battles[index].started) {
+							C.AP -= cost;
+						}
+						C.ROW += direction/Math.abs(direction);
 						msg += C.NAME + " moves ";
 						if (direction > 0) {
 							msg += "*GREEN*right*GREY*.\n";
@@ -674,16 +671,17 @@ function CommandTravel(words, C, index) {
 							msg += "*GREEN*left*GREY*.\n";
 						}
 					}
+					else {
+						return msg + "*RED*You don't have the AP to move any farther.\n";
+					}
 				}
 				else {
-					return "*RED*You don't have the AP to move any farther.\n";
+					return msg + "*RED*You can't go any farther that way.\n";
 				}
-			}
-			else {
-				return "*RED*You can't go any farther that way.\n";
 			}
 		}
 	}
+	//Out of Combat movement
 	if (tryGo && (index == -1 || !(battles[index].started))) {
 		msg = "";
 		if (C.BUILDING != "") {
@@ -1024,6 +1022,69 @@ function CommandCharacter(words, C, authorId) {
 		msg += CharacterDescription(C);
 	}
 	//console.log(C.NAME);
+	return msg;
+}
+
+function CommandThrow(words, C, battleIndex) {
+	let msg = "";
+	let battle = battles[battleIndex];
+	words = words.slice(1, words.length);
+	if (hasEffect(C, "stunned")) {
+		return "*RED*You can't act while you're stunned!\n";
+	}
+	if (C.ENDED) {
+		return "*RED*You can't act while your turn is ended!\n";
+	}
+	if (C.AP < 3) {
+		return "*RED*You don't have enough AP to throw a tincture!\n";
+	}
+	if (words.length <= 1) {
+		return "*RED*You must specify a tincture and enemy to throw it at.\n";
+	}
+	if (!battle.started) {
+		return "*RED*The battle must be started before you can throw a tincture!\n";
+	}
+	//Find Tincture
+	let result = searchInList(words, C.INVENTORY);
+	words = result[0];
+	let invIndex = result[1];
+	if (invIndex == -1) {
+		return "*RED*Couldn't find that item!\n";
+	}
+	if (C.INVENTORY[invIndex].type != "tincture") {
+		return "*RED*You can't throw that item!\n";
+	}
+	if (words[0] == "at") {
+		words = words.slice(1, words.length);
+	}
+	result = searchInList(words, battle.enemies);
+	words = result[0];
+	let index = result[1];
+	if (index == -1) {
+		return "*RED*Couldn't find that enemy!\n";
+	}
+	if (Math.abs(C.ROW - battle.enemies[index].ROW) >= 3) {
+		return "*RED*Enemies must be within two rows of you to throw a tincture at them!\n";
+	}
+	let name = C.INVENTORY[invIndex].name.toLowerCase();
+	if (name == "fire tincture") {
+		msg += "*YELLOW*The tincture bursts into shimmering orange flames, burning " + Name(battle.enemies[index]) + "!\n";
+		msg += DealDamage(new M_Attack(25), battle.allies, C, battle.enemies, battle.enemies[index])[0];
+	}
+	if (name == "peel tincture") {
+		msg += "*YELLOW*The tincture spreads over " + Name(battle.enemies[index]) + ", temporarily softening their armor!\n";
+		msg += AddEffect(battle.enemies[index], "peeled", 3);
+	}
+	if (name == "necrosis tincture") {
+		msg += "*YELLOW*The tincture breaks on " + Name(battle.enemies[index]) + ", covering them in black, bubbling goop!\n";
+		msg += AddEffect(battle.enemies[index], "necrosis", 1);
+	}
+	if (name == "confusion tincture") {
+		msg += "*YELLOW*The tincture's solution seeps into " + Name(battle.enemies[index]) + ", confusing them!\n";
+		msg += AddEffect(battle.enemies[index], "confused", 1);
+	}
+	C.AP -= 3;
+	RemoveItem(C, invIndex);
 	return msg;
 }
 

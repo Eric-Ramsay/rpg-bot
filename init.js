@@ -205,7 +205,7 @@ function initLocations() {
 	Florence.ITEMS = ["Plain Cassock", "Acolyte Robes", "Warded Cloak", "Stylish Shirt", "Plain Cloak", "Leather Cuirass", "Quilted Gambeson", "Silk Armor", "Amethyst Tunic"];
 	Kobos.ITEMS = ["Spear", "Halberd", "Longsword", "Claymore", "Morningstar", "War Hammer", "Mace", "Maul", "Flail", "Bearded Axe", "War Axe", "Great Axe", "Shield", "Scale Armor", "Chainmail", "Plate Armor"];
 	Clyde.ITEMS = ["Dagger", "Club", "Hatchet", "Buckler", "Throwing Axe", "Staff Sling", "Longbow", "Crossbow", "Repeating Crossbow"];
-	Qarana.ITEMS = ["Health Potion", "Haste Potion", "Stamina Potion", "Panacea", "Skill Potion", "Scroll: Envenom"];
+	Qarana.ITEMS = ["Health Potion", "Haste Potion", "Stamina Potion", "Panacea", "Skill Potion", "Scroll: Envenom", "Fire Tincture", "Peel Tincture", "Necrosis Tincture", "Confusion Tincture"];
 	Penelope.ITEMS = ["Penelope's Brew", "Mead", "Imperial Wine", "Northern Wine"]
 	Tobin.ITEMS = ["Wand", "Staff", "Scepter", "Crook", "Tome of the Duelist", "Tome of Strength", "Tome of Summoning", "Tome of Affliction", "Tome of Destruction", "Tome of the Guardian", "Scroll: Random"];
 	
@@ -389,7 +389,7 @@ function initItems() {
 	weapons.push(new OneH("Bearded Axe", 		"axe", 		"A one handed axe whose blade has been extended to provide a longer cutting edge.",  					1,		25, 	80, 	10, 	14, 	20, 	6, 		1));
 	weapons.push(new TwoH("War Axe", 			"axe", 		"A one-sided steel axehead fixed onto a long pole.",  													2,		50, 	80, 	12, 	24, 	20, 	9,		1));
 	weapons.push(new TwoH("Great Axe", 			"axe", 		"A massive axe-blade fixed onto a relatively short handle.",  											1,		50, 	70, 	8, 		52, 	20, 	12,		1));
-	weapons.push(new TwoH("Coral Axe", 			"axe", 		"Made from a hunk of violet coral. Afflicts bleed. Deals +25% damage against bleeding enemies.",  		2,		125, 	80, 	10, 	20, 	20, 	6,		1,		true));
+	weapons.push(new TwoH("Coral Axe", 			"axe", 		"Made from a hunk of violet coral. Afflicts bleed. Deals +25% damage against bleeding enemies.",  		2,		125, 	80, 	8, 		16, 	20, 	6,		1,		true));
 	//Polearms
 	weapons.push(new OneH("Short Spear", 		"polearm", 	"A small spear designed for use with annother weapon or shield.",  										3,		25, 	80,		6,		10,		30,		4,		2));
 	weapons.push(new TwoH("Quarterstaff", 		"polearm", 	"A long pole with weighted sections on its ends.",  													1,		50, 	75,		8,		16,		70,		6,		2));
@@ -424,6 +424,10 @@ function initItems() {
 	items.push(new Item("Mead", 				"drink", 	3, 		"The taste of honey is especially strong."));
 	items.push(new Item("Imperial Wine", 		"drink", 	5, 		"A mediocre vintage that has aged well. There's dust on the bottle."));
 	items.push(new Item("Northern Wine", 		"drink", 	10, 	"A fine violet wine from the far north."));
+	items.push(new Item("Fire Tincture",		"tincture",	10,		"Deal 25 Magical damage to an enemy."));
+	items.push(new Item("Peel Tincture", 		"tincture", 15,		"Reduce a target's armor to 0 for 3 turns."));
+	items.push(new Item("Necrosis Tincture", 	"tincture", 15,		"Reduce a target's healing by 100% for 3 turns."));
+	items.push(new Item("Confusion Tincture",	"tincture",	20,		"Cause an enemy to attack other enemies for 1 turn."));
 	
 	for (let i = 0; i < spells.length; i++) {
 		let spell = spells[i];
@@ -689,9 +693,9 @@ function initEnemies() {
 	enemies.push(new Enemy("Brigand",				50,		4,		2,		40,		[2], 		2,		"", 			"A human dressed in mismatched armor, carrying a pair of duel blades that seem to have seen their fair share of battles.")); //Phys
 	enemies.push(new Enemy("Giant Spider",			75,		4,		0,		40,		[2, 0], 	3,		"animal", 		"A vast, fat-bodied insect roughly the size of a bull. Its body is covered in long thin hairs, and its eyes afix onto its prey.")); //Phys	
 	enemies.push(new Enemy("Mossy Statue",			60,		14,		8,		55,		[0,1,2],	0,		"construction", "A Jade Statue of a beautiful woman, weathered by countless years in the forest. Its limbs and head have fallen into the dirt about its base. It hums quietly.")); //Magic
-	enemies.push(new Enemy("Wild Bear",				100,	6,		2,		70,		[2, 0], 	2,		"animal", 		"A towering one-eyed bear with claws as long and sharp as daggers. Its hide is greying, and criss-crossed with the scars of its many triumphs.")); //Phys
 	enemies.push(new Enemy("Ogre",					75,		6,		2,		70,		[2, 1], 	1,		"", 			"A giant naked creature, twice as tall as any man and dragging a great club at its side. Flies cling to the blood that stains its cheeks and chin.")); //Phys
 	enemies.push(new Enemy("Scaled Drake",			70,		5,		30,		75,		[2, 1], 	2,		"animal", 		"A wide-eyed quadruped, famed for its thick, pinecone-like hide. It has a wide body and short tail, and is highly resistant to magic.")); //Phys
+	enemies.push(new Enemy("Wild Bear",				100,	6,		2,		80,		[2, 0], 	2,		"animal", 		"A towering one-eyed bear with claws as long and sharp as daggers. Its hide is greying, and criss-crossed with the scars of its many triumphs.")); //Phys
 	enemies.push(new Enemy("Raging Boar",			100,	0,		0,		80,		[2, 1],		5,		"animal",		"A towering mass of muscle covered in dark, matted fur. Four yellow tusks protrude from its snout as long as daggers. Despite its massive size, it still moves with incredible speed."));
 	enemies.push(new Enemy("Beekeeper", 			200, 	3,		3,		200, 	[2], 		1,		"", 			"A figure of medium height, dressed in clean white robes. Its face is hidden by a dome of tan wicker, and on its back is a wicker hive.")); //Phys
 	enemies.push(new Enemy("Briar Monster", 		125, 	8,		4,		150, 	[2, 1], 	1,		"animal", 		"A Briar Beast grown to monstrous proportions. Its four limbs are as thick as tree trunks, and the thorns on its hide have grown so long they twist into loops.")); //Phys + Magic Reflect
@@ -775,7 +779,7 @@ function initEnemies() {
 	//Generic Loot
 	for (const item of items) {
 		if (!item.rare) {
-			if (item.type == "weapon" || item.type == "armor" || item.type == "staff" || item.type == "scroll") {
+			if (item.type == "weapon" || item.type == "armor" || item.type == "staff" || item.type == "scroll" || item.type == "tincture") {
 				genericLoot.push(COPY(item));
 			}
 		}
@@ -954,6 +958,10 @@ function initEffects() {
 		new Effect("Terrified", 			"debuff",	"This creature is fleeing for their life!",						false),
 		new Effect("Wilting", 				"debuff",	"Lose 4 HP per turn. Lose 12 Stamina per turn.",				false),
 		new Effect("Coated in Honey", 		"debuff",	"You're slowed by viscous honey. Your AP/turn is halved.",		false),
+		new Effect("Necrosis", 				"debuff",	"Incoming healing is reduced by 100%",							false),
+		new Effect("Confused", 				"debuff",	"You'll attack your allies, or even yourself.",					false),
+		new Effect("Peeled", 				"debuff",	"Armor is reduced to 0.",										false),
+		new Effect("Blocking", 				"buff",		"Enemies are unable to move past you.",							false),
 		new Effect("Enraged", 				"buff",		"Deal +50% Damage",												false),
 		new Effect("Invincible", 			"buff",		"You can't take any damage",									false),
 		new Effect("Aura", 					"buff",		"Deal 2 Damage to All Enemies",									false),
