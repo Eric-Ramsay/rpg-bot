@@ -32,11 +32,6 @@ function Equip(C, invIndex) {
 	if (C.INVENTORY[invIndex].equipped) {
 		return "*RED*This item is already equipped!\n";
 	}
-	if (C.INVENTORY[invIndex].type == "staff") {
-		if (C.INVENTORY[invIndex].name != "Wand" && C.CLASS != "mage") {
-			return "*RED*Only mages can equip staves!\n";
-		}
-	}
 	if (C.INVENTORY[invIndex].name == "Drowned Armor" && C.HP <= 20) {
 		return "*RED*You don't have enough HP to equip this.\n";
 	}
@@ -115,7 +110,7 @@ function itemName(item) {
 		}
 	}
 	return name;
-}
+}	
 
 function LootItem(C, battle, index) {
 	let item = COPY(battle.loot[index]);
@@ -126,12 +121,17 @@ function LootItem(C, battle, index) {
 	battle.loot.splice(index, 1);
 	if (item.type == "mimic") {
 		let msg = "*RED*It's a mimic!\n";
+		for (const ally of battle.allies) {
+			ally.ENDED = true;
+		}
 		battle.started = true;
-		battle.allyTurn = false;	
-		let enemy = COPY(new Enemy("Mimic", 75, 4, 4, 50, [], 1, "", "A slow-moving creature born of early attempts at alchemical conjuration, now thriving in the wild. They submerge themselves underground, while a specialized organ resembling a commonplace object acts as a lure for careless adventurers."));
-		enemy.ROW = C.ROW;
+		battle.allyTurn = true;	
+		let enemy = summon("Mimic", C.ROW, false);
+		enemy.MaxHP += 15 * C.LEVEL;
+		enemy.HP = enemy.MaxHP;
+		enemy.DIFFICULTY += 6 * C.LEVEL;
+		AddEffect(enemy, "resilient", 1);
 		battle.enemies.push(enemy);
-		C.ENDED = true;
 		msg += HandleCombat(battle);
 		return msg;
 	}
@@ -407,7 +407,7 @@ function spellHPCost(C, spell) {
 }
 
 function spellAPCost(C, spell, checking = false) {
-	let cost = 0;
+	let cost = spell.AP;
 	if (hasRune(C, "hollow")) {
 		cost--;
 	}
@@ -418,9 +418,12 @@ function spellAPCost(C, spell, checking = false) {
 		cost = C.AP;
 	}
 	if (!checking && hasRune(C, "sanguine")) {
-		return 0;
+		cost = 0
 	}
-	return cost + spell.AP;
+	if (C.CLASS == "sorcerer") {
+		cost *= 2;
+	}
+	return cost;
 }
 
 function SpellHeal(allies, healer, target, amount, autumn = true) {
@@ -448,8 +451,19 @@ function SpellHeal(allies, healer, target, amount, autumn = true) {
 	return msg;
 }
 
+function MaxSpells(C) {
+	let numSpells = C.STATS[MAG];
+	if (C.CLASS == "mage") {
+		numSpells *= 2;
+	}
+	return numSpells;
+}
+
 function MaxCasts(C) {
-	let numCasts = C.STATS[MAG];
+	let numCasts = 1 + Math.floor(C.STATS[MAG]/2);
+	if (C.CLASS == "mage") {
+		numCasts = C.STATS[MAG];
+	}
 	if (hasRune(C, "light")) {
 		numCasts += 2;
 	}
@@ -531,7 +545,7 @@ function shitSort(list, property, flip = false, secondary = "") {
 
 function prepMerchant() {
 	let rareItems = [];
-	let inventory = ["Warp Potion", "Potion of Wrath", "Tears of a God", "Scroll: Gamble"]
+	let inventory = ["Warp Potion", "Rage Potion", "Tears of a God", "Scroll: Gamble"]
 	for (let i = 0; i < items.length; i++) {
 		if (items[i].rare) {
 			rareItems.push(items[i].name);
@@ -660,7 +674,6 @@ function searchInList(words, list) {
 			}
 			checkStr += words[0];
 			words = words.slice(1, words.length);
-			console.log(checkStr);
 			for (let i = 0; i < list.length; i++) {
 				if (list[i].name && list[i].name.toLowerCase() == checkStr.toLowerCase()) {
 					index = i;

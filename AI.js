@@ -1481,7 +1481,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			if (index > -1) {
 				if (hasEffect(targets[index], "rooted")) {
 					msg += "*PINK*" + name + " bites " + Name(targets[index]) + "!\n";
-					msg += DealDamage(new P_Attack(10 + rand(11), 100, 50), allies, enemy, targets, targets[index])[0];
+					msg += DealDamage(new P_Attack(Math.floor(enemy.MaxHP/10) + 10 + rand(7), 100, 50), allies, enemy, targets, targets[index])[0];
 				}
 				else {
 					msg += "*PINK*" + name + " grabs " + Name(targets[index]) + " with their tongue!\n";

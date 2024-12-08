@@ -35,7 +35,7 @@ const PHYSICAL = 0;
 const MAGICAL = 1;
 const TRUE_DAMAGE = 2;
 
-var classes = ["peasant", "rogue", "noble", "warrior", "ranger", "mage", "sorcerer", "monk", "duelist", "merchant"];
+var classes = ["peasant", "rogue", "noble", "warrior", "ranger", "mage", "sorcerer", "witch", "monk", "duelist", "merchant"];
 var stats = ["VIT", "MAG", "END", "WEP", "DEX", "AVD"];
 
 var effects = [];
@@ -430,13 +430,15 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 	if (hasEffect(target, "disorganized")) {
 		damage *= 1.2;
 	}
+	if (hasEffect(target, "whipped")) {
+		damage *= 1.15;
+	}
 	if (hasEffect(target, "vulnerable")) {
 		damage *= 1.2;
 	}
 	if (hasEffect(target, "resilient")) {
 		damage *= .5;
 	}
-	
 	if (hasRune(attacker, "berserk")) {
 		let num = 10 - Math.floor(10 * attacker.HP/MaxHP(attacker));
 		damage *= 1 + (num/20);
@@ -469,7 +471,7 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 	
 	if (damage > 0) {
 		if (isEquipped(target, "eel shield")) {
-			msg += AddEffect(target, "static", 999, null, null, 2);
+			msg += AddEffect(target, "static", 999, null, null, 3);
 		}
 		if (hasRune(attacker, "cascade")) {
 			damage += 2;
@@ -480,6 +482,7 @@ function DealDamage(attack, attackers, attacker, targets, target, canReflect = t
 		
 		let shock = hasEffect(target, "static");
 		if (shock) {
+			RemoveEffect(target, "static");
 			RemoveEffect(target, "static");
 		}
 		if (hasEffect(target, "jade")) {
@@ -621,10 +624,15 @@ function SpellDamage(attack, allies, C, targets, target) {
 function Cast(C, spell, allies, enemyList, targets) {
 	let msg = "";
 	let spellName = spell.name.toLowerCase();
-	if (spellAPCost(C, spell) > C.AP) {
+	let APCost = spellAPCost(C, spell);
+	let HPCost = spellHPCost(C, spell);
+	if (C.CLASS != "sorcerer" && APCost > C.AP) {
 		return "*RED*You don't have enough AP to cast this spell!\n";
 	}
-	if (spellHPCost(C, spell) >= C.HP) {
+	if (C.CLASS == "sorcerer" && APCost > C.STAMINA) {
+		return "*RED*You don't have enough stamina to cast this spell!\n";
+	}		
+	if (HPCost >= C.HP) {
 		return "*RED*You don't have enough HP to cast this spell!\n";
 	}
 	if (spellName == "holy flame" && C.AP == 0) {
@@ -645,13 +653,20 @@ function Cast(C, spell, allies, enemyList, targets) {
 	}
 	
 	let chance = rand(100);
-	let APCost = spellAPCost(C, spell);
-	let HPCost = spellHPCost(C, spell);
 	if (chance >= refundChance) {
-		C.AP -= APCost;
+		if (C.CLASS == "sorcerer") {
+			C.STAMINA -= APCost;
+		}
+		else {
+			C.AP -= APCost;
+		}
 	}
 	else if (spellAPCost(C, spell) > 0){
-		msg += "*CYAN*The spell costs no AP!\n";
+		let stat = "AP";
+		if (C.CLASS == "sorcerer") {
+			stat = "stamina";
+		}
+		msg += "*CYAN*The spell costs no " + stat + "!\n";
 	}
 	C.HP -= HPCost;
 	C.REPORT.taken += spellHPCost(C, spell);
@@ -888,9 +903,9 @@ function Cast(C, spell, allies, enemyList, targets) {
 				msg += CastMessage("You bind " + Name(enemyList[index]) + " where they stand.", t + n);
 				msg += AddEffect(enemyList[index], "Rooted", 3, C);
 			}
-			else if (spellName == "envenom") { //Inflict 3 turns of venom onto a target
+			else if (spellName == "envenom") { //Inflict 4 turns of venom onto a target
 				msg += CastMessage("You envenom the " + enemyList[index].NAME + "!", t + n);
-				msg += AddEffect(enemyList[index], "Venom", 3, C);
+				msg += AddEffect(enemyList[index], "Venom", 4, C);
 			}
 			else if (spellName == "gale") { //Push a row of enemyList back one row
 				msg += CastMessage("The wind picks up and howls!", t + n);
@@ -1679,7 +1694,11 @@ function CharacterDescription(C) {
 		if (C.SP > 0) {
 			levelStr += "*BLACK* | *WHITE*" + C.SP + " SP";
 		}
-		msg += "*GREEN*" + C.NAME + "*GREY* the *CYAN*" + Prettify(C.CLASS) + "*BLACK* | " + levelStr + "*BLACK* | *YELLOW*" + C.XP + "*GREY*/*GREEN*" + C.LEVEL * 100 + "*GREY* XP*BLACK* | *CYAN*⛊*GREY*" + P_Armor(C) + " *CYAN*✱*GREY*" + M_Armor(C) +"*GREY*\n";
+		let playerColor = "*GREEN*";
+		if (C.COLOR && C.COLOR != "") {
+			 playerColor = C.COLOR;
+		}
+		msg += playerColor + C.NAME + "*GREY* the *CYAN*" + Prettify(C.CLASS) + "*BLACK* | " + levelStr + "*BLACK* | *YELLOW*" + C.XP + "*GREY*/*GREEN*" + C.LEVEL * 100 + "*GREY* XP*BLACK* | *CYAN*⛊*GREY*" + P_Armor(C) + " *CYAN*✱*GREY*" + M_Armor(C) +"*GREY*\n";
 		if (C.BRACING) {
 			msg += DrawBar(C.HP, MaxHP(C), 30, "*RED*", true, "*YELLOW*") + "\n";
 		}
@@ -1764,6 +1783,9 @@ function StackStrings(left, right, spaces, newLines = true, separator = " ") {
 function DrawSideList(symbol, allies, otherStr, statStr) {
 	for (let i = 0; i < allies.length; i++) {
 		let name = "*GREY*";
+		if (allies[i].COLOR && allies[i].COLOR != "") {
+			name = allies[i].COLOR;
+		}
 		if (allies[i].ENDED) {
 			name = "*BLACK*";
 		}
@@ -1790,7 +1812,7 @@ function DrawSideList(symbol, allies, otherStr, statStr) {
 			}
 		}
 		if (allies[i].BRACING) {
-			statStr += DrawBar(allies[i].HP, MaxHP(allies[i]), 10, "*RED*", false, "*WHITE*");
+			statStr += DrawBar(allies[i].HP, MaxHP(allies[i]), 10, "*RED*", false, "*CYAN*");
 		}
 		else {
 			statStr += DrawBar(allies[i].HP, MaxHP(allies[i]), 10, "*RED*", false);
@@ -1800,19 +1822,22 @@ function DrawSideList(symbol, allies, otherStr, statStr) {
 		if (allies[i].TYPE == "player") {
 			statStr += "*BLACK* | *GREEN*" + allies[i].AP + " *BLACK*| *YELLOW*" + allies[i].STAMINA + " *BLACK*| ";
 			let atks = 0;
-			let word = " Attacks";
+			let staffEquipped = false;
 			for (const item of allies[i].INVENTORY) {
 				if (item.equipped) {
 					if (item.type == "weapon") {
-						atks += item.attacks[0];
+						atks = "*RED*" + item.attacks[0];
 					}
 					else if (item.type == "staff") {
-						atks += MaxCasts(allies[i]) - allies[i].CASTS;
-						word = " Casts"
+						atks = "*BLUE*" + (MaxCasts(allies[i]) - allies[i].CASTS);
+						staffEquipped = true;
 					}
 				}
 			}
-			statStr += "*RED*" + atks;
+			statStr += atks;
+			if (allies[i].CLASS == "sorcerer" && !staffEquipped) {
+				statStr += " *BLACK*| " + "*BLUE*" + (MaxCasts(allies[i]) - allies[i].CASTS);
+			}
 		}
 		statStr += "\n";
 		let color = "*BLACK*";
@@ -1963,8 +1988,12 @@ function DrawSpells(C, spellList) {
 			if (i % 2 == 0) {
 				color = "*GREEN*";
 			}
-			nameStr += "*GREY*" + (i + 1).toString().padStart(2, '0') + " - " + color + spell.name;
-			APStr += "*GREEN*" + spellAPCost(C, spell);
+			nameStr += StackStrings("*GREY*" + (i + 1), color + spell.name, 5);
+			let costColor = "*GREEN*";
+			if (C.CLASS == "sorcerer") {
+				costColor = "*YELLOW*";
+			}
+			APStr += costColor + spellAPCost(C, spell);
 			color = "*RED*";
 			if (spellHPCost(C, spell) == 0) {
 				color = "*BLACK*";
@@ -2185,7 +2214,7 @@ function Command(message) {
 	let index = -1;
 	let numRepeat = 1;
 	
-	let requireCharacter = ["deposit", "withdraw", "fishing", "row", "servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "disenchant", "enchant", "level", "stop", "move", "mvoe", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "eat", "read", "learn", "order", "buy", "sell", "spells"];
+	let requireCharacter = ["brew", "deposit", "withdraw", "fishing", "row", "servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "disenchant", "enchant", "level", "stop", "move", "mvoe", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "eat", "read", "learn", "order", "buy", "sell", "spells"];
 	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "guard", "brace", "throw"];
 	
 	for (let i = 0; i < requireBattle.length; i++) {
@@ -2334,7 +2363,7 @@ function Command(message) {
 			msg += "*BLUE*Axes - Close Range. Have a 15% chance to hit for double damage.\n";
 			msg += "*CYAN*Shields - Close Range. Shields have a chance to block any incoming damage. \n";
 			msg += "*BLUE*Polearms - Medium Range. Polearms offer good damage and range. Enemies on the same row are pushed back when attacked.\n";
-			msg += "*CYAN*Whips - Medium Range. Hits have a 50% chance to cause enemies to bleed.\n";
+			msg += "*CYAN*Whips - Medium Range. Hits have a 50% chance to afflict '*WHITE*Whipped*GREY*'\n";
 			msg += "*BLUE*Ranged - Very High Range.\n";
 		}
 		else if (keyword == "item" || keyword == "look") {
@@ -2383,6 +2412,11 @@ function Command(message) {
 			else {
 				msg += "*RED*You don't have enough Stamina to brace.\n";
 			}
+		}
+		else if (keyword == "debug") {
+			words = words.slice(1, words.length);
+			let word = words.join(" ");
+			msg += JSON.stringify(C[word.toUpperCase()], null, 4);
 		}
 		else if (keyword == "end") {
 			C.ENDED = true;
@@ -2573,20 +2607,24 @@ function Command(message) {
 		else if (keyword == "drink" || keyword == "eat") {
 			msg += CommandDrink(COPY(words), C);
 		}
+		else if (keyword == "brew") {
+			msg += CommandBrew(COPY(words), C);
+		}
 		else if (keyword == "throw") {
 			msg += CommandThrow(COPY(words), C, index);
 		}
 		else if (keyword == "classes") {
-			msg += "*PINK*Peasant*GREY* - *CYAN*+2 END +2 VIT*GREY*. Starts with a club but *RED*no gold*GREY*.\n\n";
-			msg += "*BLUE*Noble*GREY* - Starts with *YELLOW*100 gold*GREY*, a stylish shirt, and a scimitar. A *GREEN*loyal servant*GREY* follows you into battle.\n\n";
-			msg += "*PINK*Rogue*GREY* - *CYAN*+2 AVD*GREY*. Starts with *YELLOW*40 gold*GREY*, a cloak, and two daggers. Whenever you dodge an attack, deal 6 damage to your attacker.\n\n";
-			msg += "*BLUE*Warrior*GREY* - *CYAN*+1 VIT +1 DEX +2 Armor*GREY*. Starts with *YELLOW*25 gold*GREY*, a Leather Cuirass, a Hatchet, and a Buckler. Armor doesn't reduce your Stamina.\n\n";
-			msg += "*PINK*Ranger*GREY* - *CYAN*+1 WEP +1 AVD*GREY*. Start with *YELLOW*10 gold*GREY* and a ranged weapon. Your attacks deal more damage on farther enemies (5% -> 25%)\n\n";
-			msg += "*BLUE*Mage*GREY* - *CYAN*+2 MAG*GREY*. Starts with a wand and a simple spell. Only mages can wield staffs that enhance their magic.\n\n";
-			msg += "*PINK*Sorcerer*GREY* - *CYAN*+1 MAG*GREY*. Start with a quarterstaff, a cloak, and *YELLOW*15 gold*GREY*. Sorcerers can cast magic without staves or wands.\n\n";
-			msg += "*BLUE*Duelist*GREY* - *CYAN*+2 WEP +1 DEX. *GREY*Start with a Scimitar and a Buckler. Attacks have +10% hit chance and +15% damage, but you can only target one specific enemy per turn.\n\n";
-			msg += "*PINK*Monk*GREY* - *CYAN*+2 VIT. *GREY*Start with a quarterstaff and a Plain Cassock. Each turn, heal the lowest HP ally in your row 10% of your Max HP. You can rest at the church to recover HP. The first time you would die, instead wake up at the church with 1 HP.\n\n";
-			msg += "*BLUE*Merchant*GREY* - *CYAN*1 END. 1 AVD. *GREY*Start with *YELLOW*50 gold*GREY* and a backpack, but no weapon. You can sell items for 75% of their value rather than 50%, however you're too greedy to ever drop any items.\n\n";
+			msg += "*RED*Peasant*GREY* - *GREEN*+2 END +2 VIT*GREY*. Starts with a club but *RED*no gold*GREY*.\n\n";
+			msg += "*CYAN*Noble*GREY* - Starts with *YELLOW*100 gold*GREY*, a stylish shirt, and a scimitar. A *GREEN*loyal servant*GREY* follows you into battle.\n\n";
+			msg += "*RED*Rogue*GREY* - *GREEN*+2 AVD*GREY*. Starts with *YELLOW*40 gold*GREY*, a cloak, and two daggers. Whenever you dodge an attack, deal 6 damage to your attacker.\n\n";
+			msg += "*CYAN*Warrior*GREY* - *GREEN*+1 VIT +1 DEX +2 Armor*GREY*. Starts with a Leather Cuirass, a Hatchet, and a Buckler. Armor doesn't reduce your Stamina.\n\n";
+			msg += "*RED*Ranger*GREY* - *GREEN*+1 WEP +1 AVD*GREY*. Starts with a ranged weapon. Your attacks deal more damage on farther enemies (5% -> 25%)\n\n";
+			msg += "*CYAN*Duelist*GREY* - *GREEN*+2 WEP +1 DEX. *GREY*Start with a Scimitar and a Buckler. Attacks have +10% hit chance and +15% damage, but you can only target one specific enemy per turn.\n\n";
+			msg += "*RED*Monk*GREY* - *GREEN*+2 VIT. *GREY*Start with a quarterstaff and a Plain Cassock. Each turn, heal the lowest HP ally in your row 10% of your Max HP. You can rest at the church to recover HP. The first time you would die, instead wake up at the church with 1 HP.\n\n";
+			msg += "*CYAN*Merchant*GREY* - *GREEN*1 END. 1 AVD. *GREY*Start with *YELLOW*50 gold*GREY* and a backpack, but no weapon. You can sell items for 75% of their value rather than 50%, however you're too greedy to ever drop any items.\n\n";
+			msg += "*RED*Mage*GREY* - *GREEN*+2 MAG*GREY*. Starts with a wand and *BLUE*Arcane Strike*GREY*. Mages get 2 Max Spells and +1 Cast/Turn from each point of MAG.\n\n";
+			msg += "*CYAN*Witch*GREY* - *GREEN*+2 MAG*GREY*. Starts with a wand and *BLUE*Envenom*GREY*. Witches can !brew potions and tinctures in combat for 60% of their gold cost. Using any potion or tincture heals 5 HP. Fire Tincures deal +3 damage per level.\n\n";
+			msg += "*RED*Sorcerer*GREY* - *GREEN*+1 MAG +1 END*GREY*. Starts with a quarterstaff. Sorcerers can cast magic without staves or wands. Sorcerers' spells cost 2x Stamina instead of AP.\n\n";
 		}
 		else if (keyword == "effects") {
 			msg += WriteEffects(C);
@@ -2672,6 +2710,20 @@ function Command(message) {
 			else {
 				return "*RED*Invalid row entered.\n";
 			}
+		}
+		else if (keyword == "color") {
+			let colors = ["GREEN", "CYAN", "RED", "YELLOW", "WHITE", "PINK", "BLUE", "GREY"];
+			words = words.slice(1, words.length);
+			let word = words.join(" ");
+			msg = "*RED*Your color options are: \n";
+			for (const color of colors) {
+				msg += "*" + color + "*" + P(color.toLowerCase()) + "\n";
+				if (color.toLowerCase() == word.toLowerCase()) {
+					C.COLOR = "*" + color + "*";
+					return "*GREY*Your new player color is " + C.COLOR + P(color.toLowerCase()) + "*GREY*.";
+				}
+			}
+			return msg;
 		}
 		else if (keyword == "name") {
 			words = words.slice(1, words.length);
@@ -2850,7 +2902,7 @@ function Command(message) {
 							}
 						}
 					}
-					return "*RED*Item not found " + item + "!\n";
+					return "*RED*Item '" + item + "' not found!\n";
 				}
 			}
 			else {

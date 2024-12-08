@@ -39,9 +39,9 @@ function ListCommands(index) {
 		msg += "*GREEN*!start *GREY*- Start combat once you've entered a dungeon. No one will be able to join you after this.\n\n";
 		msg += "*CYAN*!end *GREY*- Ends your turn.\n\n";
 		msg += "*GREEN*!move LEFT/RIGHT *GREY*- Moves left or right a row. Costs 3 AP.\n\n";
-		msg += "*CYAN*!drink POTION *GREY*- Drinks a potion.\n\n";
+		msg += "*CYAN*!drink POTION *GREY*- Drinks a potion. Costs 3 Stamina.\n\n";
 		msg += "*GREEN*!eat FISH *GREY*- Eats a fish.\n\n";
-		msg += "*CYAN*!throw TINCTURE *GREY*- Costs 3 AP. Throw a tincture at an enemy within 3 tiles.\n\n";
+		msg += "*CYAN*!throw TINCTURE *GREY*- Throws a tincture at an enemy within 3 tiles. Costs 3 Stamina.\n\n";
 		msg += "*GREEN*!effects *GREY*- Lists effects on you.\n\n";
 		msg += "*CYAN*!guard TARGET *GREY*- Costs 6 AP per turn. Guard a target on your row; redirecting damage they would taket to yourself.\n\n";
 		msg += "*GREEN*!brace *GREY*- Costs 6 Stamina. You brace yourself, giving yourself a 50% chance to dodge the next damage that comes your way.\n\n";
@@ -175,7 +175,7 @@ function CommandStats(C) {
 	msg += "*RED*VIT *GREY*- Vitality. Every point provides +10 Max HP.\n";
 	msg += "*BLUE*END *GREY*- Endurance. Every point provides +15 Max Stamina.\n";
 	msg += "*RED*DEX *GREY*- Dexterity. Every point provides +3 AP per turn.\n";
-	msg += "*BLUE*MAG *GREY*- Magic. Every point lets you learn +2 spells and cast +1 spell.\n";
+	msg += "*BLUE*MAG *GREY*- Magic. Every Point grants +1 Max Spells. Every two points grants you +1 Spell Cast.\n";
 	msg += "*RED*WEP *GREY*- Weapons Handling. Every point provides +1 Max Weapon Damage & +5% Base Weapon Damage.\n";
 	msg += "*BLUE*AVD *GREY*- Avoidance. Every point gives +5% chance to flee, +5% chance to dodge, and +1 AP/turn. Caps at 10.\n";
 	return msg;
@@ -289,9 +289,6 @@ function CommandEquip(words, C) {
 function CommandCast(words, C, index) {
 	if (hasEffect(C, "stunned")) {
 		return "*RED*You can't act while you're stunned!\n";
-	}
-	if (C.ENDED) {
-		return "*RED*You can't act while your turn is ended!\n";
 	}
 	if (words.length == 1) {
 		return "*RED*You must specify a spell name to cast.\n";
@@ -419,9 +416,6 @@ function CommandGuard(words, C, battleIndex) {
 	if (hasEffect(C, "stunned")) {
 		return "*RED*You can't act while you're stunned!\n";
 	}
-	if (C.ENDED) {
-		return "*RED*You can't act while your turn is ended!\n";
-	}
 	if (words.length == 1) {
 		return "*RED*You must specify an ally to guard!\n";
 	}
@@ -459,9 +453,6 @@ function CommandAttack(words, C, battleIndex) {
 	let msg = "";
 	if (hasEffect(C, "stunned")) {
 		return "*RED*You can't act while you're stunned!\n";
-	}
-	if (C.ENDED) {
-		return "*RED*You can't act while your turn is ended!\n";
 	}
 	if (words.length == 1) {
 		return "*RED*You must specify an enemy to attack.\n";
@@ -795,9 +786,6 @@ function CommandFlee(C, index) {
 		if (battles[index].level == 4) {
 			return "*RED*You've delved too deep to flee. . .\n";
 		}
-		if (C.ENDED) {
-			return "*RED*Your turn has already ended!\n";
-		}
 		if (hasEffect(C, "rooted")) {
 			return "*RED*You're rooted and can't move!";
 		}
@@ -1001,13 +989,19 @@ function CommandCharacter(words, C, authorId) {
 		if (C.CLASS == "sorcerer") {
 			C.GOLD = 15;
 			C.STATS[MAG] += 1;
+			C.STATS[END] += 1;
 			C.INVENTORY.push(startItem("quarterstaff"));
-			C.INVENTORY.push(startItem("plain cloak"));
 		}
 		if (C.CLASS == "mage") {
 			C.GOLD = 30;
 			C.STATS[MAG] += 2;
 			C.SPELLS.push("Arcane Strike");
+			C.INVENTORY.push(startItem("wand"));
+		}
+		if (C.CLASS == "witch") {
+			C.GOLD = 30;
+			C.STATS[MAG] += 2;
+			C.SPELLS.push("Envenom");
 			C.INVENTORY.push(startItem("wand"));
 		}
 		for (let i = 0; i < C.INVENTORY.length; i++) {
@@ -1025,6 +1019,46 @@ function CommandCharacter(words, C, authorId) {
 	return msg;
 }
 
+function CommandBrew(words, C) {
+	let msg = "";
+	words = words.slice(1, words.length);
+	let potions = ["Stamina Potion", "Panacea", "Health Potion", "Warp Potion", "Fire Tincture", "Peel Tincture", "Necrosis Tincture", "Confusion Tincture"];
+	if (C.CLASS != "witch") {
+		return "*RED*Only witches can brew potions!\n";
+	}
+	if (words.length <= 1) {
+		msg += "*PINK*!brew *CYAN*POTION NAME\n\n";
+		msg += StackStrings("*CYAN*Potion/Tincture Name", "*YELLOW*Cost", 30) + "\n";
+		for (const potion of potions) {
+			let item = startItem(potion);
+			let color = "*GREEN*";
+			if (item.type == "tincture") {
+				 color = "*RED*";
+			}
+			msg += StackStrings(color + potion, "*YELLOW*" + Math.floor(item.value * .6), 30) + "\n";
+		}
+		return msg;
+	}
+	if (C.INVENTORY.length >= 15 || (!C.BACKPACK && C.INVENTORY.LENGTH >= 5)) {
+		return "*RED*You don't have room in your inventory to brew a potion!\n";
+	}
+	let potionIndex = searchInList(words, potions)[1];
+	if (potionIndex == -1) {
+		return "*RED*You can't brew that!\n";
+	}
+	let item = startItem(potions[potionIndex]);
+	if (Math.floor(item.value * .6) > C.GOLD) {
+		return "*RED*You don't have enough gold to brew that potion!\n";
+	}
+	C.GOLD -= Math.floor(item.value * .6);
+	C.INVENTORY.push(item);
+	let color = "*GREEN*";
+	if (item.type == "tincture") {
+		 color = "*RED*";
+	}
+	return "*GREY*You brew " + an(item.name) + " " + color + item.name + "*GREY*! You have *YELLOW*" + C.GOLD + " Gold*GREY* remaining.\n";
+}
+
 function CommandThrow(words, C, battleIndex) {
 	let msg = "";
 	let battle = battles[battleIndex];
@@ -1032,11 +1066,8 @@ function CommandThrow(words, C, battleIndex) {
 	if (hasEffect(C, "stunned")) {
 		return "*RED*You can't act while you're stunned!\n";
 	}
-	if (C.ENDED) {
-		return "*RED*You can't act while your turn is ended!\n";
-	}
-	if (C.AP < 3) {
-		return "*RED*You don't have enough AP to throw a tincture!\n";
+	if (C.STAMINA < 3) {
+		return "*RED*You don't have enough Stamina to throw a tincture!\n";
 	}
 	if (words.length <= 1) {
 		return "*RED*You must specify a tincture and enemy to throw it at.\n";
@@ -1069,7 +1100,11 @@ function CommandThrow(words, C, battleIndex) {
 	let name = C.INVENTORY[invIndex].name.toLowerCase();
 	if (name == "fire tincture") {
 		msg += "*YELLOW*The tincture bursts into shimmering orange flames, burning " + Name(battle.enemies[index]) + "!\n";
-		msg += DealDamage(new M_Attack(25), battle.allies, C, battle.enemies, battle.enemies[index])[0];
+		let tinctureDamage = 25;
+		if (C.CLASS == "witch") {
+			tinctureDamage += 3 * C.LEVEL;
+		}
+		msg += DealDamage(new M_Attack(tinctureDamage), battle.allies, C, battle.enemies, battle.enemies[index])[0];
 	}
 	if (name == "peel tincture") {
 		msg += "*YELLOW*The tincture spreads over " + Name(battle.enemies[index]) + ", temporarily softening their armor!\n";
@@ -1083,7 +1118,10 @@ function CommandThrow(words, C, battleIndex) {
 		msg += "*YELLOW*The tincture's solution seeps into " + Name(battle.enemies[index]) + ", confusing them!\n";
 		msg += AddEffect(battle.enemies[index], "confused", 1);
 	}
-	C.AP -= 3;
+	if (C.CLASS == "witch" && C.INVENTORY[invIndex].type == "tincture") {
+		msg += Heal(C, 5);
+	}
+	C.STAMINA -= 3;
 	RemoveItem(C, invIndex);
 	return msg;
 }
@@ -1097,6 +1135,9 @@ function CommandDrink(words, C) {
 	}
 	if (hasEffect(C, "parched")) {
 		return "*RED*You can't eat drink anything!\n";
+	}
+	if (C.STAMINA < 3) {
+		return "*RED*You don't have enough Stamina to throw a tincture!\n";
 	}
 	if (C.INVENTORY[invIndex].type != "fish" && C.INVENTORY[invIndex].type != "potion" && C.INVENTORY[invIndex].type != "drink") {
 		return "*RED*You can't eat or drink that.\n";
@@ -1112,13 +1153,12 @@ function CommandDrink(words, C) {
 	}
 	if (name == "potion of wrath") {
 		msg += AddEffect(C, "enraged", 2);
-		msg += AddEffect(C, "vulnerable", 2);
 	}
 	if (C.INVENTORY[invIndex].type == "fish") {
 		let ran = rand(40);
 		if (ran == 0) {
 			msg = "*RED*Disgusting! You feel something writhing in your mouth and see the fish was full of worms!\n";
-			msg += AddEffect(targets[index], "Infested", 999, null, 3);
+			msg += AddEffect(C, "Infested", 999, null, 3);
 		}
 		else {
 			let dialogue = ["Delicious!", "Delectable!", "Scrumptious!", "Sumptuous!", "Delightful!"];
@@ -1144,7 +1184,6 @@ function CommandDrink(words, C) {
 		Travel(C, spot, index);
 		msg = "*GREEN*You drink the warp potion and you're whisked away to safety!\n\n";
 		msg += RoomDescription(C);
-		return msg;
 	}
 	if (name == "panacea") {
 		if (hasEffect(C, "cursed")) {
@@ -1188,17 +1227,21 @@ function CommandDrink(words, C) {
 	if (name == "bottle of ash") {
 		msg = "*RED*It's disgusting, and you choke on its contents!\n";
 	}
-	RemoveItem(C, invIndex);
 	if (name == "mead") {
-		return "*GREEN*It's quite good. It's sweet, but not sugary.\n";
+		msg = "*GREEN*It's quite good. It's sweet, but not sugary.\n";
 	}
 	if (name == "imperial wine") {
-		return "*GREEN*The imperial wine takes you back to better days. It has you feeling sentimental.\n";
+		msg = "*GREEN*The imperial wine takes you back to better days. It has you feeling sentimental.\n";
 	}
 	if (name == "northern wine") {
 		C.HP = MaxHP(C);
-		return "*GREEN*From a mountain vinyard across the sea, it passes your lips and from the first sip you feel as if you're floating. It is unparalleled. What bliss!\n";
+		msg = "*GREEN*From a mountain vinyard across the sea, it passes your lips and from the first sip you feel as if you're floating. It is unparalleled. What bliss!\n";
 	}
+	if (C.CLASS == "witch" && C.INVENTORY[invIndex].type == "potion") {
+		msg += Heal(C, 5);
+	}
+	C.STAMINA -= 3;
+	RemoveItem(C, invIndex);
 	return msg;
 }
 
@@ -1417,7 +1460,7 @@ function hasSpell(C, spellName) {
 function CommandLearn(words, C) {
 	let msg = "";
 	let args = words.slice(1, words.length).join(" ");
-	if (C.SPELLS.length >= 2 * C.STATS[MAG]) {
+	if (C.SPELLS.length >= MaxSpells(C)) {
 		return "*RED*You don't have enough spell slots!\n";
 	}
 	let spellList = [];
@@ -1445,13 +1488,13 @@ function CommandLearn(words, C) {
 
 function CommandOrder(words, C) {
 	let args = words.slice(1, words.length).join(" ");
-	/*for (let i = 0; i < C.SPELLS.length; i++) {
+	for (let i = 0; i < C.SPELLS.length; i++) {
 		if (C.SPELLS[i].toLowerCase() == args) {
 			C.SPELLS.push(C.SPELLS[i]);
 			C.SPELLS.splice(i, 1);
 			return DrawSpells(C, C.SPELLS);
 		}
-	}*/
+	}
 	let index = findItem(C.INVENTORY, args);
 	if (index > -1) {
 		C.INVENTORY.push(C.INVENTORY[index]);
@@ -1503,7 +1546,7 @@ function CommandRead(words, C) {
 		return msg;
 	}
 	else {
-		if (C.SPELLS.length >= 2 * C.STATS[MAG]) {
+		if (C.SPELLS.length >= MaxSpells(C)) {
 			return "*RED*You don't have enough spell slots!\n";
 		}
 		let scrollName = C.INVENTORY[invIndex].name.toLowerCase().split(" ");
@@ -1534,7 +1577,7 @@ function CommandRead(words, C) {
 }
 
 function CommandSpells(C) {
-	let msg = "*GREEN*" + C.NAME + "'s Known Spells *BLACK*| *PINK*" + C.SPELLS.length + "*GREY*/*PINK*" + 2*C.STATS[MAG] + "\n\n";	
+	let msg = "*GREEN*" + C.NAME + "'s Known Spells *BLACK*| *PINK*" + C.SPELLS.length + "*GREY*/*PINK*" + MaxSpells(C) + "\n\n";	
 	return msg + DrawSpells(C, C.SPELLS);
 }
 
@@ -1630,7 +1673,7 @@ function CommandFish(C, message) {
 	if (location.fish.length == 0) {
 		return "*RED*You can't fish here!";
 	}
-	if (C.INVENTORY.length >= 5 && !(C.BACKPACK || C.INVENTORY.LENGTH >= 15)) {
+	if (C.INVENTORY.length >= 15 || (!C.BACKPACK && C.INVENTORY.LENGTH >= 5)) {
 		return "*RED*You need to clear up some inventory space to be able to fish.\n";
 	}
 	let event = data[message.author.id].CATCH;

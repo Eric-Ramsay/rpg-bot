@@ -22,7 +22,7 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 				AddEffect(C, "jade", 999);
 			}
 			if (hasRune(C, "static")) {
-				AddEffect(C, "static", 999, null, null, 4);
+				AddEffect(C, "static", 999, null, null, C.LEVEL);
 			}
 			let invincible = hasEffect(C, "invincible");
 			let shock = hasEffect(C, "static");
@@ -94,7 +94,7 @@ function StartTurn(battle, allies, enemies, deadAllies, deadEnemies, symbol = "E
 				let poison = countEffect(C, "poison");
 				C.HP = Math.max(1, C.HP - poison);
 				if (hasEffect(C, "venom")) {
-					C.HP = Math.max(1, C.HP - 5);
+					C.HP -= 5;
 				}
 				if (hasEffect(C, "wilting")) {
 					C.HP = Math.max(1, C.HP - 4);
@@ -420,7 +420,7 @@ function StartBattle(battle) {
 	}
 	else {
 		lvl /= num;
-		let rating = 45 * num * Math.pow(1.21, lvl);
+		let rating = 45 * num * Math.pow(1.22, lvl) + (15 * (lvl - 1) * num);
 		
 		ran = rand(6);
 		if (ran == 0) {
@@ -726,6 +726,7 @@ function HandleCombat(battle, purgeBattle = true, testing = false) {
 function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPierce = false) {
 	let msg = "";
 	let enemy = Battle.enemies[enemyIndex];
+	let id = enemy.ID;
 	let enemyHP = enemy.HP;
 	let eName = enemy.NAME;
 	let targetRow = enemy.ROW;
@@ -740,7 +741,7 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPier
 	let maxDmg = w_max(C, weapon);
 	
 	let dmg = minDmg + rand(1 + maxDmg - minDmg);
-	console.log("Damage Roll: " + dmg);
+	//console.log("Damage Roll: " + dmg);
 	if (hasWeaponRune(weapon, "decisive")) {
 		if (weapon.attacks[0] == w_attacks(C, weapon) - 1) {
 			dmg *= 1.25;
@@ -789,7 +790,6 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPier
 	let weaponChance = w_chance(C, weapon);
 	if (weaponChance > hitPercent(C, hand)) {
 		weaponChance *= 1.25;
-		console.log("RNG is being boosted because RNG of " + Math.floor(100 * hitPercent(C, hand))/100 + "% is lower than expected value of " + w_chance(C, weapon) + "%");
 	}
 	if (C.LEFT == weaponIndex) {
 		C.ATTEMPTS[LEFT]++;
@@ -906,13 +906,13 @@ function AllyAttack(Battle, C, enemyIndex, weaponIndex, reprise = false, gunPier
 		}
 		if (sweepDmg > 0 && !bossKill) {
 			for (let i = 0; i < Battle.enemies.length; i++) {
-				if (i != enemyIndex && Battle.enemies[i].ROW == targetRow) {
+				if (Battle.enemies[i].ID != id && Battle.enemies[i].ROW == targetRow) {
 					msg += DealDamage(new P_Attack(sweepDmg, 100, w_pen(C, weapon)), Battle.allies, C, Battle.enemies, Battle.enemies[i])[0];
 				}
 			}
 		}
 		if (enemy.HP > 0) {
-			msg += "The *RED*" + enemy.NAME + "*GREY* has *RED*" + enemy.HP + "*GREY* HP remaining.\n"
+			//msg += "The *RED*" + enemy.NAME + "*GREY* has *RED*" + enemy.HP + "*GREY* HP remaining.\n"
 		}
 		msg += "*GREEN*" + C.NAME + "*GREY* has " + C.AP + " *GREEN*AP*GREY* left this turn.\n";
 		msg += "\n";

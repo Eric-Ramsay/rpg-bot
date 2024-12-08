@@ -24,20 +24,18 @@ function Character() {
 	this.DISCORD_ID = "";
 	this.TYPE = "player";
 	this.DESCRIPTION = "";
-	//HELMET, GLOVES, CHEST, LEGS, BOOTS
+	this.COLOR = "";
 	this.LEFT = -1;
 	this.RIGHT = -1;
 	this.INVENTORY = [];
 	this.SKILLS = [];
 	this.ABILITIES = [];
 	this.SPELLS = [];
-	//Stats
 	this.NAME = "";
 	this.ID = "";
 	this.CLASS = "";
 	//Vitality, Endurance, Magic, Strength, Dexterity, Stealth
 	this.STATS = [0, 0, 0, 0, 0, 0];
-	//Temporary Stats
 	this.SP = 0;
 	this.HP = 0;
 	this.MANA = 0;

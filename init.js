@@ -4,7 +4,7 @@ function initRunes() {
 	runes.push(new Rune("Bold", 		90, 	"armor", 	"Gain +4 Armor against enemies in your row."));
 	runes.push(new Rune("Huntsman", 	90, 	"armor", 	"Fleeing costs no AP and can be done from any row. When you win a battle, heal to full HP."));
 	runes.push(new Rune("Sunset", 		90, 	"armor", 	"Each turn deal 3 true damage to all enemies"));
-	runes.push(new Rune("Static", 		90, 	"armor", 	"Gain 4 stacks of static each turn. Static deals damage to a random enemy. Lose 1 stack when you take damage."));
+	runes.push(new Rune("Static", 		100, 	"armor", 	"Each turn, gain a stack of Static for each level you have. Lose 2 stacks when you take damage."));
 	runes.push(new Rune("Preservation", 100, 	"armor", 	"At the start of your turn gain HP equal to half your AP left over from the previous turn"));
 	runes.push(new Rune("Amber", 		100, 	"armor", 	"Whenever you take damage from an enemy attack, heal 2 HP"));
 	runes.push(new Rune("Stout", 		100, 	"armor", 	"Gain +15 Max HP and +25 Stamina"));
@@ -48,10 +48,11 @@ function initRunes() {
 	runes.push(new Rune("Death Mark", 	125, 	"weapon", 	"Slain enemies are raised as allied zombies", true));
 	
 	//Staff Runes
+	runes.push(new Rune("Arcana", 		60, 	"staff", 	""));
 	runes.push(new Rune("Tar", 			75, 	"staff", 	"Enemies damaged by your spells are weakened, reducing their damage by 25%"));
+	runes.push(new Rune("Light", 		80, 	"staff", 	"You can cast +2 spells per turn"));
 	runes.push(new Rune("Focus", 		90, 	"staff", 	"You can't cast more than one spell a turn. Your spell damage is increased by 100%"));
 	runes.push(new Rune("Heavy", 		90, 	"staff", 	"Your spells cost +2 AP but deal +4 Damage per target"));
-	runes.push(new Rune("Light", 		90, 	"staff", 	"You can cast +2 spells per turn"));
 	runes.push(new Rune("Pearl", 		90, 	"staff", 	"Your spells' HP cost is increased by the AP cost of the spell, but your spells cast twice."));
 	runes.push(new Rune("Autumn", 		95, 	"staff", 	"When you cast a spell with healing, perform another 3 HP heal on a random ally"));
 	runes.push(new Rune("Ivory", 		110, 	"staff", 	"Each spell has a 20% Chance to have no AP cost"));
@@ -209,7 +210,7 @@ function initLocations() {
 	Penelope.ITEMS = ["Penelope's Brew", "Mead", "Imperial Wine", "Northern Wine"]
 	Tobin.ITEMS = ["Wand", "Staff", "Scepter", "Crook", "Tome of the Duelist", "Tome of Strength", "Tome of Summoning", "Tome of Affliction", "Tome of Destruction", "Tome of the Guardian", "Scroll: Random"];
 	
-	Merchant.ITEMS = ["Warp Potion", "Potion of Wrath", "Tears of a God", "Scroll: Gamble", "Scroll: Ignite", "Scroll: Feed Flame", "Swordfish Spear", "Eel Shield"];
+	Merchant.ITEMS = ["Warp Potion", "Rage Potion", "Tears of a God", "Scroll: Gamble", "Scroll: Ignite", "Scroll: Feed Flame", "Swordfish Spear", "Eel Shield"];
 	
 	for (let i = 0; i < people.length; i++) {
 		for (let j = 0; j < people[i].ITEMS.length; j++) {
@@ -409,15 +410,15 @@ function initItems() {
 	weapons.push(new TwoH("Repeating Crossbow", "ranged", 	"A variant of the crossbow that can quickly load its bolts, at the cost of power.",  		 		 	4,		50, 	70,		4,		8,		0,		3,		5));
 	weapons.push(new TwoH("Hand Cannon", 		"ranged", 	"A heavy weapon from far east. Its shots pass through enemies, but carrying it slows you down.",  		1,		100, 	45,		26,		32,		50,		12,		3));
 	
-	
-	//Item(				name, 					type, 		value, stack = 1)
+	//Potions and Tinctures			
+	items.push(new Item("Gold", 				"mimic", 	0, 		""));
 	items.push(new Item("Health Potion", 		"potion", 	15, 	"Restores 30 HP over time."));
 	items.push(new Item("Stamina Potion", 		"potion", 	10, 	"Restores 50 Stamina"));
 	items.push(new Item("Haste Potion", 		"potion", 	10, 	"Restores 6 AP"));
 	items.push(new Item("Panacea", 				"potion", 	10, 	"A thick green potion that cleanses all of your debuffs."));
 	items.push(new Item("Bottle of Ash", 		"potion", 	0, 		"A bottle of oily black ash."));
 	items.push(new Item("Warp Potion", 			"potion",   25,     "A potion to take you home. It's sold in a tan bottle."));
-	items.push(new Item("Potion of Wrath", 		"potion",   20,     "A potion that fills you with rage, transforming you briefly into a vicious brute."));
+	items.push(new Item("Rage Potion", 			"potion",   25,     "A potion that fills you with rage, transforming you briefly into a vicious brute."));
 	items.push(new Item("Tears of a God", 		"potion",   40,     "A potion that will render you invincible for a short time."));
 	items.push(new Item("Skill Potion", 		"potion", 	250, 	"Provides +1 Stat Point"));
 	items.push(new Item("Penelope's Brew", 		"drink", 	1, 		"A proprietary brew of Penelope. May or may not be any good."));
@@ -603,7 +604,7 @@ function initSpells() {
 	addSpell("Peel",			"affliction",	"Reduce an enemy's Physical & Magical Armor by 1.",																1, 3);
 	addSpell("Expose",			"affliction",	"Increase the damage an enemy takes by 20% this turn.",															1, 6);
 	addSpell("Bind",			"wild",			"Root an enemy for 3 turns.",				1, 6);
-	addSpell("Envenom",			"wild",			"Afflict an enemy with venom for 6 turns.", 1, 4);
+	addSpell("Envenom",			"wild",			"Afflict an enemy with venom for 4 turns.", 1, 4);
 	rowSpell("Gale",			"affliction",	"Push a row of enemies back one row.",		1, 5);
 	rowSpell("Disperse",		"affliction",	"Teleport every enemy on your row to a random row, at least 2 rows away from you.",								0, 4, 0, 1);
 	addSpell("Freeze",			"affliction",	"Deal 2-4 damage to an enemy and stun them.",1, 6);
@@ -707,11 +708,11 @@ function initEnemies() {
 	//Hivelings
 	//						Name, 					HP, 	Phys, 	Magic, 	Diff	Zones		MOVES	TYPE			DESCRIPTION
 	enemies.push(new Enemy("Hiveling Larva",		30,		0,		0,		5,		[], 		2,		"animal",		"A small, damp creature with a soft, translucent body. Its legs blur and click as it scurries, shying away from the light of day."));
-	enemies.push(new Enemy("Hiveling Healer",		90,		2,		2,		100,	[], 		2,		"animal",		"A weak insectoid creature, with a tall, flat head, bent inwards slightly as to be parabolic. Its eyes are black and wide-set. Of all the beasts of the world it is perhaps the most attuned with magic."));
-	enemies.push(new Enemy("Hiveling Guard",		200,	12,		10,		150,	[], 		3,		"animal",		"A muscular insectoid creature, with flat chitinous armor plates layered over its body. When threatened it spreads its limbs and seems to double in size; its armor plates lock together and form a shield as solid as steel."));
-	enemies.push(new Enemy("Hiveling Warrior",		150,	4,		4,		150,	[], 		2,		"animal",		"A long-limbed insectoid creature with huge spiked mandibles. When threatened, it can charge towards its foes with incredible haste."));
-	enemies.push(new Enemy("Hiveling Spitter",		100,	4,		4,		150,	[], 		2,		"animal",		"A long-limbed insectoid creature with shortened mandibles and a tubular mouth that drips with acidic spit."));
-	enemies.push(new Enemy("Hiveling Queen",		400,	4,		4,		500,	[], 		2,		"animal",		"A towering, large-eyed insectoid with a huge, sagging abdomen. Through her translucent chitin innumerable gestating larva can be seen."));
+	enemies.push(new Enemy("Hiveling Healer",		100,	2,		2,		90,		[], 		2,		"animal",		"A weak insectoid creature, with a tall, flat head, bent inwards slightly as to be parabolic. Its eyes are black and wide-set. Of all the beasts of the world it is perhaps the most attuned with magic."));
+	enemies.push(new Enemy("Hiveling Guard",		250,	12,		10,		110,	[], 		3,		"animal",		"A muscular insectoid creature, with flat chitinous armor plates layered over its body. When threatened it spreads its limbs and seems to double in size; its armor plates lock together and form a shield as solid as steel."));
+	enemies.push(new Enemy("Hiveling Warrior",		175,	4,		4,		110,	[], 		2,		"animal",		"A long-limbed insectoid creature with huge spiked mandibles. When threatened, it can charge towards its foes with incredible haste."));
+	enemies.push(new Enemy("Hiveling Spitter",		125,	4,		4,		110,	[], 		2,		"animal",		"A long-limbed insectoid creature with shortened mandibles and a tubular mouth that drips with acidic spit."));
+	enemies.push(new Enemy("Hiveling Queen",		500,	4,		4,		500,	[], 		2,		"animal",		"A towering, large-eyed insectoid with a huge, sagging abdomen. Through her translucent chitin innumerable gestating larva can be seen."));
 	
 	
 	//3 - The Stony Island
@@ -748,18 +749,18 @@ function initEnemies() {
 
 	//Other
 	//						Name, 				HP, 	Phys, 	Magic, 	Diff	Zones	MOVES
-	enemies.push(new Enemy("Swarm of Bees", 	2, 		100,	100,	5, 		[], 	4,		"animal", "A pesky swarm of enlarged, stinging insects")); //Phys
-	enemies.push(new Enemy("Egg Sac", 			5,		0,		0,		25,		[],		0,		"", "A vast bundle of silk. Something is crawling around within it."));
+	enemies.push(new Enemy("Swarm of Bees", 	10, 	100,	100,	5, 		[], 	4,		"animal", 		"A pesky swarm of enlarged, stinging insects")); //Phys
+	enemies.push(new Enemy("Egg Sac", 			5,		0,		0,		25,		[],		0,		"", 			"A vast bundle of silk. Something is crawling around within it."));
 	enemies.push(new Enemy("Web", 				8,		10,		10,		0,		[],		0,		"construction", "A hastily strewn web of sturdy white spider silk that traps creatures that pass through it."));
-	enemies.push(new Enemy("Baby Spider", 		30,		0,		0,		5,		[],		3,		"animal", "A squat spider, about the size of a house cat. It scuttles about frantically."));
-	enemies.push(new Enemy("Living Spore",		5,		0,		0,		1,		[],		2,		"plant",  "A tiny spore that glows in the dim light. It sways on the breeze, seeking to nestle into a rotten patch to sprout."));
-	enemies.push(new Enemy("Servant",			40,		1,		1,		20,		[],		2,		"servant", "A well-kept and well-dressed servant, carrying a dark mahogany baton. They're undyingly loyal to the noble they serve."));
-	enemies.push(new Enemy("Mariner",			40,		0,		0,		20,		[],		2,		"",	"An old sailor."));
-	enemies.push(new Enemy("Anchorite Worm", 	5,		0,		0,		3,		[],		2,		"animal", 	"A disgusting parasite that spends its life cycle without ever emerging from its host. An old sailor’s tale warns of an adult anchorite worm crawling from a whale’s corpse into a sleeping crewman’s anus. *YELLOW*Added By Morgan"));
-	enemies.push(new Enemy("Giant Anemone",		15,		1,		1,		5,		[],		0,		"plant",	"A colorful invertebrate, bristling with static shock."));
-	enemies.push(new Enemy("Coral Shard",		15,		3,		2,		5,		[],		0,		"plant",	"A jagged shard of vibrant coral, jutting strangely out of the ground."));
-	enemies.push(new Enemy("Water Elemental", 	100, 	16,		12,		0, 		[],		0,		"evil",   	"An elegant figure, formed of ever-flowing water animated by a demon's curse. It seems playful, naively unaware of its hideous nature.")); 
-	
+	enemies.push(new Enemy("Baby Spider", 		30,		0,		0,		5,		[],		3,		"animal", 		"A squat spider, about the size of a house cat. It scuttles about frantically."));
+	enemies.push(new Enemy("Living Spore",		5,		0,		0,		1,		[],		2,		"plant",  		"A tiny spore that glows in the dim light. It sways on the breeze, seeking to nestle into a rotten patch to sprout."));
+	enemies.push(new Enemy("Servant",			40,		1,		1,		20,		[],		2,		"servant", 		"A well-kept and well-dressed servant, carrying a dark mahogany baton. They're undyingly loyal to the noble they serve."));
+	enemies.push(new Enemy("Mariner",			40,		0,		0,		20,		[],		2,		"",				"An old sailor."));
+	enemies.push(new Enemy("Anchorite Worm", 	5,		0,		0,		3,		[],		2,		"animal", 		"A disgusting parasite that spends its life cycle without ever emerging from its host. An old sailor’s tale warns of an adult anchorite worm crawling from a whale’s corpse into a sleeping crewman’s anus. *YELLOW*Added By Morgan"));
+	enemies.push(new Enemy("Giant Anemone",		15,		1,		1,		5,		[],		0,		"plant",		"A colorful invertebrate, bristling with static shock."));
+	enemies.push(new Enemy("Coral Shard",		15,		3,		2,		5,		[],		0,		"plant",		"A jagged shard of vibrant coral, jutting strangely out of the ground."));
+	enemies.push(new Enemy("Water Elemental", 	100, 	16,		12,		0, 		[],		0,		"evil",   		"An elegant figure, formed of ever-flowing water animated by a demon's curse. It seems playful, naively unaware of its hideous nature.")); 
+	enemies.push(new Enemy("Mimic", 			40, 	4, 		4, 		50, 	[], 	1, 		"animal", 		"A slow-moving creature born of early attempts at alchemical conjuration, now thriving in the wild. They submerge themselves underground, while a specialized organ resembling a commonplace object acts as a lure for careless adventurers."));
 	
 	//Bosses
 	enemies.push(new Enemy("Seated Figure",		250,	12,		12,		2000,	[],		0,		"boss",			"Gnarled vines wrap tightly around the throne, rising and falling slightly with the breath of the figure bound underneath. An aura of serene power surrounds them - an ancient might as old as the forest itself."));
@@ -940,7 +941,7 @@ function initEffects() {
 	effects = [
 		//----------Name                     Type        Description                                                    Stacks
 		new Effect("Weakened",				"debuff",	"Your damage dealt is reduced by 25%.",							false),
-		new Effect("Poison", 				"debuff",	"Take 1 dmg per turn. All healing is reduced by half.",			true),
+		new Effect("Poison", 				"debuff",	"Can't kill. Take 1 dmg per turn. All healing is reduced by half.",			true),
 		new Effect("Rooted", 				"debuff",	"Unable to Move.",												false),
 		new Effect("Vulnerable", 			"debuff",	"Damage taken is increased by 20%",								false),
 		new Effect("Venom", 				"debuff",	"Take 5 dmg per turn.",											false),
@@ -950,7 +951,7 @@ function initEffects() {
 		new Effect("Infested", 				"debuff",	"Lose 3 Stamina Per Turn.",										true),
 		new Effect("Blinded", 				"debuff",	"50% Chance to Miss",											false),
 		new Effect("Bleed", 				"debuff",	"Take 2 + 1 per 25 current HP damage per turn.",				false),
-		new Effect("Whipped", 				"debuff",	"Take 4 dmg per turn.",											false),
+		new Effect("Whipped", 				"debuff",	"Take 4 dmg per turn. +15% Damage taken.",						false),
 		new Effect("Winded", 				"debuff",	"Your Stamina doesn't regenerate naturally.",					false),
 		new Effect("Parched", 				"debuff",	"You can't drink potions.",										false),
 		new Effect("Cursed", 				"debuff",	"Your debuffs can't end in any way.",							false),
@@ -986,7 +987,7 @@ function initEffects() {
 		new Effect("Enamoured with", 		"buff",		"This creature has eyes only for one. . .",						false),
 		new Effect("Guarding", 				"buff",		"-6 AP per turn. Defend a nearby ally from attacks.",			false),
 		new Effect("Health Potion", 		"buff",		"Heal 10 HP per turn.",											true),
-		new Effect("Static",				"buff",		"Deal magic damage equal to your stacks to a random enemy.",	true),
+		new Effect("Static",				"buff",		"Deal magic damage equal to your stacks to a random enemy. When you take damage, lose 2 stacks.", true),
 		new Effect("Protection",			"buff",		"+2 Physical Armor. +2 Magical Armor",							false),
 		new Effect("Buried",				"buff",		"+4 Physical Armor. +4 Magical Armor",							false),
 		new Effect("Jade",					"buff",		"Incoming damage can't be more than 15% of your Max HP, and is reduced by 1.",		false),
