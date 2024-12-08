@@ -2214,7 +2214,7 @@ function Command(message) {
 	let index = -1;
 	let numRepeat = 1;
 	
-	let requireCharacter = ["brew", "deposit", "withdraw", "fishing", "row", "servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "disenchant", "enchant", "level", "stop", "move", "mvoe", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "eat", "read", "learn", "order", "buy", "sell", "spells"];
+	let requireCharacter = ["brew", "deposit", "withdraw", "fishing", "row", "familiar", "debug", "servant", "report", "heal", "cheat", "fish", "reel", "haircut", "inventory", "disenchant", "enchant", "level", "stop", "move", "mvoe", "discard", "delve", "equip", "dequip", "remove", "unequip", "here", "leave", "go", "travel", "enter", "leave", "move", "talk", "trade", "take", "suicide", "drink", "eat", "read", "learn", "order", "buy", "sell", "spells"];
 	let requireBattle = ["start", "end", "cast", "attack", "flee", "drop", "guard", "brace", "throw"];
 	
 	for (let i = 0; i < requireBattle.length; i++) {
@@ -2264,7 +2264,11 @@ function Command(message) {
 							}
 						}
 						if (!(C.CURSED)) {
-							data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.REPORT, C.DESCRIPTION));
+							let name = C.NAME;
+							if (C.COLOR && C.COLOR != "") {
+								name = C.COLOR + name;
+							}
+							data["town"].graves.push(new DeathReport(name, C.CLASS, C.LEVEL, C.REPORT, C.DESCRIPTION));
 						}
 						data[message.author.id].CHARACTER = null;
 						C = null;
@@ -2300,7 +2304,7 @@ function Command(message) {
 			return "*RED*You must be in combat to do this action!\n";
 		}
 		if (keyword == "help") {
-			return ListCommands(index);
+			return ListCommands(C, index);
 		}
 		else if (keyword == "clearspells") {
 			C.SPELLS = [];
@@ -2346,15 +2350,21 @@ function Command(message) {
 			runBattle(teamOne, teamTwo, rand(2), message.channel);
 		}
 		else if (keyword == "tutorial") {
-			msg += "*BLUE*Welcome! Please refer to the following commands to learn more about the game.\n\n";
-			msg += "*CYAN*!help - Lists Available Commands\n";
-			msg += "*GREEN*!classes - Provides a list of classes you can play as\n";
-			msg += "*CYAN*!stats - Describes what a character's stats do\n";
-			msg += "*GREEN*!weapons - Lists the different weapon classes and their strengths\n";
-			msg += "*CYAN*!character - Creates a character to play as\n";
-			msg += "*GREEN*!here - Gives a description of your character's surroundings.\n";
-			msg += "*CYAN*!town - Provides a map of the town.\n";
-			msg += "*GREEN*!quest - Gives information about the current active quest.\n";
+			msg += "*BLUE*Welcome, Adventurer!*GREY*\n\n";
+			
+			msg += "Before getting started, you should take a look at *CYAN*!classes *GREY*and *CYAN*!stats*GREY*, and conceive of a concept for your new character. "
+			msg += "Will you want to use *CYAN*!weapons*GREY* or magic? Will you want to avoid taking damage, or be tanky? If you're not quite sure, you can simply set your class as random.\n\n";
+			
+			msg += "Once your character is made, you'll have *YELLOW*4 Stat Points*GREY* (*YELLOW*SP*GREY*) to spend. You gain *YELLOW*1 SP*GREY* per level, and can use the *CYAN*!level*GREY* command to increase any stat of your choice. Be sure to spend all of your *YELLOW*SP*GREY*!\n\n";
+			
+			msg += "Next, you can use *CYAN*!here*GREY* and *CYAN*!go DIRECTION*GREY* to travel around the !town. You should *CYAN*!enter*GREY* buildings to *CYAN*!trade*GREY* and *CYAN*!talk*GREY* with the villagers. "
+			msg += "*PINK*Runes*GREY* play a large part in how your character will develop over the course of the game, so you'll probably want to look at whatever *PINK*runes*GREY* match your equipment of choice, and begin thinking of builds you may want to go for later on.\n\n";
+			
+			msg += "After you're fairly familiar with the town, and your character has leveled their stats, you're ready for *RED*combat*GREY*. Travel to any *RED*dungeon*GREY* and *CYAN*!delve*GREY* in. You'll notice that *CYAN*!help*GREY* provides a list of combat-specific commands to use. If things go south, move back to the far left and *CYAN*!flee*GREY* for your life! You can also *CYAN*!rest*GREY* at the tavern to recover *RED*HP*GREY* between fights.\n\n";
+			
+			msg += "The *CYAN*!help *GREY*command will provide an extensive list of available commands both in and out of combat, and if you need any further help don't hesitate to ask.\n\n";
+			
+			msg += "*BLUE*Best of luck!\n";
 		}
 		else if (keyword == "weapons") {
 			msg += "*GREEN*Weapon Classes\n";
@@ -2543,7 +2553,7 @@ function Command(message) {
 					break;
 				}
 			}
-			if (!(C.CURSED)) {
+			if (!(C.CURSED) && C.LEVEL > 1) {
 				data["town"].graves.push(new DeathReport(C.NAME, C.CLASS, C.LEVEL, C.REPORT, C.DESCRIPTION));
 			}
 			C = null;
@@ -2623,7 +2633,7 @@ function Command(message) {
 			msg += "*RED*Monk*GREY* - *GREEN*+2 VIT. *GREY*Start with a quarterstaff and a Plain Cassock. Each turn, heal the lowest HP ally in your row 10% of your Max HP. You can rest at the church to recover HP. The first time you would die, instead wake up at the church with 1 HP.\n\n";
 			msg += "*CYAN*Merchant*GREY* - *GREEN*1 END. 1 AVD. *GREY*Start with *YELLOW*50 gold*GREY* and a backpack, but no weapon. You can sell items for 75% of their value rather than 50%, however you're too greedy to ever drop any items.\n\n";
 			msg += "*RED*Mage*GREY* - *GREEN*+2 MAG*GREY*. Starts with a wand and *BLUE*Arcane Strike*GREY*. Mages get 2 Max Spells and +1 Cast/Turn from each point of MAG.\n\n";
-			msg += "*CYAN*Witch*GREY* - *GREEN*+2 MAG*GREY*. Starts with a wand and *BLUE*Envenom*GREY*. Witches can !brew potions and tinctures in combat for 60% of their gold cost. Using any potion or tincture heals 5 HP. Fire Tincures deal +3 damage per level.\n\n";
+			msg += "*CYAN*Witch*GREY* - *GREEN*+2 MAG*GREY*. Starts with a wand and *BLUE*Envenom*GREY*. Witches are accompanied by a familiar and can cheaply !brew potions and tinctures in combat. Using any potion or tincture heals 5 HP. Fire Tincures deal +3 damage per level.\n\n";
 			msg += "*RED*Sorcerer*GREY* - *GREEN*+1 MAG +1 END*GREY*. Starts with a quarterstaff. Sorcerers can cast magic without staves or wands. Sorcerers' spells cost 2x Stamina instead of AP.\n\n";
 		}
 		else if (keyword == "effects") {
@@ -2675,6 +2685,23 @@ function Command(message) {
 			else { 
 				return "*RED*The town needs more prosperity to access the guild hall . . .\n";
 			}
+		}
+		else if (keyword == "familiar") {
+			if (C.CLASS != "witch") {
+				return "*RED*You must be a witch to name your familiar!\n";
+			}
+			words = words.slice(1, words.length);
+			for (let i = 0; i < words.length; i++) {
+				words[i] = Prettify(words[i]);
+			}
+			let args = words.join(" ");
+			for (let i = 0; i < enemies.length; i++) {
+				if (enemies[i].NAME.toLowerCase() == args.toLowerCase()) {
+					return "*RED*You can't name your familiar that!\n";
+				}
+			}
+			C.FAMILIAR = args;
+			msg += "*CYAN*Your Familiar will now be referred to as '*GREEN*" + args + "*CYAN*'\n";
 		}
 		else if (keyword == "servant") {
 			if (C.CLASS != "noble") {
@@ -2838,22 +2865,24 @@ function Command(message) {
 			msg += "*YELLOW*Town Locations\n";
 			for (let k = 0; k < 2; k++) {
 				for (let i = 0; i < locations.length; i++) {
-					if ((k == 0 && !locations[i].dungeon) || (k == 1 && locations[i].dungeon)) {
-						let color = "*BLUE*";
-						if (k == 1) {
-							color = "*RED*";
-						}
-						msg += color + locations[i].id;
-						if (locations[i].prosperity > prosperity) {
-							msg += "*GREY* - *RED*" + locations[i].prosperity;
-						}
-						msg += "\n";
-						for (let j = 0; j < locations[i].buildings.length; j++) {
-							msg += "*GREY* - *GREEN*" + locations[i].buildings[j].id;
-							if (locations[i].buildings[j].prosperity > prosperity) {
-								msg += "*GREY* - *RED*" + locations[i].buildings[j].prosperity;
+					if (locations[i].id != "A Strange Clearing") {
+						if ((k == 0 && !locations[i].dungeon) || (k == 1 && locations[i].dungeon)) {
+							let color = "*BLUE*";
+							if (k == 1) {
+								color = "*RED*";
+							}
+							msg += color + locations[i].id;
+							if (locations[i].prosperity > prosperity) {
+								msg += "*GREY* - *RED*" + locations[i].prosperity;
 							}
 							msg += "\n";
+							for (let j = 0; j < locations[i].buildings.length; j++) {
+								msg += "*GREY* - *GREEN*" + locations[i].buildings[j].id;
+								if (locations[i].buildings[j].prosperity > prosperity) {
+									msg += "*GREY* - *RED*" + locations[i].buildings[j].prosperity;
+								}
+								msg += "\n";
+							}
 						}
 					}
 				}

@@ -64,6 +64,9 @@ function Character() {
 	
 	this.RETIRED = false;
 	
+	this.SERVANT = null;
+	this.FAMILIAR = null;
+	
 	this.EVENTS = [];
 	this.EVENT = null;
 	

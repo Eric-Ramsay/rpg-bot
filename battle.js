@@ -412,6 +412,15 @@ function StartBattle(battle) {
 				servant.HP = servant.MaxHP;
 				battle.allies.push(servant);
 			}
+			if (battle.allies[i].CLASS == "witch") {
+				let familiar = summon("familiar", battle.allies[i].ROW);
+				if (battle.allies[i].FAMILIAR) {
+					familiar.NAME = battle.allies[i].FAMILIAR;
+				}
+				familiar.MaxHP = 35 + 5 * battle.allies[i].LEVEL;
+				familiar.HP = familiar.MaxHP;
+				battle.allies.push(familiar);
+			}
 		}
 	}
 	

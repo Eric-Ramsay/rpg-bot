@@ -48,7 +48,7 @@ function initRunes() {
 	runes.push(new Rune("Death Mark", 	125, 	"weapon", 	"Slain enemies are raised as allied zombies", true));
 	
 	//Staff Runes
-	runes.push(new Rune("Arcana", 		60, 	"staff", 	""));
+	//runes.push(new Rune("Arcana", 		60, 	"staff", 	""));
 	runes.push(new Rune("Tar", 			75, 	"staff", 	"Enemies damaged by your spells are weakened, reducing their damage by 25%"));
 	runes.push(new Rune("Light", 		80, 	"staff", 	"You can cast +2 spells per turn"));
 	runes.push(new Rune("Focus", 		90, 	"staff", 	"You can't cast more than one spell a turn. Your spell damage is increased by 100%"));
@@ -560,78 +560,78 @@ function allSpell(name, school, description, number, AP, HP = 0, Range = 6) {
 
 function initSpells() {
 	// - Single-Target // Tome of the Duelist
-	//		 Name				School		Description									#, AP, HP, Range
-	addSpell("Arcane Strike",	"duelist",	"Deal 8 Damage to an enemy.",				1, 6);
-	addSpell("Spear", 			"duelist",	"Deal 10-16 Damage to an enemy on your row.", 1, 6, 0, 1);
-	addSpell("Siphon", 			"duelist",	"Deal 4-8 Damage and Heal 4 HP.", 			1, 6);
-	addSpell("Pierce", 			"duelist",	"Deal 4 True Damage to an enemy.", 			1, 4);
-	addSpell("Hemic Strike",	"duelist",	"Lose 5 HP. Deal 12-18 Damage to an enemy.",1, 9, 5);
-	addSpell("Lightning",		"duelist",	"Deal 2 damage to an enemy. Gain a stack of static.",															1, 2);
-	addSpell("Swamp Strike",	"wild",		"Deal 3-6 damage to a target and afflict as many stacks of poison.",											1, 6);
+	//		 Name				School			Description																								#, AP, HP, Range
+	addSpell("Arcane Strike",	"duelist",		"Deal 8 Damage to an enemy.",																			1, 6);
+	addSpell("Spear", 			"duelist",		"Deal 10-16 Damage to an enemy on your row.", 															1, 6, 0, 1);
+	addSpell("Siphon", 			"duelist",		"Deal 4-8 Damage and Heal 4 HP.", 																		1, 6);
+	addSpell("Pierce", 			"duelist",		"Deal 4 True Damage to an enemy.", 																		1, 4);
+	addSpell("Hemic Strike",	"duelist",		"Lose 5 HP. Deal 12-18 Damage to an enemy.",															1, 9, 5);
+	addSpell("Lightning",		"duelist",		"Deal 2 damage to an enemy. Gain a stack of static.",													1, 2);
+	addSpell("Swamp Strike",	"wild",			"Deal 3-6 damage to a target and afflict as many stacks of poison.",									1, 6);
 	
 	// - Self-Buffs // Tome of Strength
-	//		 Name				School		Description									#, AP, HP, Range
-	addSpell("Meditation",		"strength",	"Gain 9 Stamina.",							0, 3);
-	rowSpell("Blink",			"strength",	"Teleport to a targeted row",				1, 4);
-	addSpell("Stoneskin",		"strength",	"+8 Physical Armor +4 Magical Armor for 3 turns.",																0, 6);
-	addSpell("Preparation",		"strength",	"Gain 4 AP a turn. Lasts 3 turns.",			0, 6);
-	addSpell("Ferocity", 		"strength",	"Your damaging spells do +2 DMG per instance this turn.", 														0, 3);
-	addSpell("Endure", 			"strength",	"Increase the duration of your buffs by 1 turn.", 																0, 12);
-	addSpell("Roots", 			"wild",		"Root yourself for 3 turns. Heal 6 HP per turn for 3 turns.", 													0, 6);
-	addSpell("Feed Flame", 		"wild",		"Gain 1 Ember. Deal damage equal to the amount of Embers you have. Each turn, take +1 damage.", 				1, 4);
-	addSpell("Ignite", 			"wild",		"For each Ember you have, lose 1 HP & deal damage equal to half your total number of Embers.",					1, 9);
+	//		 Name				School			Description																								#, AP, HP, Range
+	addSpell("Meditation",		"strength",		"Gain 9 Stamina.",																						0, 3);
+	rowSpell("Blink",			"strength",		"Teleport to a targeted row",																			1, 4);
+	addSpell("Stoneskin",		"strength",		"+8 Physical Armor +4 Magical Armor for 3 turns.",														0, 6);
+	addSpell("Preparation",		"strength",		"Gain 4 AP a turn. Lasts 3 turns.",																		0, 6);
+	addSpell("Ferocity", 		"strength",		"Your damaging spells do +2 DMG per instance this turn.", 												0, 3);
+	addSpell("Endure", 			"strength",		"Increase the duration of your buffs by 1 turn.", 														0, 12);
+	addSpell("Roots", 			"wild",			"Root yourself for 3 turns. Heal 6 HP per turn for 3 turns.", 											0, 6);
+	addSpell("Feed Flame", 		"wild",			"Gain 1 Ember. Deal damage equal to the amount of Embers you have. Each turn, take +1 damage.", 		1, 4);
+	addSpell("Ignite", 			"wild",			"For each Ember you have, lose 1 HP & deal damage equal to half your total number of Embers.",			1, 9);
 	
 	// - Summoner // Tome of Summoning
-	//		 Name				School		Description									#, AP, HP, Range
-	rowSpell("Summon Bees",		"wild",		"Lose 2 HP. Summon a Swarm of Bees.",		1, 6, 2);
-	rowSpell("Summon Zombie",	"summoning","Lose 6 HP. Summon a Zombie.",				1, 6, 6);
-	rowSpell("Summon Specter",	"wild",		"Lose 6 HP. Summon an Apparition.",			1, 9, 6);
-	rowSpell("Summon Spores",	"wild",		"Lose 6 HP. Summon 3-5 Living Spores.",		1, 9, 6);
-	rowSpell("Summon Mushroom",	"wild",		"Lose 6 HP. Summon a Toxic Mushroom.",		1, 9, 6);
-	rowSpell("Summon Anemone",	"wild",		"Lose 3 HP. Summon a Giant Anemone.",		1, 6, 3);
-	rowSpell("Summon Coral",	"wild",		"Lose 3 HP. Summon a Coral Shard.",			1, 6, 3);
-	rowSpell("Summon Archer",	"summoning","Lose 8 HP. Summon an archer.",				1, 9, 8);
-	rowSpell("Summon Warrior",	"summoning","Lose 10 HP. Summon a warrior.",			1, 12, 10);
-	rowSpell("Summon Beast",	"summoning","Lose 20 HP. Summon a random animal.",		1, 12, 20);
-	allSpell("Maintain",		"summoning","Refresh the Fading effect of a creature, keeping them around for 3 more turns.",								1, 6);
-	addSpell("Empower",			"summoning","Your currently summoned creatures deal +3 Damage per attack for 3 turns.",										0, 6);
-	addSpell("Shepherd", 		"summoning","Heal your summoned creatures 4-8 HP.",		0, 6);
-	addSpell("Compensation", 	"summoning","Heal 8 HP when an ally is struck down. Lasts until the end of combat",											0, 6);
+	//		 Name				School			Description																								#, AP, HP, Range
+	rowSpell("Summon Bees",		"wild",			"Lose 2 HP. Summon a Swarm of Bees.",																	1, 6, 2);
+	rowSpell("Summon Zombie",	"summoning",	"Lose 6 HP. Summon a Zombie.",																			1, 6, 6);
+	rowSpell("Summon Specter",	"wild",			"Lose 6 HP. Summon an Apparition.",																		1, 9, 6);
+	rowSpell("Summon Spores",	"wild",			"Lose 6 HP. Summon 3-5 Living Spores.",																	1, 9, 6);
+	rowSpell("Summon Mushroom",	"wild",			"Lose 6 HP. Summon a Toxic Mushroom.",																	1, 9, 6);
+	rowSpell("Summon Anemone",	"wild",			"Lose 3 HP. Summon a Giant Anemone.",																	1, 6, 3);
+	rowSpell("Summon Coral",	"wild",			"Lose 3 HP. Summon a Coral Shard.",																		1, 6, 3);
+	rowSpell("Summon Archer",	"summoning",	"Lose 8 HP. Summon an archer.",																			1, 9, 8);
+	rowSpell("Summon Warrior",	"summoning",	"Lose 10 HP. Summon a warrior.",																		1, 12, 10);
+	rowSpell("Summon Beast",	"summoning",	"Lose 20 HP. Summon a random animal.",																	1, 12, 20);
+	allSpell("Maintain",		"summoning",	"Refresh the Fading effect of a creature, keeping them around for 3 more turns.",						1, 6);
+	addSpell("Empower",			"summoning",	"Your currently summoned creatures deal +3 Damage per attack for 3 turns.",								0, 6);
+	addSpell("Shepherd", 		"summoning",	"Heal your summoned creatures 4-8 HP.",																	0, 6);
+	addSpell("Compensation", 	"summoning",	"Heal 8 HP when an ally is struck down. Lasts until the end of combat",									0, 6);
 	
 	// - Debuffs // Tome of Affliction
-	//		 Name				School			Description									#, AP, HP, Range
-	addSpell("Redirection",		"affliction",	"Transfer your debuffs to an enemy.",		1, 9);
-	addSpell("Peel",			"affliction",	"Reduce an enemy's Physical & Magical Armor by 1.",																1, 3);
-	addSpell("Expose",			"affliction",	"Increase the damage an enemy takes by 20% this turn.",															1, 6);
-	addSpell("Bind",			"wild",			"Root an enemy for 3 turns.",				1, 6);
-	addSpell("Envenom",			"wild",			"Afflict an enemy with venom for 4 turns.", 1, 4);
-	rowSpell("Gale",			"affliction",	"Push a row of enemies back one row.",		1, 5);
-	rowSpell("Disperse",		"affliction",	"Teleport every enemy on your row to a random row, at least 2 rows away from you.",								0, 4, 0, 1);
-	addSpell("Freeze",			"affliction",	"Deal 2-4 damage to an enemy and stun them.",1, 6);
+	//		 Name				School			Description																								#, AP, HP, Range
+	addSpell("Redirection",		"affliction",	"Transfer your debuffs to an enemy.",																	1, 9);
+	addSpell("Peel",			"affliction",	"Reduce an enemy's Physical & Magical Armor by 1.",														1, 3);
+	addSpell("Expose",			"affliction",	"Increase the damage an enemy takes by 20% this turn.",													1, 6);
+	addSpell("Bind",			"wild",			"Root an enemy for 3 turns.",																			1, 6);
+	addSpell("Envenom",			"wild",			"Afflict an enemy with venom for 4 turns.", 															1, 4);
+	rowSpell("Gale",			"affliction",	"Push a row of enemies back one row.",																	1, 5);
+	rowSpell("Disperse",		"affliction",	"Teleport every enemy on your row to a random row, at least 2 rows away from you.",						0, 4, 0, 1);
+	addSpell("Freeze",			"affliction",	"Deal 2-4 damage to an enemy and stun them.",															1, 6);
 	
 	// - AoE Damage // Tome of Destruction
-	//		 Name				School			Description									#, AP, HP, Range
-	rowSpell("Wall of Fire",	"destruction",	"Deal 3-6 Damage to every enemy in a row.", 1, 9);
-	rowSpell("Radiance", 		"destruction",	"Deal 6-10 Damage to all enemies on your row.", 																0, 9, 0, 1);
-	addSpell("Reap",			"destruction",	"Lose 10 HP. Deal 4-6 Damage to all enemies, healing 1 HP per target.",											0, 9, 10);
-	addSpell("Blizzard",		"destruction",	"Deal 2-4 damage to every enemy and slow them.",																0, 6);
-	addSpell("Sunbeams",		"destruction",	"Deal 2-16 damage to a random enemy in each row.",																0, 6);
-	addSpell("Exploit",			"destruction",	"Deal 3 damage to every enemy per debuff they have.",															0, 9);
-	addSpell("Holy Flame",		"destruction",	"Deal 1 damage per 2 AP you have to each enemy, costs all of your AP.",											0, 0);
+	//		 Name				School			Description																								#, AP, HP, Range
+	rowSpell("Wall of Fire",	"destruction",	"Deal 3-6 Damage to every enemy in a row.", 															1, 9);
+	rowSpell("Radiance", 		"destruction",	"Deal 6-10 Damage to all enemies on your row.", 														0, 9, 0, 1);
+	addSpell("Reap",			"destruction",	"Lose 10 HP. Deal 4-6 Damage to all enemies, healing 1 HP per target.",									0, 9, 10);
+	addSpell("Blizzard",		"destruction",	"Deal 2-4 damage to every enemy and slow them.",														0, 6);
+	addSpell("Sunbeams",		"destruction",	"Deal 2-16 damage to a random enemy in each row.",														0, 6);
+	addSpell("Exploit",			"destruction",	"Deal 3 damage to every enemy per debuff they have.",													0, 9);
+	addSpell("Holy Flame",		"destruction",	"Deal 1 damage per 2 AP you have to each enemy, costs all of your AP.",									0, 0);
 	
 	// - Healing & Buffs // Tome of the Guardian
-	//		 Name				School			Description						#, AP, HP, Range
-	addSpell("Protection",		"guardian",		"+2 Physical Armor +2 Magical Armor for your allies 3 turns.",													0, 9);
-	allSpell("Heal",			"guardian",		"Heal an ally 4-6 HP.",						1, 4);
-	addSpell("Rally",			"guardian",		"All allies gain 6 Stamina.",				0, 4);
-	addSpell("Guidance",		"wild",			"Heal all allies 3 HP.",					0, 5);
-	allSpell("Transfer Life",	"guardian",		"Lose 5 HP. Heal an ally for 8-10 HP.",		1, 6, 5);
-	allSpell("Purify",			"guardian",		"Remove all debuffs from an ally.",			1, 5);
-	allSpell("Deliverance",		"guardian",		"Lose 2 HP. Give an ally a stack of deliverance, which will save them from death one time.",					1, 4, 2);
+	//		 Name				School			Description																								#, AP, HP, Range
+	addSpell("Protection",		"guardian",		"+2 Physical Armor +2 Magical Armor for your allies 3 turns.",											0, 9);
+	allSpell("Heal",			"guardian",		"Heal an ally 4-6 HP.",																					1, 4);
+	addSpell("Rally",			"guardian",		"All allies gain 6 Stamina.",																			0, 4);
+	addSpell("Guidance",		"wild",			"Heal all allies 3 HP.",																				0, 5);
+	allSpell("Transfer Life",	"guardian",		"Lose 5 HP. Heal an ally for 8-10 HP.",																	1, 6, 5);
+	allSpell("Purify",			"guardian",		"Remove all debuffs from an ally.",																		1, 5);
+	allSpell("Deliverance",		"guardian",		"Lose 2 HP. Give an ally a stack of deliverance, which will save them from death one time.",			1, 4, 2);
 	
 	//Special Spells
-	//		 Name				School		Description									#, AP, HP, Range
-	addSpell("Gamble",			"wild",		"Spend 3 gold. Deal 10 damage to a target. There's a small chance to hit a Jackpot!",							1, 6);
+	//		 Name				School			Description																								#, AP, HP, Range
+	addSpell("Gamble",			"wild",			"Spend 3 gold. Deal 10 damage to a target. There's a small chance to hit a Jackpot!",					1, 6);
 	
 }
 
@@ -754,7 +754,8 @@ function initEnemies() {
 	enemies.push(new Enemy("Web", 				8,		10,		10,		0,		[],		0,		"construction", "A hastily strewn web of sturdy white spider silk that traps creatures that pass through it."));
 	enemies.push(new Enemy("Baby Spider", 		30,		0,		0,		5,		[],		3,		"animal", 		"A squat spider, about the size of a house cat. It scuttles about frantically."));
 	enemies.push(new Enemy("Living Spore",		5,		0,		0,		1,		[],		2,		"plant",  		"A tiny spore that glows in the dim light. It sways on the breeze, seeking to nestle into a rotten patch to sprout."));
-	enemies.push(new Enemy("Servant",			40,		1,		1,		20,		[],		2,		"servant", 		"A well-kept and well-dressed servant, carrying a dark mahogany baton. They're undyingly loyal to the noble they serve."));
+	enemies.push(new Enemy("Servant",			30,		1,		1,		20,		[],		2,		"servant", 		"A well-kept and well-dressed servant, carrying a dark mahogany baton. They're undyingly loyal to the noble they serve."));
+	enemies.push(new Enemy("Familiar",			35,		0,		0,		0,		[],		3,		"familiar",		"A living shadow twisted into the form of a crow. It serves its master unto its very death."));
 	enemies.push(new Enemy("Mariner",			40,		0,		0,		20,		[],		2,		"",				"An old sailor."));
 	enemies.push(new Enemy("Anchorite Worm", 	5,		0,		0,		3,		[],		2,		"animal", 		"A disgusting parasite that spends its life cycle without ever emerging from its host. An old sailor’s tale warns of an adult anchorite worm crawling from a whale’s corpse into a sleeping crewman’s anus. *YELLOW*Added By Morgan"));
 	enemies.push(new Enemy("Giant Anemone",		15,		1,		1,		5,		[],		0,		"plant",		"A colorful invertebrate, bristling with static shock."));

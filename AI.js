@@ -1,5 +1,5 @@
 function Name(target, color = "") {
-	if (target.TYPE == "player" || target.NAME == "Carcinos" || target.TYPE == "servant") {
+	if (target.TYPE == "player" || target.NAME == "Carcinos" || target.TYPE == "servant" || (target.TYPE == "familiar" && target.NAME != "Familiar")) {
 		return color + target.NAME;
 	}
 	return "the " + color + P(target.NAME);
@@ -3362,7 +3362,81 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 		else if (eName == "Treasure Chest") {
 			return "";
 		}
-		else {
+		else if (enemy.TYPE == "familiar") {
+			console.log("Familiar Phase: " + enemy.PHASE);
+			let witchIndex = -1;
+			for (let i = 0; i < allies.length; i++) {
+				if (allies[i].CLASS == "witch") {
+					witchIndex = i;
+					break;
+				}
+			}
+			if (witchIndex == -1) {
+				enemy.PHASE = 0;
+			}
+			else if ((allies[witchIndex].HP < MaxHP(allies[witchIndex])/2 && enemy.HP > MaxHP(enemy)/4) || allies[witchIndex].HP < MaxHP(allies[witchIndex])/4) {
+				enemy.PHASE = 1;
+			}
+			else if (enemy.HP < MaxHP(enemy)/3) {
+				enemy.PHASE = 2;
+			}
+			if (enemy.PHASE == 0) {
+				msg += moveInRange(enemy, targets, 1);
+				let index = findVictim(enemy.ROW, targets, 1);
+				if (index > -1) {
+					msg += "*YELLOW*The familiar scratches " + Name(targets[index]) + " with its talons!\n";
+					let result = DealDamage(new P_Attack(Math.floor(MaxHP(enemy)/10) + 3 + rand(5), 90, 50), allies, enemy, targets, targets[index]);
+					msg += result[0];
+					if (result[1] > 0) {
+						msg += AddEffect(targets[index], "bleed", 3, enemy);
+					}
+				}
+			}
+			if (enemy.PHASE == 1) {
+				msg += moveToRow(enemy, allies[witchIndex].ROW);
+				if (enemy.ROW == allies[witchIndex].ROW) {
+					msg += "*YELLOW*The Familiar transfers its life to its master!\n";
+					msg += Heal(allies[witchIndex], Math.min(20, enemy.HP * 2));
+					enemy.HP -= 10;
+				}
+			}
+			if (enemy.PHASE == 2) {
+				let targetRow = min;
+				if (witchIndex > -1) {
+					targetRow = allies[witchIndex].ROW;
+				}
+				msg += moveToRow(enemy, targetRow);
+				msg += "*YELLOW*The Familiar focuses on its restoration. . .\n";
+				msg += Heal(enemy, 10);
+				if (enemy.HP > MaxHP(enemy)/2) {
+					enemy.PHASE = 0;
+				}
+			}
+			if (enemy.PHASE == 5) {
+				let moved = false;
+				if (allies[witchIndex].ROW != enemy.ROW) {
+					msg += moveToRow(enemy, allies[witchIndex].ROW);
+					moved = true;
+				}
+				if (allies[witchIndex].ROW == enemy.ROW) {
+					msg += AddEffect(enemy, "guarding", 999, null, allies[witchIndex]);
+				}
+				if (!moved) {
+					msg += "*CYAN*The Familiar flaps its shadowy wings, sending a gust of wind towards its foes!\n";
+					let pushed = false;
+					for (let i = 0; i < targets.length; i++) {
+						if (targets[i].ROW == 0) {
+							msg += PushTarget(enemy, targets[i]);
+							pushed = true;
+						}
+					}
+					if (!pushed) {
+						msg += PushTarget(enemy, targets[rand(targets.length)]);
+					}
+				}
+			}
+		}
+		else if (enemy.TYPE == "servant") {
 			let bonusDmg = Math.floor(enemy.MaxHP/10);
 			msg += moveAttack(allies, enemy, targets, new Attack("strikes", 5 + bonusDmg + rand(4 + bonusDmg), 100, 0, 1, 1, 25))[0];
 		}

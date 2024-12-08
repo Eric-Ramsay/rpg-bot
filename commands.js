@@ -1,51 +1,70 @@
-function ListCommands(index) {
+function ListCommands(C, index) {
 	let msg = "";
-	msg += "--- Available Queries ---\n";
+	commands = [];
 	if (index == -1) {
-		msg += "*CYAN*!tutorial - *GREY*Provides a list of commands to use when getting started.\n";
-		msg += "*GREEN*!character CLASS NAME *GREY*- Creates a new Character. Name and Class are optional, or can be set as RANDOM.\n";
-		msg += "*CYAN*!stats *GREY*- Describes what character stats do.\n";
-		msg += "*GREEN*!equip ITEM *GREY*- Equips armor or a weapon.\n";
-		msg += "*CYAN*!here *GREY*- Provides a description of where you are.\n";
-		msg += "*GREEN*!leave *GREY*- Leaves a dungeon or building.\n";
-		msg += "*CYAN*!go DIRECTION *GREY*- Travels in a direction. Can be used in combat to change rows.\n";
-		msg += "*GREEN*!enter BUILDING *GREY*- Enters a building.\n";
-		msg += "*CYAN*!trade *GREY*- Starts trading with a merchant.\n";
-		msg += "*GREEN*!stop *GREY*- Stops Trading.\n";
-		msg += "*CYAN*!buy ITEM *GREY*- Buys an item, provided you're trading.\n";
-		msg += "*GREEN*!sell ITEM *GREY*- Sells an item, can be done from anywhere in town.\n";
-		msg += "*CYAN*!delve *GREY*- Enter into a dungeon.\n";
-		msg += "*GREEN*!spells *GREY*- Lists spells that you know.\n";
-		msg += "*CYAN*!read SCROLL *GREY*- Reads a scroll and learns the spell it contains.\n";
-		msg += "*GREEN*!rest *GREY*- You must be at the tavern. Spend 5 gold and restore all of your health.\n";
-		msg += "*CYAN*!level STAT *GREY*- Increases the stat specified by 1. You must have SP to use.\n";
-		msg += "*GREEN*!suicide *GREY*- Kills you.\n";
-		msg += "*CYAN*!classes *GREY*- Lists the available classes.\n";
-		msg += "*GREEN*!haircut DESCRIPTION *GREY*- You must be in the barbershop, allows you to set a description.\n";
-		msg += "*CYAN*!fish *GREY*- You must be at a location with fish, with a fishing pole equipped. Fish can be eaten.\n";
-		msg += "*GREEN*!retire *GREY*- Retire your character to the guild hall. They can be played later.\n";
-		msg += "*CYAN*!play as NAME*GREY* - Play as any retired character.\n";
-		msg += "*GREEN*!order [Item Name or Index] *GREY*- Moves an item to the bottom of your inventory.\n";
-		msg += "*CYAN*!forget [Spell name or Index] *GREY*- Removes a spell from your list of known spells.\n";
-		msg += "*GREEN*!name [Name] *GREY*- Renames your character.\n";
-		msg += "*CYAN*!enchant [ITEM] with [RUNE]\n";
-		msg += "*GREEN*!disenchant [RUNE] from [ITEM]\n";
+		commands = [
+			"!tutorial - *GREY*Provides a list of commands to use when getting started",
+			"!character CLASS NAME *GREY*- Creates a new Character. Name and Class are optional, or can be set as RANDOM",
+			"!stats *GREY*- Describes what character stats do",
+			"!equip ITEM *GREY*- Equips armor or a weapon",
+			"!here *GREY*- Provides a description of where you are",
+			"!leave *GREY*- Leaves a dungeon or building",
+			"!go DIRECTION *GREY*- Travels in a direction. Can be used in combat to change rows",
+			"!enter BUILDING *GREY*- Enters a building",
+			"!trade *GREY*- Starts trading with a merchant. You can use !stop to stop trading",
+			"!buy ITEM *GREY*- Buys an item, provided you're trading",
+			"!sell ITEM *GREY*- Sells an item, can be done from anywhere in town",
+			"!delve *GREY*- Enter into a dungeon",
+			"!spells *GREY*- Lists spells that you know",
+			"!read SCROLL *GREY*- Reads a scroll and learns the spell it contains, or read a book and choose a spell to !learn",
+			"!rest *GREY*- You must be at the tavern. Spend 5 gold and restore all of your health",
+			"!level STAT *GREY*- Increases the stat specified by 1. You must have SP to use",
+			"!suicide *GREY*- Kills you",
+			"!classes *GREY*- Lists the available classes",
+			"!fish *GREY*- You must be at a location with fish, with a fishing pole equipped. Fish can be eaten",
+			"!retire *GREY*- Retire your character to the guild hall. They can be played later",
+			"!play as NAME*GREY* - Play as any retired character",
+			"!order [Item Name or Index] *GREY*- Moves an item to the bottom of your inventory",
+			"!forget [Spell name or Index] *GREY*- Removes a spell from your list of known spells",
+			"!name [Name] *GREY*- Renames your character",
+			"!enchant [ITEM] with [RUNE] *GREY*- Adds a rune to an item",
+			"!disenchant [RUNE] from [ITEM] *GREY*- Permanently removes a rune from an item"
+		];
+		if (C.CLASS == "noble") {
+			commands.push("!servant [NAME] *GREY*- Gives your servant a unique name");
+		}
+		if (C.CLASS == "witch") {
+			commands.push("!brew [POTION] *GREY*- Crafts a potion or tincture");
+			commands.push("!familiar [NAME] *GREY*- Gives your familiar a unique name");
+		}
 	}
 	else {
-		msg += "*GREEN*!cast SPELL on TARGET *GREY*- Casts a spell.\n\n";
-		msg += "*CYAN*!attack TARGET with WEAPON *GREY*- Attacks an enemy.\n\n";
-		msg += "*GREEN*!take ITEM *GREY*- Loots an item after combat.\n\n";
-		msg += "*CYAN*!flee *GREY*- Flees from combat if you're on the bottom row. Costs 3 AP to attempt.\n\n";
-		msg += "*GREEN*!start *GREY*- Start combat once you've entered a dungeon. No one will be able to join you after this.\n\n";
-		msg += "*CYAN*!end *GREY*- Ends your turn.\n\n";
-		msg += "*GREEN*!move LEFT/RIGHT *GREY*- Moves left or right a row. Costs 3 AP.\n\n";
-		msg += "*CYAN*!drink POTION *GREY*- Drinks a potion. Costs 3 Stamina.\n\n";
-		msg += "*GREEN*!eat FISH *GREY*- Eats a fish.\n\n";
-		msg += "*CYAN*!throw TINCTURE *GREY*- Throws a tincture at an enemy within 3 tiles. Costs 3 Stamina.\n\n";
-		msg += "*GREEN*!effects *GREY*- Lists effects on you.\n\n";
-		msg += "*CYAN*!guard TARGET *GREY*- Costs 6 AP per turn. Guard a target on your row; redirecting damage they would taket to yourself.\n\n";
-		msg += "*GREEN*!brace *GREY*- Costs 6 Stamina. You brace yourself, giving yourself a 50% chance to dodge the next damage that comes your way.\n\n";
+		commands = [
+			"!cast SPELL on TARGET *GREY*- Casts a spell.",
+			"!attack TARGET with WEAPON *GREY*- Attacks an enemy.",
+			"!take ITEM *GREY*- Loots an item after combat.",
+			"!flee *GREY*- Flees from combat if you're on the bottom row. Costs 3 AP to attempt.",
+			"!start *GREY*- Start combat once you've entered a dungeon. No one will be able to join you after this.",
+			"!end *GREY*- Ends your turn.",
+			"!move LEFT/RIGHT *GREY*- Moves left or right a row. Costs 3 AP.",
+			"!drink POTION *GREY*- Drinks a potion. Costs 3 Stamina.",
+			"!eat FISH *GREY*- Eats a fish.",
+			"!throw TINCTURE *GREY*- Throws a tincture at an enemy within 3 tiles. Costs 3 Stamina.",
+			"!effects *GREY*- Lists effects on you.",
+			"!guard TARGET *GREY*- Costs 6 AP per turn. Guard a target on your row; redirecting damage they would taket to yourself.",
+			"!brace *GREY*- Costs 6 Stamina. You brace yourself, giving yourself a 50% chance to dodge the next damage that comes your way.",
+		];
 	}
+	let color = "*GREEN*";
+		for (const command of commands) {
+			msg += color + command + "\n";
+			if (color == "*GREEN*") {
+				color = "*CYAN*";
+			}
+			else {
+				color = "*GREEN*";
+			}
+		}
 
 	return msg;
 }
@@ -802,6 +821,13 @@ function CommandFlee(C, index) {
 	C.FLED = true;
 	let ran = rand(10);
 	if (!firstTurn && ran >= 5 + .5 * C.STATS[AVD]) {
+		if (C.CLASS == "witch") {
+			for (const ally of battles[index].allies) {
+				if (ally.TYPE == "familiar") {
+					ally.PHASE = 5;
+				}
+			}
+		}
 		return "*RED*You fail to flee!\n";
 	}
 	let battle = battles[index];
@@ -999,7 +1025,7 @@ function CommandCharacter(words, C, authorId) {
 			C.INVENTORY.push(startItem("wand"));
 		}
 		if (C.CLASS == "witch") {
-			C.GOLD = 30;
+			C.GOLD = 15;
 			C.STATS[MAG] += 2;
 			C.SPELLS.push("Envenom");
 			C.INVENTORY.push(startItem("wand"));
@@ -1021,7 +1047,6 @@ function CommandCharacter(words, C, authorId) {
 
 function CommandBrew(words, C) {
 	let msg = "";
-	words = words.slice(1, words.length);
 	let potions = ["Stamina Potion", "Panacea", "Health Potion", "Warp Potion", "Fire Tincture", "Peel Tincture", "Necrosis Tincture", "Confusion Tincture"];
 	if (C.CLASS != "witch") {
 		return "*RED*Only witches can brew potions!\n";
@@ -1042,7 +1067,7 @@ function CommandBrew(words, C) {
 	if (C.INVENTORY.length >= 15 || (!C.BACKPACK && C.INVENTORY.LENGTH >= 5)) {
 		return "*RED*You don't have room in your inventory to brew a potion!\n";
 	}
-	let potionIndex = searchInList(words, potions)[1];
+	let potionIndex = searchInList(words.slice(1, words.length), potions)[1];
 	if (potionIndex == -1) {
 		return "*RED*You can't brew that!\n";
 	}
