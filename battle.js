@@ -393,6 +393,30 @@ function generateEnemies(r, zone) {
 	return enemyList;
 }
 
+function ConfigureAllies(battle) {
+	for (let i = 0; i < battle.allies.length; i++) {
+		if (battle.allies[i].CLASS == "noble") {
+			let servant = summon("servant", battle.allies[i].ROW);
+			if (battle.allies[i].SERVANT) {
+				servant.NAME = battle.allies[i].SERVANT;
+			}
+			servant.MaxHP = 30 + 10 * battle.allies[i].LEVEL;
+			servant.HP = servant.MaxHP;
+			battle.allies.push(servant);
+		}
+		if (battle.allies[i].CLASS == "witch") {
+			let familiar = summon("familiar", battle.allies[i].ROW);
+			if (battle.allies[i].FAMILIAR) {
+				familiar.NAME = battle.allies[i].FAMILIAR;
+			}
+			familiar.MASTER = battle.allies[i].ID;
+			familiar.MaxHP = 35 + 5 * battle.allies[i].LEVEL;
+			familiar.HP = familiar.MaxHP;
+			battle.allies.push(familiar);
+		}
+	}
+}
+
 function StartBattle(battle) {
 	let msg = "";
 	let lvl = 0;
@@ -403,27 +427,9 @@ function StartBattle(battle) {
 			AddEffect(battle.allies[i], "Coward's Haste", 1);
 			lvl += battle.allies[i].LEVEL;
 			battle.allies[i].STAMINA = MaxStamina(battle.allies[i]);
-			if (battle.allies[i].CLASS == "noble") {
-				let servant = summon("servant", battle.allies[i].ROW);
-				if (battle.allies[i].SERVANT) {
-					servant.NAME = battle.allies[i].SERVANT;
-				}
-				servant.MaxHP = 30 + 10 * battle.allies[i].LEVEL;
-				servant.HP = servant.MaxHP;
-				battle.allies.push(servant);
-			}
-			if (battle.allies[i].CLASS == "witch") {
-				let familiar = summon("familiar", battle.allies[i].ROW);
-				if (battle.allies[i].FAMILIAR) {
-					familiar.NAME = battle.allies[i].FAMILIAR;
-				}
-				familiar.MaxHP = 35 + 5 * battle.allies[i].LEVEL;
-				familiar.HP = familiar.MaxHP;
-				battle.allies.push(familiar);
-			}
 		}
 	}
-	
+	ConfigureAllies(battle);
 	if (battle.level == 4) {
 		msg += FinalBoss(battle);
 	}

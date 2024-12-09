@@ -132,6 +132,7 @@ function LootItem(C, battle, index) {
 		enemy.DIFFICULTY += 6 * C.LEVEL;
 		AddEffect(enemy, "resilient", 1);
 		battle.enemies.push(enemy);
+		ConfigureAllies(battle);
 		msg += HandleCombat(battle);
 		return msg;
 	}
@@ -466,6 +467,9 @@ function MaxCasts(C) {
 	}
 	if (hasRune(C, "light")) {
 		numCasts += 2;
+	}
+	if (isEquipped(C, "staff")) {
+		numCasts += 1;
 	}
 	if (hasRune(C, "focus")) {
 		return 1;

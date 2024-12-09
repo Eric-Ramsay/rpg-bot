@@ -3366,7 +3366,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			console.log("Familiar Phase: " + enemy.PHASE);
 			let witchIndex = -1;
 			for (let i = 0; i < allies.length; i++) {
-				if (allies[i].CLASS == "witch") {
+				if (enemy.MASTER == allies[i].ID) {
 					witchIndex = i;
 					break;
 				}
@@ -3384,7 +3384,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 				msg += moveInRange(enemy, targets, 1);
 				let index = findVictim(enemy.ROW, targets, 1);
 				if (index > -1) {
-					msg += "*YELLOW*The familiar scratches " + Name(targets[index]) + " with its talons!\n";
+					msg += "*YELLOW*" + P(Name(enemy)) + " scratches " + Name(targets[index]) + " with its talons!\n";
 					let result = DealDamage(new P_Attack(Math.floor(MaxHP(enemy)/10) + 3 + rand(5), 90, 50), allies, enemy, targets, targets[index]);
 					msg += result[0];
 					if (result[1] > 0) {
@@ -3395,7 +3395,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			if (enemy.PHASE == 1) {
 				msg += moveToRow(enemy, allies[witchIndex].ROW);
 				if (enemy.ROW == allies[witchIndex].ROW) {
-					msg += "*YELLOW*The Familiar transfers its life to its master!\n";
+					msg += "*YELLOW*" + P(Name(enemy)) + " transfers its life to its master!\n";
 					msg += Heal(allies[witchIndex], Math.min(20, enemy.HP * 2));
 					enemy.HP -= 10;
 				}
@@ -3406,7 +3406,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 					targetRow = allies[witchIndex].ROW;
 				}
 				msg += moveToRow(enemy, targetRow);
-				msg += "*YELLOW*The Familiar focuses on its restoration. . .\n";
+				msg += "*YELLOW*" + P(Name(enemy)) + " focuses on its restoration. . .\n";
 				msg += Heal(enemy, 10);
 				if (enemy.HP > MaxHP(enemy)/2) {
 					enemy.PHASE = 0;
@@ -3422,7 +3422,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 					msg += AddEffect(enemy, "guarding", 999, null, allies[witchIndex]);
 				}
 				if (!moved) {
-					msg += "*CYAN*The Familiar flaps its shadowy wings, sending a gust of wind towards its foes!\n";
+					msg += "*CYAN*" + P(Name(enemy)) + " flaps its shadowy wings, sending a gust of wind towards its foes!\n";
 					let pushed = false;
 					for (let i = 0; i < targets.length; i++) {
 						if (targets[i].ROW == 0) {

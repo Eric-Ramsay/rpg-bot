@@ -312,6 +312,9 @@ function deathCry(C, allies, enemies) {
 				msg += "*YELLOW*" + Prettify(Name(C)) + " dissipates into smoke. . .\n";
 			}
 		}
+		else if (C.TYPE == "Familiar") {
+			msg += "*BLUE*" + P(Name(C)) + " fades away to nothingness. . .\n";
+		}
 		else if (C.NAME == "Treasure Chest") {
 			msg += "*YELLOW*The lock on the treasure chest breaks.\n";
 		}
@@ -2632,8 +2635,8 @@ function Command(message) {
 			msg += "*CYAN*Duelist*GREY* - *GREEN*+2 WEP +1 DEX. *GREY*Start with a Scimitar and a Buckler. Attacks have +10% hit chance and +15% damage, but you can only target one specific enemy per turn.\n\n";
 			msg += "*RED*Monk*GREY* - *GREEN*+2 VIT. *GREY*Start with a quarterstaff and a Plain Cassock. Each turn, heal the lowest HP ally in your row 10% of your Max HP. You can rest at the church to recover HP. The first time you would die, instead wake up at the church with 1 HP.\n\n";
 			msg += "*CYAN*Merchant*GREY* - *GREEN*1 END. 1 AVD. *GREY*Start with *YELLOW*50 gold*GREY* and a backpack, but no weapon. You can sell items for 75% of their value rather than 50%, however you're too greedy to ever drop any items.\n\n";
-			msg += "*RED*Mage*GREY* - *GREEN*+2 MAG*GREY*. Starts with a wand and *BLUE*Arcane Strike*GREY*. Mages get 2 Max Spells and +1 Cast/Turn from each point of MAG.\n\n";
-			msg += "*CYAN*Witch*GREY* - *GREEN*+2 MAG*GREY*. Starts with a wand and *BLUE*Envenom*GREY*. Witches are accompanied by a familiar and can cheaply !brew potions and tinctures in combat. Using any potion or tincture heals 5 HP. Fire Tincures deal +3 damage per level.\n\n";
+			msg += "*RED*Mage*GREY* - *GREEN*+2 MAG*GREY*. Starts with a wand and *BLUE*Arcane Strike*GREY*. Mages get +2 Max Spells and +1 Cast/Turn from each point of MAG.\n\n";
+			msg += "*CYAN*Witch*GREY* - *GREEN*+2 MAG*GREY*. Starts with a wand and *BLUE*Envenom*GREY*. Witches are accompanied by a familiar and can cheaply !brew potions and tinctures in combat. Using any potion or tincture heals 5 HP. Fire Tinctures deal +3 damage per level.\n\n";
 			msg += "*RED*Sorcerer*GREY* - *GREEN*+1 MAG +1 END*GREY*. Starts with a quarterstaff. Sorcerers can cast magic without staves or wands. Sorcerers' spells cost 2x Stamina instead of AP.\n\n";
 		}
 		else if (keyword == "effects") {

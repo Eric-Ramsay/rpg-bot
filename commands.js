@@ -823,7 +823,7 @@ function CommandFlee(C, index) {
 	if (!firstTurn && ran >= 5 + .5 * C.STATS[AVD]) {
 		if (C.CLASS == "witch") {
 			for (const ally of battles[index].allies) {
-				if (ally.TYPE == "familiar") {
+				if (ally.TYPE == "familiar" && ally.MASTER == C.ID) {
 					ally.PHASE = 5;
 				}
 			}
@@ -1162,7 +1162,7 @@ function CommandDrink(words, C) {
 		return "*RED*You can't eat drink anything!\n";
 	}
 	if (C.STAMINA < 3) {
-		return "*RED*You don't have enough Stamina to throw a tincture!\n";
+		return "*RED*You don't have enough Stamina to drink a potion!\n";
 	}
 	if (C.INVENTORY[invIndex].type != "fish" && C.INVENTORY[invIndex].type != "potion" && C.INVENTORY[invIndex].type != "drink") {
 		return "*RED*You can't eat or drink that.\n";

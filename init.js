@@ -463,7 +463,7 @@ function initItems() {
 	items.push(new Item("Blood Staff", 			"staff",	100,	"A staff wrought of bone and inset with crystals of angelic blood. Heal +6 HP per turn. You're immune to Poison.", true));
 	items.push(new Item("Driftwood Staff",		"staff",	100,	"Your damaging spells afflict poison. For every 3 Poison Stacks on your enemies, heal +1 HP.", true));
 	items.push(new Item("Rotten Staff",			"staff",	100,	"Mushrooms sprout from this ancient staff. When an enemy dies, deal 4 true damage to all enemies.", true));
-	items.push(new Item("Staff",				"staff",	100,	"Adds +1 Damage to your spells."));
+	items.push(new Item("Staff",				"staff",	100,	"+1 Casts/Turn. Adds +1 Damage to your spells."));
 	items.push(new Item("Scepter",				"staff",	100,	"Spells have a 20% Chance to not use AP."));
 	
 	items.push(new Item("Fishing Pole",			"pole",		50,		"A strong fishing pole, hand-crafted by Gout. It's capable of catching just about anything."));
