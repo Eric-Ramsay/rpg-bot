@@ -29,7 +29,10 @@ Enemy Ideas
 
 Rune Ideas
 ==========
-Death Mark should be a debuff rather than a proc
+- Rune that TP's you to the row you casted a spell in, and deals dmg for how far you traveled.
+
+
+
 
 Other Ideas
 ===========
@@ -95,4 +98,15 @@ Patch Notes
 - You have to go to town to sell items; items left in a dungeon will vanish if all players leave the dungeon
 - There's now a bank to deposit items at
 
+
+
+TO DO:
+------
+Add 2 more magic runes
+
+Patch Notes
+- Moved tomes/scrolls to a library in the Town Square
+- Once a zone becomes enraged, it will remain enraged until defeated
+- Summons/Servants/Familiars will now add their Dmg & Kills to a player's report
+- 3 new magic runes
 	

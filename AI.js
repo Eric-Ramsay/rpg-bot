@@ -42,8 +42,10 @@ function findVictim(row, targets, range, type = "random", ignoreWeak = false) {
 				strongest = i;
 			}
 			if (Math.abs(targets[i].ROW - row) < range) {
-				inRange.push(i);
-				numTargets++;
+				if (type != "player" || targets[i].TYPE == "player") {
+					inRange.push(i);
+					numTargets++;
+				}
 			}
 		}
 	}
@@ -260,13 +262,17 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			}
 		}
 		if (enemy.TYPE != "boss" && hasEffect(enemy, "terrified") && enemy.MOVES > 0) {
-			if (enemy.ROW == 4) {
+			let escapeRow = 4;
+			if (enemy.TYPE == "player" || enemy.TYPE == "servant" || enemy.TYPE == "familiar") {
+				escapeRow = 0;
+			}
+			if (enemy.ROW == escapeRow) {
 				msg += "*PINK*" + name + " flees the battle!\n";
 				allies.splice(enemyIndex, 1);
 			}
 			else {
 				msg += "*PINK*" + name + " flees in terror!\n";
-				msg += moveToRow(enemy, 4);
+				msg += moveToRow(enemy, escapeRow);
 			}
 		}
 		else if (eName == "Swarm of Bats") {
@@ -423,7 +429,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 				if (indexOne > -1) {
 					msg += "*PINK*The Mechanical Guardsman unleashes a flurry of powerful slashes!\n";
 					for (let i = 0; i < 3; i++) {
-						msg += DealDamage(new P_Attack(17 + rand(6), 85, 30), allies, enemy, targets, targets[indexOne]);
+						msg += DealDamage(new P_Attack(17 + rand(6), 85, 30), allies, enemy, targets, targets[indexOne])[0];
 					}
 				}
 				else if (indexOne > -1) {
@@ -940,11 +946,11 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			else {
 				let ran = rand(3);
 				if (indexThree > -1 && ran == 0) {
-					msg += "*PINK*The ogre picks up a stone and hurls it!\n";
+					msg += "*PINK*The Ogre picks up a stone and hurls it!\n";
 					msg += DealDamage(new P_Attack(6 + rand(5), 75, 50), allies, enemy, targets, targets[indexThree])[0];
 				}
 				else if (ran == 1) {
-					msg += "*PINK*The ogre bellows and strikes the ground with their club, knocking everyone to the ground!\n";
+					msg += "*PINK*The Ogre bellows and strikes the ground with their club, knocking everyone to the ground!\n";
 					for (let i = 0; i < targets.length; i++) {
 						msg += AddEffect(targets[i], "slowed", 1, enemy);
 						msg += AddEffect(targets[i], "vulnerable", 1, enemy);
@@ -953,14 +959,6 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 				else {
 					msg += moveInRange(enemy, targets, 1);
 				}	
-			}
-		}
-		else if (eName == "Old Wolf") {
-			if (enemy.HP <= 10) {
-				msg += moveAttack(allies, enemy, targets, new Attack("bites savagely at", 16 + rand(13), 85))[0];
-			}
-			else {
-				msg += moveAttack(allies, enemy, targets, new Attack("bites", 8 + rand(9), 65, 0, 2))[0];
 			}
 		}
 		else if (eName == "Mushroom Mage") {
@@ -1348,7 +1346,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			}
 		}
 		else if (eName == "Mossy Statue") {
-			if (enemy.PHASE < 3) {
+			if (enemy.PHASE < 2) {
 				let options = [
 					"*YELLOW*The statue seems to hum. . .\n",
 					"*YELLOW*The statue seems alive. . .\n",
@@ -2150,7 +2148,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			if (!hasAttacked) {
 				let result = moveAttack(allies, enemy, targets, new Attack("bites", 8 + rand(7), 85));
 				msg += result[0];
-				if (result[1]) {
+				if (result[1] > 0) {
 					msg += AddEffect(result[1], "Bleed", 1, enemy);
 				}
 			}
@@ -2335,7 +2333,11 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			let index = findVictim(enemy.ROW, targets, 3);
 			if (index > -1) {
 				msg += "*PINK*" + name + " sprays a strong jet of water at " + Name(targets[index]) + "!\n";
-				msg += DealDamage(new P_Attack(8 + rand(9), 90), allies,enemy, targets, targets[index])[0];
+				let result = DealDamage(new P_Attack(15 + rand(9), 90), allies,enemy, targets, targets[index]);
+				msg += result[0];
+				if (result[1] > 0) {
+					msg += PushTarget(enemy, targets[index]);
+				}
 			}
 			else {
 				msg += moveInRange(enemy, targets, 3, "kite");
@@ -2373,7 +2375,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			if (enemy.HP < enemy.MaxHP || rand(10) == 0) {
 				let result = moveAttack(allies, enemy, targets, new Attack("stings", 2 + rand(7), 85));
 				msg += result[0];
-				if (result[1]) {
+				if (result[1] > 0) {
 					msg += AddEffect(result[1], "Venom", 1, enemy);	
 				}
 			}
@@ -2544,34 +2546,56 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			}
 		}
 		else if (eName == "Deep Horror") {
+			let numTargets = 0;
 			for (let i = 0; i < targets.length; i++) {
-				if (Math.abs(targets[i].ROW - enemy.ROW) < 2) {
-					msg += "*PINK*" + Prettify(Name(targets[i])) + " is sucked into the Pressure Field!\n";
-					msg += DealDamage(new M_Attack(8), allies, enemy, targets, targets[i])[0];
+				if (targets[i].ROW == enemy.ROW) {
+					msg += DealDamage(new T_Attack(4 + rand(6) + MaxHP(targets[i]) * .1), allies, enemy, targets, targets[i])[0];
+					AddEffect(targets[i], "slowed", 1, enemy);
 					targets[i].ROW = enemy.ROW;
 				}
 			}
-			let ran = rand(3);
-			if (ran == 0) {
-				let possible = [];
-				for (let i = 0; i < targets.length; i++) {
-					if (Math.abs(targets[i].ROW - enemy.ROW) > 2) {
-						possible.push(i);
+			if (numTargets > 0) {
+				msg = "*BLUE*Those near the Deep Horror are slowed and crushed in its pressure field!\n" + msg;
+			}
+			if (enemy.PHASE == 0 && enemy.HP < MaxHP(enemy)/2) {
+				msg += "*BLUE*" + name + " augments its pressure field to resist attacks!\n";
+				msg += AddEffect(enemy, "resilient", 3);
+			}
+			let indexOne = findVictim(enemy.ROW, targets, 1, "player");
+			let indexFive = findVictim(enemy.ROW, targets, 5, "player");
+			if (indexOne > -1) {
+				msg += "*BLUE*" + name + " crushes " + Name(targets[indexOne]) + "!\n";
+				let result = DealDamage(new M_Attack(15 + rand(6) + MaxHP(targets[indexOne]) * .2, 30), allies, enemy, targets, targets[indexOne]);
+				msg += result[0];
+				if (result[1] > 0) {
+					msg += AddEffect(targets[indexOne], "weakened", 3, enemy);
+				}
+			}
+			else {
+				if (indexFive == -1) {
+					indexFive = findVictim(enemy.ROW, targets, 5, "strong");
+				}
+				if (indexFive > -1) {
+					let ran = rand(2);
+					let dmg = 12 + rand(7) + MaxHP(targets[indexFive]) * .1;
+					let text = [
+						"A shadow extends from the distorted field around the Deep Horror!",
+						"A terrible, rumbling sound emits from the Deep Horror as its casts an ancient spell."
+					];
+					msg += "*BLUE*" + text[ran] + "\n";
+					if (ran == 0) {
+						dmg *= 2;
+					}
+					let result = DealDamage(new M_Attack(dmg, 30), allies, enemy, targets, targets[indexFive]);
+					msg += result[0];
+					if (result[1] > 0 && ran == 1) {
+						msg += "*BLUE*" + Name(targets[indexFive]) + " is pulled toward the Deep Horror!\n";
+						targets[indexFive].ROW = enemy.ROW;
+						msg += AddEffect(targets[indexFive], "rooted", 1, enemy);
 					}
 				}
-				if (possible.length > 0) {
-					let index = rand(possible.length);
-					msg += "*PINK*" + name + " augments its pressure field to pull " + Name(targets[index]) + " closer!\n";
-					msg += DealDamage(new M_Attack(8), allies, enemy, targets, targets[index])[0];
-					targets[index].ROW = enemy.ROW;
-				}
-				else {
-					ran = 1;
-				}
 			}
-			if (ran != 0) {
-				msg += moveAttack(allies, enemy, targets, new Attack("crushes", 10 + rand(7), 100, 1))[0];
-			}
+			msg += moveInRange(enemy, targets, 1);
 		}
 		else if (eName == "Kurita") {
 			let numAllies = 0;
@@ -2695,7 +2719,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			if (ran == 0) {
 				let result = moveAttack(allies, enemy, targets, new Attack("tears into", 4 + rand(7), 80, 0, 3));
 				msg += result[0];
-				if (result[1]) {
+				if (result[1] > 0) {
 					msg += AddEffect(result[1], "Bleed", 3, enemy);
 				}
 			}
@@ -2705,7 +2729,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 			else {
 				let result = moveAttack(allies, enemy, targets, new Attack("swipes their massive tail at", 10 + rand(9), 90, 0, 1, 2, 50));
 				msg += result[0];
-				if (result[1]) {
+				if (result[1] > 0) {
 					if (result[1].TYPE == "player") {
 						msg += AddEffect(result[1], "winded", 3, enemy);
 						result[1].STAMINA = Math.max(0, result[1].STAMINA - 20);
@@ -3272,7 +3296,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 						enemy.EFFECTS = [];
 						msg += prefix + "I'm still thankful that you freed me. I'm sorry it has to end like this.\n\n";
 						msg += "*CYAN*The dirt glows beneath the Beautiful Woman's hand, and an ancient weapon materializes from the earth. It is a strange whip, with the head of a mace, flanged by axe blades. It seems familiar to her.\n\n";
-						msg += AddEffect(enemy, "deliverance", 999, null, null, 25);
+						msg += StackEffect(enemy, 25, "deliverance");
 						msg += Heal(enemy, 75);
 						enemy.PHASE++;
 					}
@@ -3419,7 +3443,7 @@ function enemyAttack(enemyIndex, allies, targets, deadAllies = [], deadTargets =
 					moved = true;
 				}
 				if (allies[witchIndex].ROW == enemy.ROW) {
-					msg += AddEffect(enemy, "guarding", 999, null, allies[witchIndex]);
+					msg += AddEffect(enemy, "guarding", 999, enemy, allies[witchIndex]);
 				}
 				if (!moved) {
 					msg += "*CYAN*" + P(Name(enemy)) + " flaps its shadowy wings, sending a gust of wind towards its foes!\n";

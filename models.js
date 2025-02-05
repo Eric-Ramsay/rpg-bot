@@ -4,6 +4,8 @@ function Report() {
 	this.damage = 0;
 	this.taken = 0;
 	this.mitigated = 0;
+	this.minionDamage = 0;
+	this.minionKills = 0;
 }
 
 function initDialogueHandler() {
@@ -16,7 +18,8 @@ function initDialogueHandler() {
 
 function DialogueHandler() {
 	this.RELATIONS = new function(){}
-	this.EVENTS = [];
+	this.EVENTS = new function(){}
+	this.DATA = null;
 	this.STEP = null;
 }
 
@@ -70,6 +73,7 @@ function Character() {
 	this.EVENTS = [];
 	this.EVENT = null;
 	
+	this.NUM_FISH = 0;
 	this.FISH = [];
 	this.FISH_REWARDS = [];
 	
@@ -77,6 +81,88 @@ function Character() {
 	
 	this.DIED = false;
 	this.TARGET_ID = "";
+	
+	this.AddEffect = function(eName, duration, causedBy = null, stacks = 1, target = null) {
+		let msg = "";
+		let name = Prettify(Name(this));
+		let effect = null
+		eName = eName.toLowerCase();
+		for (let i = 0; i < effects.length; i++) {
+			if (effects[i].name.toLowerCase() == eName) {
+				effect = COPY(effects[i]);
+				break;
+			}
+		}
+		
+		if (!causedBy) {
+			effect.causedBy = this.ID;
+		}
+		else {
+			effect.causedBy = causedBy.ID;
+		}
+		
+		let immune = false;
+		if (this.TYPE == "boss") {
+			if (eName == "stunned") {
+				immune = true;
+			}
+		}
+		if (eName == "poison" && isEquipped(this, "blood staff")) {
+			immune = true;
+		}
+		if (this.TYPE == "construction") {
+			if (eName == "terrified" || eName == "whipped" || eName == "bleed" || eName == "venom" || eName == "poison" || eName == "blinded") {
+				immune = true;
+			}
+		}
+		if (this.TYPE == "evil") {
+			if (eName == "whipped" || eName == "bleed") {
+				immune = true;
+			}
+		}
+		if (this.TYPE == "plant" && eName == "blinded") {
+			immune = true;
+		}
+		if (immune) {
+			return "*RED*" + name + " is immune to the effect '" + effect.name + "'!\n";
+		}
+		
+		effect.target = target;
+		let printName = effect.name;
+		if (effect.target) {
+			printName += " " + effect.target.NAME;
+		}
+		for (let i = 0; i < this.EFFECTS.length; i++) {
+			if (this.EFFECTS[i].name.toLowerCase() == eName) {
+				if (eName == "stunned") {
+					return "*RED*" + name + " is immune to the effect '" + printName + "'!\n";
+				}
+				if ((!this.EFFECTS[i].target && !target) || this.EFFECTS[i].target.ID == target.ID) {
+					this.EFFECTS[i].duration = Math.max(this.EFFECTS[i].duration, duration);
+					if (effect.stackable) {
+						this.EFFECTS[i].stacks += stacks;
+						if (effect.type == "buff") {
+							msg = "*CYAN*" + name + " gains the effect '*GREY*" + printName + "*CYAN*'!\n";
+						}
+						else {
+							msg = "*CYAN*" + name + " is afflicted with the effect '*GREY*" + printName + "*CYAN*'!\n";
+						}
+					}
+					return msg;
+				}
+			}
+		}
+		if (effect.type == "buff") {
+			msg = "*CYAN*" + name + " is buffed with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
+		}
+		else {
+			msg = "*CYAN*" + name + " is afflicted with the effect '*GREY*" + effect.name + "*CYAN*'!\n";
+		}
+		effect.stacks = stacks;
+		effect.duration = duration;
+		this.EFFECTS.push(effect);
+		return msg;
+	}
 }
 
 function Effect(name, type, description, stackable = false) {
@@ -87,6 +173,7 @@ function Effect(name, type, description, stackable = false) {
 	this.target = null;
 	this.duration = 1;
 	this.stacks = 1;
+	this.causedBy = "";
 }
 
 function Battle(parent) {
@@ -208,11 +295,16 @@ function DeathReport(name, cl, lvl, report, desc = "", death = "") {
 	this.REPORT = report;
 }
 
+function Zone() {
+	this.statues = [];
+	this.enraged = false;
+}
+
 function Town() {
 	this.prosperity = 0;
 	this.quests = [];
 	this.graves = [];
-	this.statues = [];
+	this.zones = [];
 	this.retired = [];
 }
 

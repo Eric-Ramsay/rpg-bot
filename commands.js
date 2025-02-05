@@ -47,7 +47,7 @@ function ListCommands(C, index) {
 			"!start *GREY*- Start combat once you've entered a dungeon. No one will be able to join you after this.",
 			"!end *GREY*- Ends your turn.",
 			"!move LEFT/RIGHT *GREY*- Moves left or right a row. Costs 3 AP.",
-			"!drink POTION *GREY*- Drinks a potion. Costs 3 Stamina.",
+			"!drink POTION *GREY*- Drinks a potion. Costs 3 Stamina. You could !chug instead to use AP.",
 			"!eat FISH *GREY*- Eats a fish.",
 			"!throw TINCTURE *GREY*- Throws a tincture at an enemy within 3 tiles. Costs 3 Stamina.",
 			"!effects *GREY*- Lists effects on you.",
@@ -75,24 +75,28 @@ function CommandDescribe(words, C, battleIndex) {
 	}
 	let index = -1;
 	words = words.slice(1, words.length);
+	let room = getLocation(C);
 	let args = words.join(" ");
 	if (words.length >= 3 && words[0] == "statue" && words[1] == "of") {
 		args = words.slice(2, words.length).join(" ");
-		let statues = data["town"].statues;
-		for (const statue of statues) {
-			if (statue.NAME.toLowerCase() == args) {
-				let msg = "*GREEN*" + statue.NAME + "*GREY* the *BLUE*" + Prettify(statue.CLASS) + "\n*GREY*";
-				if (statue.DESCRIPTION != "") {
-					msg += statue.DESCRIPTION + "\n";
+		let zone = getZone(room.id);
+		if (zone > -1) {
+			let statues = data["town"].zones[zone].statues;
+			for (const statue of statues) {
+				if (statue.NAME.toLowerCase() == args) {
+					let msg = "*GREEN*" + statue.NAME + "*GREY* the *BLUE*" + Prettify(statue.CLASS) + "\n*GREY*";
+					if (statue.DESCRIPTION != "") {
+						msg += statue.DESCRIPTION + "\n";
+					}
+					msg += "\n";
+					msg += "*YELLOW*Gold Earned: " + statue.REPORT.gold + "\n";
+					msg += "*CYAN*Damage Taken: " + statue.REPORT.taken + "\n";
+					msg += "*GREEN*Damage Mitigated: " + statue.REPORT.mitigated + "\n";
+					msg += "*PINK*Damage Dealt: " + statue.REPORT.damage + "\n";
+					msg += "*RED*Kills: " + statue.REPORT.kills + "\n";
+					msg += "\n*GREY*This statue was erected in honor of the slaying of the *RED*" + statue.DEATH;
+					return msg;
 				}
-				msg += "\n";
-				msg += "*YELLOW*Gold Earned: " + statue.REPORT.gold + "\n";
-				msg += "*CYAN*Damage Taken: " + statue.REPORT.taken + "\n";
-				msg += "*GREEN*Damage Mitigated: " + statue.REPORT.mitigated + "\n";
-				msg += "*PINK*Damage Dealt: " + statue.REPORT.damage + "\n";
-				msg += "*RED*Kills: " + statue.REPORT.kills + "\n";
-				msg += "\n*GREY*This statue was erected in honor of the slaying of the *RED*" + statue.DEATH;
-				return msg;
 			}
 		}
 		return "*RED*Couldn't find that statue.\n";
@@ -157,14 +161,7 @@ function CommandDescribe(words, C, battleIndex) {
 		if (index >= 0) {
 			return ItemDescription(C, items[index]);
 		}
-		let NPCList = [];
-		let room;
-		for (let i = 0; i < locations.length; i++) {
-			if (locations[i].id.toLowerCase() == C.LOCATION.toLowerCase()) {
-				room = locations[i];
-				NPCList = room.people
-			}
-		}
+		let NPCList = room.people;
 		if (C.BUILDING != "") {
 			let building = findBuilding(C.BUILDING);
 			NPCList = building.people;
@@ -202,31 +199,38 @@ function CommandStats(C) {
 
 function CommandStart(C, index) {
 	let msg = "";
-	if (index > -1 && !battles[index].started) {
-		let ran = rand(20);
-		if (ran == 0) {
-			prepMerchant();
-			msg += "*YELLOW*You find yourself in a strange place. . .\n\n";
-			for (let i = battles[index].allies.length - 1; i >= 0; i--) {
-				if (battles[index].allies[i].TYPE == "player") {
-					battles[index].allies[i].LOCATION = "A Strange Clearing";
-				}
+	if (battles[index].started) {
+		return "*RED*This battle has already begun.\n";
+	}
+	let spawnEnemies = true;
+	if (battles[index].enemies.length > 0) {
+		spawnEnemies = false;
+	}
+	let ran = rand(20);
+	if (spawnEnemies && ran == 0) {
+		prepMerchant();
+		msg += "*YELLOW*You find yourself in a strange place. . .\n\n";
+		for (let i = battles[index].allies.length - 1; i >= 0; i--) {
+			if (battles[index].allies[i].TYPE == "player") {
+				battles[index].allies[i].LOCATION = "A Strange Clearing";
 			}
-			battles[index].allies = [];
-			msg += RoomDescription(C);
 		}
-		else {
-			battles[index].started = true;
-			battles[index].allyTurn = true;
+		battles[index].allies = [];
+		msg += RoomDescription(C);
+	}
+	else {
+		battles[index].started = true;
+		battles[index].allyTurn = true;
+		if (spawnEnemies) {
 			msg += StartBattle(battles[index]);
-			msg += StartTurn(battles[index], battles[index].allies, battles[index].enemies, battles[index].deadAllies, battles[index].deadEnemies);
-			for (let i = 0; i < battles[index].allies.length; i++) {
-				if (battles[index].allies.TYPE == "player") {
-					battles[index].allies.STAMINA = MaxStamina(battles[index].allies);
-				}
-			}
-			msg += HandleCombat(battles[index]);
 		}
+		msg += StartTurn(battles[index], "P");
+		for (let i = 0; i < battles[index].allies.length; i++) {
+			if (battles[index].allies.TYPE == "player") {
+				battles[index].allies.STAMINA = MaxStamina(battles[index].allies);
+			}
+		}
+		msg += HandleCombat(battles[index]);
 	}
 	return msg;
 }
@@ -258,9 +262,6 @@ function CommandDelve(C, index) {
 		return "*RED*You can't delve here!";
 	}
 	msg += C.NAME + " is *RED*delving*GREY* into *RED*" + location.id + "\n\n";
-	let locationNames = ["The Haunted Crypts", "The Acrid Swamp", "The Wilted Woods", "The Stony Island"];
-	console.log(location.id);
-	let zone = locationNames.indexOf(location.id);
 	let found = false;
 	for (let i = 0; i < battles.length; i++) {
 		if (battles[i].parent == location.id && !battles[i].started) {
@@ -271,7 +272,7 @@ function CommandDelve(C, index) {
 	if (!found) {
 		let battle = new Battle(location.id);
 		battle.location = location.id;
-		battle.zone = zone;
+		battle.zone = getZone(location.id);
 		battle.allies.push(C);
 		battles.push(battle);
 	}
@@ -838,6 +839,7 @@ function CommandFlee(C, index) {
 		}
 	}
 	msg = "*YELLOW*" + C.NAME + " flees from the battle!\n";
+	HandleCombat(battle);
 	return msg;
 }
 
@@ -1047,7 +1049,7 @@ function CommandCharacter(words, C, authorId) {
 
 function CommandBrew(words, C) {
 	let msg = "";
-	let potions = ["Stamina Potion", "Panacea", "Health Potion", "Warp Potion", "Fire Tincture", "Peel Tincture", "Necrosis Tincture", "Confusion Tincture"];
+	let potions = ["Stamina Potion", "Panacea", "Health Potion", "Haste Potion", "Warp Potion", "Fire Tincture", "Peel Tincture", "Necrosis Tincture", "Confusion Tincture"];
 	if (C.CLASS != "witch") {
 		return "*RED*Only witches can brew potions!\n";
 	}
@@ -1125,11 +1127,25 @@ function CommandThrow(words, C, battleIndex) {
 	let name = C.INVENTORY[invIndex].name.toLowerCase();
 	if (name == "fire tincture") {
 		msg += "*YELLOW*The tincture bursts into shimmering orange flames, burning " + Name(battle.enemies[index]) + "!\n";
-		let tinctureDamage = 25;
-		if (C.CLASS == "witch") {
-			tinctureDamage += 3 * C.LEVEL;
-		}
+		let tinctureDamage = 30;
 		msg += DealDamage(new M_Attack(tinctureDamage), battle.allies, C, battle.enemies, battle.enemies[index])[0];
+		HandleCombat(battle);
+	}
+	if (name == "polymorph tincture") {
+		let animals = [];
+		for (let i = 0; i < enemies.length; i++) {
+			if (enemies[i].TYPE == "animal") {
+				animals.push(enemies[i]);
+				if (enemies[i].DIFFICULTY <= battle.enemies[index].DIFFICULTY) {
+					animals.push(enemies[i]);
+				}
+			}
+		}
+		let animal = animals[rand(animals.length)];
+		msg += "*YELLOW*" + P(Name(battle.enemies[index])) + " transforms into " + an(animal.NAME) + "*PINK* " + animal.NAME + "*YELLOW*!\n"; 
+		let hpMultiplier = battle.enemies[index].HP/MaxHP(battle.enemies[index]);
+		animal.HP = Math.max(1, Math.floor(hpMultiplier * MaxHP(animal)));
+		battle.enemies[index] = animal;
 	}
 	if (name == "peel tincture") {
 		msg += "*YELLOW*The tincture spreads over " + Name(battle.enemies[index]) + ", temporarily softening their armor!\n";
@@ -1151,7 +1167,7 @@ function CommandThrow(words, C, battleIndex) {
 	return msg;
 }
 
-function CommandDrink(words, C) {
+function CommandDrink(words, C, chug = false) {
 	let msg = "";
 	let args = words.slice(1, words.length).join(" ");
 	let invIndex = findItem(C.INVENTORY, args);
@@ -1161,8 +1177,11 @@ function CommandDrink(words, C) {
 	if (hasEffect(C, "parched")) {
 		return "*RED*You can't eat drink anything!\n";
 	}
-	if (C.STAMINA < 3) {
-		return "*RED*You don't have enough Stamina to drink a potion!\n";
+	if (chug && C.AP < 3) {
+		return "*RED*You don't have enough AP to drink a potion! Try !drink to use Stamina instead.\n";
+	}
+	if (!chug && C.STAMINA < 3) {
+		return "*RED*You don't have enough Stamina to drink a potion! Try !chug to use AP instead.\n";
 	}
 	if (C.INVENTORY[invIndex].type != "fish" && C.INVENTORY[invIndex].type != "potion" && C.INVENTORY[invIndex].type != "drink") {
 		return "*RED*You can't eat or drink that.\n";
@@ -1176,14 +1195,14 @@ function CommandDrink(words, C) {
 	if (name == "tears of a god") {
 		msg += AddEffect(C, "invincible", 1);
 	}
-	if (name == "potion of wrath") {
+	if (name == "rage potion") {
 		msg += AddEffect(C, "enraged", 2);
 	}
 	if (C.INVENTORY[invIndex].type == "fish") {
 		let ran = rand(40);
 		if (ran == 0) {
 			msg = "*RED*Disgusting! You feel something writhing in your mouth and see the fish was full of worms!\n";
-			msg += AddEffect(C, "Infested", 999, null, 3);
+			msg += StackEffect(C, 3, "Infested");
 		}
 		else {
 			let dialogue = ["Delicious!", "Delectable!", "Scrumptious!", "Sumptuous!", "Delightful!"];
@@ -1265,7 +1284,12 @@ function CommandDrink(words, C) {
 	if (C.CLASS == "witch" && C.INVENTORY[invIndex].type == "potion") {
 		msg += Heal(C, 5);
 	}
-	C.STAMINA -= 3;
+	if (chug) {
+		C.AP -= 3;
+	}
+	else {
+		C.STAMINA -= 3;
+	}
 	RemoveItem(C, invIndex);
 	return msg;
 }
@@ -1280,7 +1304,7 @@ function CommandReply(words, C) {
 	let i = 0;
 	for (const reply of C.DIALOGUE.STEP.responses) {
 		let step = findStep(C.DIALOGUE.STEP.speaker, reply);
-		if (i++ === index || args.toLowerCase() == step.text) {
+		if (i++ === index || args.toLowerCase() == step.text.toLowerCase()) {
 			C.DIALOGUE.STEP = step;
 			return ProcessDialogue(C);
 		}
@@ -1319,14 +1343,7 @@ function CommandTalk(words, C) {
 		if (dialogue.speaker == NPC.NAME) {
 			if (dialogue.condition(C)) {
 				dialogue.init(C);
-				let msg = ProcessDialogue(C);
-				let i = 1;
-				for (const response of C.DIALOGUE.STEP.responses) {
-					let step = findStep(C.DIALOGUE.STEP.speaker, response);
-					msg += "\n*WHITE*" + i++ + " *BLACK*- *YELLOW*" + step.text;
-				}
-				msg += "\n";
-				return msg;
+				return ProcessDialogue(C);
 			}
 		}
 	}
@@ -1380,6 +1397,9 @@ function CommandDrop(words, C, index) {
 	let msg = "";
 	let args = words.slice(1, words.length).join(" ");
 	let invIndex = findItem(C.INVENTORY, args, true);
+	if (C.CLASS == "merchant") {
+		return "*RED*After all why not? Why shouldn't you keep it?\n";
+	}
 	if (invIndex == -1 || invIndex > C.INVENTORY.length) {
 		return "*RED*Can't find item '" + args + "'\n";
 	}
@@ -1723,6 +1743,7 @@ function CommandFish(C, message) {
 				data[message.author.id].CATCH = null;
 				let fish = event.fish;
 				msg += "*GREEN*You caught a fish! *GREY*It's " + an(fish.name) + " *YELLOW*" + fish.name + "*GREY*!\n";
+				C.NUM_FISH++;
 				msg += ItemDescription(C, fish) + "\n";
 				if (!CanTake(C, fish)) {
 					return "*RED*You don't have room in your inventory for the fish! It gets away!\n";

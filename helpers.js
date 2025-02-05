@@ -249,7 +249,11 @@ function resetPercent(C, hand) {
 	C.ATTEMPTS[hand] = 1;
 }
 
-function AddEffect(C, eName, duration, attacker = null, target = null, stacks = 1) {
+function StackEffect(C, stacks, eName, duration = 999, causedBy = null, target = null) {
+	return AddEffect(C, eName, duration, causedBy, target, stacks);
+}
+
+function AddEffect(C, eName, duration = 999, causedBy = null, target = null, stacks = 1) {
 	let msg = "";
 	let name = Prettify(Name(C));
 	let effect = null
@@ -261,8 +265,12 @@ function AddEffect(C, eName, duration, attacker = null, target = null, stacks = 
 		}
 	}
 	
-	if (attacker != null && effect.type == "debuff" && hasRune(C, "equality")) {
-		msg += AddEffect(attacker, eName, duration, null, target, stacks) + "\n";
+	if (!causedBy) {
+		causedBy = C;
+		effect.causedBy = C.ID;
+	}
+	else {
+		effect.causedBy = causedBy.ID;
 	}
 	
 	let immune = false;
@@ -287,7 +295,7 @@ function AddEffect(C, eName, duration, attacker = null, target = null, stacks = 
 	if (C.TYPE == "plant" && eName == "blinded") {
 		immune = true;
 	}
-	if (immune) {
+	if (immune && !hasRune(causedBy, "infection")) {
 		return "*RED*" + name + " is immune to the effect '" + effect.name + "'!\n";
 	}
 	
@@ -377,7 +385,7 @@ function maxRunes(item) {
 		max = 5;
 	}
 	else if (item.type == "staff") {
-		max = 4;
+		max = 5;
 		if (item.name.toLowerCase() == "wand") {
 			max = 1;
 		}
@@ -555,7 +563,7 @@ function prepMerchant() {
 			rareItems.push(items[i].name);
 		}
 	}
-	for (let i = 0; i < 3; i++) {
+	for (let i = 0; i < 4; i++) {
 		let ran = rand(rareItems.length);
 		inventory.push(rareItems[ran]);
 		rareItems.splice(ran, 1);
@@ -945,6 +953,25 @@ function M_Armor(C) {
 	return armor;
 }
 
+function getLocation(C) {
+	for (let i = 0; i < locations.length; i++) {
+		if (locations[i].id.toLowerCase() == C.LOCATION.toLowerCase()) {
+			return locations[i];
+		}
+	}
+	return locations[0];
+}
+
+function zoneName(zone) {
+	let locationNames = ["the Haunted Crypts", "the Acrid Swamp", "the Wilted Woods", "the Stony Island"]
+	return locationNames[zone];
+}
+
+function getZone(locationId) {
+	let locationNames = ["the haunted crypts", "the acrid swamp", "the wilted woods", "the stony island"];
+	return locationNames.indexOf(locationId.toLowerCase());
+}
+
 function MaxHP(C) {
 	if (C.TYPE != "player") {
 		return C.MaxHP;
@@ -970,6 +997,9 @@ function MaxAP(C) {
 				bonus -= C.INVENTORY[i].AP;
 			}
 		}
+	}
+	if (hasRune(C, "Arcana")) {
+		bonus += Math.floor(C.STATS[MAG]/2) * 3;
 	}
 	return bonus + 6 + C.STATS[DEX] * 3 + C.STATS[AVD];
 	
